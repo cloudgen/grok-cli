@@ -14,8 +14,6 @@ run_test_cli() {
 
     require_cmd sh
     require_cmd grep
-    require_cmd tar
-
     # TP-CLI-01 syntax
     sh -n "${SCRIPT}"
     assert_eq "TP-CLI-01 sh -n ship unit" 0 "$?"
@@ -40,10 +38,13 @@ run_test_cli() {
     _ec=$?
     assert_eq "TP-CLI-04 help exit 0" 0 "$_ec"
     assert_contains "TP-CLI-04 help install" "$_out" "install"
+    assert_contains "TP-CLI-04 help menu" "$_out" "menu"
     assert_contains "TP-CLI-04 help uninstall" "$_out" "uninstall"
     assert_contains "TP-CLI-04 help where-is-me" "$_out" "where-is-me"
     assert_contains "TP-CLI-04 help backup" "$_out" "backup"
-    assert_contains "TP-CLI-04 help restore" "$_out" "restore"
+    assert_contains "TP-CLI-04 help check-session" "$_out" "check-session"
+    assert_contains "TP-CLI-04 help sync-auth" "$_out" "sync-auth"
+    assert_not_contains "TP-CLI-04 help no restore" "$_out" "restore <"
     assert_contains "TP-CLI-04 help print-sudoers" "$_out" "print-sudoers"
     assert_contains "TP-CLI-04 help install-script" "$_out" "print-sudoers-install-script"
     assert_contains "TP-CLI-04 help remove-project-sudoers" "$_out" "remove-project-sudoers"
@@ -53,7 +54,7 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help --update" "$_out" "--update"
     assert_contains "TP-CLI-04 help --add" "$_out" "--add"
     assert_contains "TP-CLI-04 help SUDOER_PUBLIC_ROOT" "$_out" "SUDOER_PUBLIC_ROOT"
-    assert_contains "TP-CLI-04 help hard-disk default" "$_out" "hard-disk"
+    assert_contains "TP-CLI-04 help GROK_CLI_ROOT" "$_out" "GROK_CLI_ROOT"
     assert_contains "TP-CLI-04 help --json" "$_out" "--json"
     assert_not_contains "TP-CLI-04 no self-update" "$_out" "self-update"
     assert_not_contains "TP-CLI-04 no self-uninstall" "$_out" "self-uninstall"
@@ -72,13 +73,13 @@ run_test_cli() {
     assert_eq "TP-CLI-06 about --json exit 0" 0 "$_ec"
     assert_contains "TP-CLI-06 type about" "$_out" '"type":"about"'
     assert_contains "TP-CLI-06 effective_storage" "$_out" '"effective_storage"'
-    assert_contains "TP-CLI-06 backup_notation" "$_out" '"backup_notation"'
+    assert_contains "TP-CLI-06 grok_cli_root" "$_out" '"grok_cli_root"'
     assert_contains "TP-CLI-06 deposit_dir" "$_out" '"deposit_dir"'
+    assert_contains "TP-CLI-06 session" "$_out" '"session"'
     assert_contains "TP-CLI-06 sudoer_cli" "$_out" '"sudoer_cli"'
     assert_contains "TP-CLI-06 sudoer_adm" "$_out" '"sudoer_adm"'
     assert_contains "TP-CLI-06 sudoer_inbound" "$_out" '"sudoer_inbound"'
     assert_contains "TP-CLI-06 host_sudoers_present" "$_out" '"host_sudoers_present"'
-    assert_contains "TP-CLI-06 restore_host_default" "$_out" '"restore_host_default"'
     assert_not_contains "TP-CLI-06 no CHECKSUM" "$_out" "CHECKSUM"
     assert_not_contains "TP-CLI-06 no SCRIPT_URL" "$_out" "SCRIPT_URL"
 
@@ -136,4 +137,198 @@ run_test_cli() {
         t_fail "TP-CLI-12 effective_storage missing: '${_eff:-empty}'"
     fi
     ci_cleanup_env
+
+    # TP-CLI-13 menu/main: off-TTY help; empty argv stays help; TTY numbered list
+    _out=$(sh "${SCRIPT}" menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-13 menu off-TTY exit 0" 0 "$_ec"
+    assert_contains "TP-CLI-13 menu off-TTY is help" "$_out" "Usage:"
+    assert_not_contains "TP-CLI-13 menu off-TTY not the numbered list" "$_out" "9. Exit"
+
+    _out=$(sh "${SCRIPT}" main 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-13 main off-TTY exit 0" 0 "$_ec"
+    assert_contains "TP-CLI-13 main off-TTY is help" "$_out" "Usage:"
+
+    _out=$(sh "${SCRIPT}" --json menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-13 menu --json off-TTY exit 0" 0 "$_ec"
+    assert_contains "TP-CLI-13 menu --json off-TTY JSON help" "$_out" '"type":"success"'
+    assert_not_contains "TP-CLI-13 menu --json off-TTY not numbered list" "$_out" "9. Exit"
+
+    _out=$(sh "${SCRIPT}" 2>/dev/null)
+    assert_not_contains "TP-CLI-13 empty argv not numbered list" "$_out" "9. Exit"
+    assert_contains "TP-CLI-13 empty argv still help" "$_out" "Usage:"
+
+    _out=$(sh "${SCRIPT}" --quiet menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-13 menu --quiet off-TTY exit 0" 0 "$_ec"
+    assert_contains "TP-CLI-13 menu --quiet off-TTY still help" "$_out" "Usage:"
+
+    if command -v python3 >/dev/null 2>&1; then
+        _out=$(PTY_IN="99" python3 - "${SCRIPT}" menu <<'PY'
+import os, pty, select, sys, time
+script = sys.argv[1]
+cmd = sys.argv[2:]
+payload = (os.environ.get("PTY_IN", "99") + "\n").encode()
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv("/bin/sh", ["sh", script] + cmd)
+time.sleep(0.2)
+try:
+    os.write(fd, payload)
+except OSError:
+    pass
+out = bytearray()
+end = time.time() + 4
+while time.time() < end:
+    r, _, _ = select.select([fd], [], [], 0.2)
+    if fd in r:
+        try:
+            chunk = os.read(fd, 4096)
+        except OSError:
+            break
+        if not chunk:
+            break
+        out += chunk
+    wpid, _st = os.waitpid(pid, os.WNOHANG)
+    if wpid:
+        break
+try:
+    os.waitpid(pid, 0)
+except ChildProcessError:
+    pass
+sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
+PY
+)
+        assert_contains "TP-CLI-13 TTY menu check-session first" "$_out" "1. check-session:"
+        assert_contains "TP-CLI-13 TTY menu backup second" "$_out" "2. backup:"
+        assert_contains "TP-CLI-13 TTY menu family sudoers" "$_out" "4. sudoers:"
+        assert_contains "TP-CLI-13 TTY menu Exit 9" "$_out" "9. Exit"
+        assert_not_contains "TP-CLI-13 TTY menu no install row" "$_out" "1. Install"
+        assert_not_contains "TP-CLI-13 TTY menu no help verb row" "$_out" "help: Show this help"
+        assert_not_contains "TP-CLI-13 TTY main hides generate row" "$_out" "1. generate-sudoer-request:"
+        _out=$(PTY_IN="99" python3 - "${SCRIPT}" --json menu <<'PY'
+import os, pty, select, sys, time
+script = sys.argv[1]
+cmd = sys.argv[2:]
+payload = (os.environ.get("PTY_IN", "99") + "\n").encode()
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv("/bin/sh", ["sh", script] + cmd)
+time.sleep(0.2)
+try:
+    os.write(fd, payload)
+except OSError:
+    pass
+out = bytearray()
+end = time.time() + 4
+while time.time() < end:
+    r, _, _ = select.select([fd], [], [], 0.2)
+    if fd in r:
+        try:
+            chunk = os.read(fd, 4096)
+        except OSError:
+            break
+        if not chunk:
+            break
+        out += chunk
+    wpid, _st = os.waitpid(pid, os.WNOHANG)
+    if wpid:
+        break
+try:
+    os.waitpid(pid, 0)
+except ChildProcessError:
+    pass
+sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
+PY
+)
+        assert_contains "TP-CLI-13 TTY menu --json still numbered list" "$_out" "9. Exit"
+        assert_not_contains "TP-CLI-13 TTY menu --json ignores JSON help" "$_out" '"type":"success"'
+        _out=$(PTY_IN="12
+9" python3 - "${SCRIPT}" menu <<'PY'
+import os, pty, select, sys, time
+script = sys.argv[1]
+cmd = sys.argv[2:]
+payload = (os.environ.get("PTY_IN", "99") + "\n").encode()
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv("/bin/sh", ["sh", script] + cmd)
+time.sleep(0.2)
+try:
+    os.write(fd, payload)
+except OSError:
+    pass
+out = bytearray()
+end = time.time() + 4
+while time.time() < end:
+    r, _, _ = select.select([fd], [], [], 0.2)
+    if fd in r:
+        try:
+            chunk = os.read(fd, 4096)
+        except OSError:
+            break
+        if not chunk:
+            break
+        out += chunk
+    wpid, _st = os.waitpid(pid, os.WNOHANG)
+    if wpid:
+        break
+try:
+    os.waitpid(pid, 0)
+except ChildProcessError:
+    pass
+sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
+PY
+)
+        assert_contains "TP-CLI-13 TTY pick 12 not a menu choice" "$_out" "Not a menu choice"
+        _out=$(PTY_IN="4
+8
+9" python3 - "${SCRIPT}" menu <<'PY'
+import os, pty, select, sys, time
+script = sys.argv[1]
+cmd = sys.argv[2:]
+payload = (os.environ.get("PTY_IN", "99") + "\n").encode()
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv("/bin/sh", ["sh", script] + cmd)
+time.sleep(0.2)
+try:
+    os.write(fd, payload)
+except OSError:
+    pass
+out = bytearray()
+end = time.time() + 6
+while time.time() < end:
+    r, _, _ = select.select([fd], [], [], 0.2)
+    if fd in r:
+        try:
+            chunk = os.read(fd, 4096)
+        except OSError:
+            break
+        if not chunk:
+            break
+        out += chunk
+    wpid, _st = os.waitpid(pid, os.WNOHANG)
+    if wpid:
+        break
+try:
+    os.waitpid(pid, 0)
+except ChildProcessError:
+    pass
+sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
+PY
+)
+        assert_contains "TP-CLI-13 TTY submenu generate row" "$_out" "1. generate-sudoer-request:"
+        assert_contains "TP-CLI-13 TTY submenu Back 8" "$_out" "8. Back"
+        assert_contains "TP-CLI-13 TTY submenu Exit 9" "$_out" "9. Exit"
+        _err=$(sh "${SCRIPT}" sudoers 2>&1 >/dev/null)
+        assert_eq "TP-CLI-13 sudoers not a live command" 1 "$?"
+        assert_contains "TP-CLI-13 sudoers unknown" "$_err" "Unknown command"
+    else
+        t_skip "TP-CLI-13 TTY menu (no python3 for PTY)"
+        t_skip "TP-CLI-13 TTY menu --json (no python3 for PTY)"
+        t_skip "TP-CLI-13 TTY pick 12 (no python3 for PTY)"
+        t_skip "TP-CLI-13 TTY sudoers submenu (no python3 for PTY)"
+    fi
 }

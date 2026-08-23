@@ -1,6 +1,6 @@
 #!/bin/sh
 # =============================================================================
-# tests/run.sh — CI entrypoint for folder-backup
+# tests/run.sh — CI entrypoint for grok-cli
 # =============================================================================
 #
 # GENERAL PURPOSE:
@@ -18,9 +18,9 @@ set -u
 TESTS_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "${TESTS_ROOT}/.." && pwd)
 export TESTS_ROOT REPO_ROOT
-SCRIPT="${REPO_ROOT}/src/folder-backup"
+SCRIPT="${REPO_ROOT}/src/grok-cli"
 export SCRIPT
-APP_NAME="folder-backup"
+APP_NAME="grok-cli"
 export APP_NAME
 
 # shellcheck source=helpers.sh
@@ -29,8 +29,8 @@ export APP_NAME
 . "${TESTS_ROOT}/test_cli.sh"
 # shellcheck source=test_local_lifecycle.sh
 . "${TESTS_ROOT}/test_local_lifecycle.sh"
-# shellcheck source=test_domain_folder_backup.sh
-. "${TESTS_ROOT}/test_domain_folder_backup.sh"
+# shellcheck source=test_domain_grok_cli.sh
+. "${TESTS_ROOT}/test_domain_grok_cli.sh"
 
 PASS=0
 FAIL=0
@@ -41,7 +41,7 @@ _cleanup() {
 }
 trap _cleanup EXIT INT HUP TERM
 
-printf 'folder-backup CI tests\n'
+printf 'grok-cli CI tests\n'
 printf 'script: %s\n' "${SCRIPT}"
 
 if [ ! -f "${SCRIPT}" ]; then
@@ -54,7 +54,7 @@ fi
 
 run_test_cli
 run_test_local_lifecycle
-run_test_domain_folder_backup
+run_test_domain_grok_cli
 
 printf '\n== summary ==\n'
 printf 'PASS=%s FAIL=%s SKIP=%s\n' "${PASS}" "${FAIL}" "${SKIP}"

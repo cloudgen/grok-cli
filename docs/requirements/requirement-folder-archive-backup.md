@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-folder-archive-backup.md  
-**Status**: Active (Version 1.2.0)  
+**Status**: superseded (2026-08-22 — replaced by `requirement-grok-auth-backup`)  
 **Area**: backup  
 **Key**: `requirement-folder-archive-backup`  
 **Optional RQ-ID**: `RQ-FOLDER-ARCHIVE-BACKUP`  

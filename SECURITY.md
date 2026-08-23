@@ -4,15 +4,7 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.9.0 (current) | Yes |
-| 1.8.2 | Yes |
-| 1.7.0 | Yes |
-| 1.6.x | Yes |
-| 1.5.x | Best-effort |
-| 1.4.x | Best-effort |
-| 1.3.x | Best-effort |
-| 1.2.x | Best-effort |
-| Older releases | Best-effort only |
+| 1.0.0 (current) | Yes |
 
 ## Reporting a Vulnerability
 
@@ -30,10 +22,10 @@ This project follows **[CIAO](https://github.com/cloudgen/ciao)** / **[CIAO-Lite
 
 | Letter | Principle | Security application |
 |--------|-----------|----------------------|
-| **C** | **Caution** | Fail closed without working allowlisted sudo for deposit; restore dest **whitelist** (W-ETC-USER `/etc/{{username}}`; never `/etc/passwd`); validate sources and archives. |
-| **I** | **Intentional** | Type 0 archive create vs Type 1 deposit/restore-stage copy are separate; `print-sudoers` never writes `/etc`. |
-| **A** | **Anti-fragile** | Staging + traps; clear admin install path; hard-disk default restore dest avoids accidental RAM-only recovery assumptions. |
-| **O** | **Over-protect** | Narrow Cmnds only (no `NOPASSWD: ALL`); Protection Zones; count/size verification before success. |
+| **C** | **Caution** | Fail closed without a valid grok session; fail closed without allowlisted `sudo grok-cli backup` for `/var/grok-cli`. Never print tokens. |
+| **I** | **Intentional** | Session check and `sync-auth` stay the invoking login; only deposit/chown/chmod is elevated. `print-sudoers` never writes `/etc`. |
+| **A** | **Anti-fragile** | `GROK_HOME` / `GROK_CLI_ROOT` overrides keep tests off production dest; SUDO_USER home used when re-exec'd as root. |
+| **O** | **Over-protect** | Narrow Cmnd only (`NOPASSWD: /usr/local/bin/grok-cli backup`); no `cp`/`chmod`/`chown` sudoers tools; Protection Zones. |
 
 Full principles: [CIAO](https://github.com/cloudgen/ciao) · [CIAO-Lite](https://github.com/cloudgen/ciao-lite).
 
@@ -41,15 +33,13 @@ This section is **design posture**, not a third-party certification claim.
 
 ## Scope notes
 
-- Elevation is limited to allowlisted deposit and restore-stage operations under product law.  
-- Operators must admin-install sudoers fragments after review (`visudo -c`, mode `0440`).  
+- Elevation is limited to allowlisted `grok-cli backup` under product law.  
+- Operators must admin-install sudoers fragments after review (`visudo -c`, mode `0440`) **or** have sudoer-adm approve the JSON request.  
 - **Install trust tiers for elevation:**
-  - **Production:** global managed binary (`/usr/local/bin/folder-backup`, typically root-owned). Prefer `sudo folder-backup install` before durable sudoers.  
-  - **Test mode only:** local `~/.local/bin/folder-backup` is **user-rewritable**. A local user can change the CLI and stage content after a review; do **not** treat local-only sudoers as production-secure.  
-  - `print-sudoers` refuses non-production tiers unless `--allow-test-local` / `ALLOW_TEST_LOCAL_SUDOERS=1`, and embeds **TEST MODE / uninstall soon** warnings.  
-  - **`print-sudoers-install-script`** writes a **Type 0 admin handoff script** under `/dev/shm` (or temp) that a sudo-capable account runs for `install` / `uninstall` / `replace` of the **project-sudoers-file** — the CLI never writes `/etc` itself.  
-  - **Per-user host paths:** draft `~/.config/folder-backup/sudoers.fragment-<user>` installs to `/etc/sudoers.d/folder-backup-<user>` so multi-user admin installs do not overwrite each other.  
-  - Uninstall of the binary does **not** remove `/etc/sudoers.d/folder-backup-<user>` — use `sudo sh <admin-script> uninstall` (or admin `rm`) when leaving test elevation.  
-  - **`remove-project-sudoers`** deletes drafts only; when multiple drafts exist it lists them for interactive choice (non-interactive needs an explicit path).  
-- Residual: even with OS-tool-only Cmnds, **stage trees are user-writable**; deposit grants write of staged archives into `/var/backup/folder-backup/` only (not a root shell).  
-- Related docs: [`README.md`](./README.md), [`LICENSE.md`](./LICENSE.md), `docs/requirements/requirement-three-layer-privilege-model.md`, `reviews/reports/2026-08-09-sudoers-security-folder-backup.md`.
+  - **Production:** global managed binary (`/usr/local/bin/grok-cli`, typically root-owned). Prefer `sudo grok-cli install` before durable sudoers.  
+  - **Test mode only:** local `~/.local/bin/grok-cli` is **user-rewritable**. Do **not** treat local-only sudoers as production-secure.  
+  - `print-sudoers` refuses non-production tiers unless `--allow-test-local` / `ALLOW_TEST_LOCAL_SUDOERS=1`.  
+  - **Per-user host paths:** draft `~/.config/grok-cli/sudoers.fragment-<user>` installs to `/etc/sudoers.d/grok-cli-<user>`.  
+- **Shared store residual:** `/var/grok-cli/auth.*` are **world-readable** (`0644`) so `sync-auth` needs no sudo. Anyone who can read the host can use those grok credentials. That is intentional for this product (shared login on a host) and is **not** equivalent to keeping tokens `0600` in a private home.  
+- Home copies from `sync-auth` return `auth.json` to mode `0600`.  
+- Related docs: [`README.md`](./README.md), [`LICENSE.md`](./LICENSE.md), `docs/requirements/requirement-three-layer-privilege-model.md`, `docs/requirements/requirement-grok-auth-backup.md`.

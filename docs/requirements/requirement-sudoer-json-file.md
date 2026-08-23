@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-sudoer-json-file.md  
-**Status**: Active (Version 1.2.0)  
+**Status**: Active (Version 2.0.0)  
 **Area**: architecture  
 **Key**: `requirement-sudoer-json-file`  
 **Optional RQ-ID**: `RQ-SUDOER-JSON-FILE`  
@@ -16,12 +16,27 @@ This file does **not** own:
 | Concern | Owner |
 |---------|--------|
 | Type 0/1/2 map, `print-sudoers` emit, admin install, submit **workflow** (detect / no inbound `mkdir` / no `/etc` write) | `requirement-three-layer-privilege-model` |
-| Domain verb catalog / help / about | `requirement-domain-folder-backup` |
-| Backup / restore operations | `requirement-folder-archive-backup` |
+| Domain verb catalog / help / about | `requirement-domain-grok-cli` |
+| Auth backup / sync operations | `requirement-grok-auth-backup` |
 
 Queued **basename** allocation remains sibling-owned. This requirement owns **command identity and JSON body shape**.
 
 ---
+
+### 1.1 Human-facing
+
+The grant file you submit names only `grok-cli backup`. It must not allow `cp` or `chmod` as extra sudo tools.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| `generate-sudoer-request` then review the JSON | sudoer-adm approves | Granting `/usr/bin/cp` |
+
+**Includes:** schema, backup-only commands. **Excludes:** how submit finds inbound.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Write a grant you can read | Independent generate dest is not `/etc` | `grok-cli generate-sudoer-request` |
+
 
 ## 2. Core Rules / Requirements (Mandatory)
 
@@ -59,13 +74,13 @@ Elevating **`{{PRJ_NAME}}`** once is the smaller, stronger F6: after the operato
 
 ### 2.3 Arguments — product verbs, no path or filename hardcode
 
-1. `commands[].args` **MAY** name only product verbs that need elevation. For this product family the allowed verbs are **`backup`** and **`restore`**.  
+1. `commands[].args` **MAY** name only product verbs that need elevation. For this product the allowed verb is **`backup`**.  
 2. **MUST** include a `backup` grant when durable deposit is in scope.  
-3. **MUST** include a `restore` grant when elevated restore-stage fetch is in scope.  
-4. **MUST NOT** put deposit paths, stage paths, host HOME, or archive filenames in `args` (no `/var/backup/…`, no `/dev/shm/…`, no `*.tar.gz`, no `NAME-YYYYMMDD-N.tar.gz`). Paths and names are **Config / product law**, not grant operands.  
+3. **MUST NOT** grant `sync-auth` or `check-session` (those stay Type 0).  
+4. **MUST NOT** put deposit paths, grok home, or auth filenames in `args` (no `/var/grok-cli`, no `auth.json`). Paths and names are **Config / product law**, not grant operands.  
 5. **MUST NOT** grant `install`, `uninstall`, `print-sudoers`, `print-sudoers-install-script`, `remove-project-sudoers`, `generate-sudoer-request`, or `submit-sudoer-request` as elevated commands (those stay Type 0).  
 6. **MUST NOT** grant `{{PRJ_NAME}}` with **no** verb when that would let the user run any subcommand as root. Verb-bound entries are required.  
-7. Extra flags the CLI accepts (`--json`, `--force`, `--disk`, `--ram`) **MUST NOT** be frozen as the only legal operands in the JSON; the product validates flags after elev.
+7. Extra flags the CLI accepts (`--json`, `--force`) **MUST NOT** be frozen as the only legal operands in the JSON; the product validates flags after elev. The passwordless sudo command line **MUST** remain `{{GLOBAL_BIN}}/{{PRJ_NAME}} backup`.
 
 ### 2.4 Closed schema (normative)
 
@@ -80,7 +95,7 @@ Elevating **`{{PRJ_NAME}}`** once is the smaller, stronger F6: after the operato
 | `commands[].runas` | string | yes | `root` |
 | `commands[].tags` | array | yes | `NOPASSWD` **MAY** appear when non-interactive deposit is product law; residual risk stays on the privilege peer |
 | `commands[].path` | string | yes | Absolute `{{GLOBAL_BIN}}/{{PRJ_NAME}}` only |
-| `commands[].args` | array of strings | yes | `["backup"]` or `["restore"]` only |
+| `commands[].args` | array of strings | yes | `["backup"]` only |
 
 **MUST NOT** add undeclared privilege fields (extra binaries, `env_keep` shells, `ALL`). Unknown sibling metadata **MUST NOT** widen `commands`.
 
@@ -92,8 +107,8 @@ This product **MUST NOT** invent the dest basename. Sibling grammar (informative
 sudoer-{{YYYYMMDD}}-{{PRJ_NAME}}-{{username}}-{{action}}-{{n}}.json
 ```
 
-**Worked sample basename (add):** `sudoer-20260815-folder-backup-leolio-add-1.json`  
-**Worked sample basename (update):** `sudoer-20260815-folder-backup-leolio-update-1.json`
+**Worked sample basename (add):** `sudoer-20260822-grok-cli-leolio-add-1.json`  
+**Worked sample basename (update):** `sudoer-20260822-grok-cli-leolio-update-1.json`
 
 ### 2.6 Complete sample bodies (same grant; add vs update)
 
@@ -102,22 +117,16 @@ Normative **add** JSON (this project’s filled values — see §2.8):
 ```json
 {
   "schema_version": 1,
-  "purpose": "Allow leolio to run folder-backup backup and restore as root.",
+  "purpose": "Allow leolio to run grok-cli backup as root.",
   "username": "leolio",
-  "service": "folder-backup",
+  "service": "grok-cli",
   "action": "add",
   "commands": [
     {
       "runas": "root",
       "tags": ["NOPASSWD"],
-      "path": "/usr/local/bin/folder-backup",
+      "path": "/usr/local/bin/grok-cli",
       "args": ["backup"]
-    },
-    {
-      "runas": "root",
-      "tags": ["NOPASSWD"],
-      "path": "/usr/local/bin/folder-backup",
-      "args": ["restore"]
     }
   ]
 }
@@ -128,22 +137,16 @@ Normative **update** JSON (same commands; `action` only changes):
 ```json
 {
   "schema_version": 1,
-  "purpose": "Allow leolio to run folder-backup backup and restore as root.",
+  "purpose": "Allow leolio to run grok-cli backup as root.",
   "username": "leolio",
-  "service": "folder-backup",
+  "service": "grok-cli",
   "action": "update",
   "commands": [
     {
       "runas": "root",
       "tags": ["NOPASSWD"],
-      "path": "/usr/local/bin/folder-backup",
+      "path": "/usr/local/bin/grok-cli",
       "args": ["backup"]
-    },
-    {
-      "runas": "root",
-      "tags": ["NOPASSWD"],
-      "path": "/usr/local/bin/folder-backup",
-      "args": ["restore"]
     }
   ]
 }
@@ -152,9 +155,8 @@ Normative **update** JSON (same commands; `action` only changes):
 Equivalent **text dual** of the same grant (not a second allowlist of OS tools):
 
 ```text
-# Purpose: Allow leolio to run folder-backup backup and restore as root.
-leolio ALL=(root) NOPASSWD: /usr/local/bin/folder-backup backup
-leolio ALL=(root) NOPASSWD: /usr/local/bin/folder-backup restore
+# Purpose: Allow leolio to run grok-cli backup as root.
+leolio ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
 ```
 
 **Withdrawn (forbidden) encoding** — do not copy into a JSON sudoer file:
@@ -162,7 +164,7 @@ leolio ALL=(root) NOPASSWD: /usr/local/bin/folder-backup restore
 ```json
 {
   "path": "/usr/bin/mkdir",
-  "args": ["-p", "/var/backup/folder-backup"]
+  "args": ["-p", "/var/grok-cli"]
 }
 ```
 
@@ -181,37 +183,37 @@ That shape (and `cp` / `tar` / `rm` / `install` / `chmod` siblings) is **non-com
 Sibling (or this product) **MAY** decode then re-encode the grant when converting or queueing. That rewrite is still **this** grant.
 
 1. Decode / convert / re-encode **MUST** preserve **every** `commands[]` object: `path`, `args`, `runas`, `tags`.  
-2. **MUST NOT** silently drop a verb so that purpose still says “backup and restore” while `commands` lists only `restore` (or only `backup`). Purpose is **not** completeness.  
+2. **MUST NOT** silently drop a verb so that purpose still says “backup” while `commands` lists only `restore` (or only `backup`). Purpose is **not** completeness.  
 3. **MUST** treat pretty-printed and compact JSON as the same grant. A splitter that only recognizes the token `},{` is non-compliant (it loses objects when `}, {` or `},\n{` appear).  
 4. If the codec cannot represent the full `commands` array, it **MUST** fail closed (`invalid_json` or product equivalent). Silent last-`args`-wins is forbidden.  
 5. `[OK] submitted` / a request_id **MUST NOT** be treated as proof the queued body equals the emit dual. When the inbound file is readable, submit **MUST** fail closed if required verbs are missing.  
-6. Proof **MUST** exercise pretty **and** compact multi-command fixtures — compact-only suite green is not fidelity.
+6. Proof **MUST** exercise pretty **and** compact fixtures — emit-only substring is not inbound fidelity.
 
 ### 2.8 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
-| **`{{PRJ_NAME}}` / `APP_NAME`** | `folder-backup` |
+| **`{{PRJ_NAME}}` / `APP_NAME`** | `grok-cli` |
 | **`{{GLOBAL_BIN}}`** | `/usr/local/bin` |
-| **Elevated path** | `/usr/local/bin/folder-backup` |
-| **Allowed args** | `backup` · `restore` |
+| **Elevated path** | `/usr/local/bin/grok-cli` |
+| **Allowed args** | `backup` |
 | **Forbidden paths (examples)** | `/usr/bin/mkdir`, `/bin/mkdir`, `/usr/bin/cp`, `/bin/cp`, `/usr/bin/install`, `/usr/bin/tar`, `/bin/tar`, `/bin/rm`, `/usr/bin/rm`, `/usr/bin/chmod`, `/bin/chmod` |
-| **Ship unit** | `src/folder-backup` |
-| **Submit verb** | `submit-sudoer-request` → `fb_submit_sudoer_request` |
-| **Generate verb** | `generate-sudoer-request` → `fb_generate_sudoer_request` (independent compact dual; dest readable without sudo) |
-| **Generate dest (default)** | `${HOME}/.config/folder-backup/sudoer-request-<user>.json` (path operand for suite/review) |
-| **Service field** | `folder-backup` |
+| **Ship unit** | `src/grok-cli` |
+| **Submit verb** | `submit-sudoer-request` → `gc_submit_sudoer_request` |
+| **Generate verb** | `generate-sudoer-request` → `gc_generate_sudoer_request` (independent compact dual; dest readable without sudo) |
+| **Generate dest (default)** | `${HOME}/.config/grok-cli/sudoer-request-<user>.json` (path operand for suite/review) |
+| **Service field** | `grok-cli` |
 | **Worked user in samples** | `leolio` (illustrative login; live emit uses `id -un`) |
 | **Privilege / workflow peer** | `requirement-three-layer-privilege-model` |
-| **Ship unit emit** | **1.8.0+** `fb_sudoers_json_text` / `fb_sudoers_fragment_text` — `{{GLOBAL_BIN}}/folder-backup` `backup`/`restore` only. `print-sudoers <path>` also writes `<path>.json`. Submit default input is the JSON grant. |
+| **Ship unit emit** | **1.8.0+** `gc_sudoers_json_text` / `gc_sudoers_fragment_text` — `{{GLOBAL_BIN}}/grok-cli` `backup` only. `print-sudoers <path>` also writes `<path>.json`. Submit default input is the JSON grant. |
 
 ### 2.9 Why This Requirement Exists (Direct CIAO Alignment)
 
 - **CIAO Principle 10 – Least privilege**: F6 is one managed binary and two verbs — not a catalog of root `cp`/`mkdir`/`rm`.  
 - **CIAO Principle 1 – Caution**: Extra sudoers lines are extra ways to be wrong; complexity is treated as a vulnerability.  
-- **CIAO Principle 2 – Intentional**: The JSON file means “this user may run `{{PRJ_NAME}}` backup/restore as root,” nothing else.  
+- **CIAO Principle 2 – Intentional**: The JSON file means “this user may run `{{PRJ_NAME}}` backup as root,” nothing else.  
 - **CIAO Principle 9 – Type 0 / 1 / 2**: JSON is the Type 1 **grant**. Live mkdir/copy/tar after elev are not a second grant.  
-- **CIAO Principle 21 – Dual policies**: Core rules use `{{PRJ_NAME}}` / `{{GLOBAL_BIN}}`; this section fills `folder-backup` and `/usr/local/bin`.
+- **CIAO Principle 21 – Dual policies**: Core rules use `{{PRJ_NAME}}` / `{{GLOBAL_BIN}}`; this section fills `grok-cli` and `/usr/local/bin`.
 
 ---
 
@@ -219,9 +221,9 @@ Sibling (or this product) **MAY** decode then re-encode the grant when convertin
 
 - **Caution:** Refuse OS-tool JSON even if an older fragment or review used it.  
 - **Intentional:** `service` and `path` basename are the same name: `{{PRJ_NAME}}`.  
-- **Anti-fragile:** Paths and archive names stay in Config; changing `BACKUP_ROOT` must not require a new sudoers JSON.  
-- **Over-protect:** Verb-bound `backup` / `restore` only; no bare-binary grant; no `USER_BIN` path.  
-- **Stay-honest:** 1.8.1 emit matches this grant; inbound after submit must still list both verbs; do not revive OS-tool Cmnds.  
+- **Anti-fragile:** Paths and archive names stay in Config; changing `GROK_CLI_ROOT` must not require a new sudoers JSON.  
+- **Over-protect:** Verb-bound `backup` only; no bare-binary grant; no `USER_BIN` path.  
+- **Stay-honest:** 1.8.1 emit matches this grant; inbound after submit must still list the backup verb; do not revive OS-tool Cmnds.  
 - **Anti-fragile (codec):** Re-encode is lossy unless proven; pretty JSON is legal input.
 
 ---
@@ -252,15 +254,15 @@ Sibling (or this product) **MAY** decode then re-encode the grant when convertin
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | Every `commands[].path` is `{{GLOBAL_BIN}}/{{PRJ_NAME}}` (this project: `/usr/local/bin/folder-backup`) |
-| AC-2 | `service` equals `{{PRJ_NAME}}` (`folder-backup`) |
-| AC-3 | `args` are only `backup` and/or `restore` |
+| AC-1 | Every `commands[].path` is `{{GLOBAL_BIN}}/{{PRJ_NAME}}` (this project: `/usr/local/bin/grok-cli`) |
+| AC-2 | `service` equals `{{PRJ_NAME}}` (`grok-cli`) |
+| AC-3 | `args` are only `backup` |
 | AC-4 | No `mkdir` / `cp` / `install` / `chmod` / `tar` / `rm` / shell basename appears in `path` or `args` |
 | AC-5 | No deposit/stage/HOME path and no `*.tar.gz` / archive filename in the JSON grant |
 | AC-6 | Add and update samples exist and differ only by `action` |
 | AC-7 | Submit of a file that violates AC-1–AC-5 fails closed |
-| AC-8 | Text dual of this grant (if emitted) lists only `{{PRJ_NAME}} backup` and `{{PRJ_NAME}} restore` |
-| AC-9 | Pretty-printed grant with both verbs survives sibling `json-to-sudoers` / submit re-encode as **both** verbs (or submit fail-closed if inbound readable and a verb is missing) |
+| AC-8 | Text dual of this grant (if emitted) lists only `{{PRJ_NAME}} backup` |
+| AC-9 | Pretty-printed grant with the backup verb survives sibling `json-to-sudoers` / submit re-encode as **both** verbs (or submit fail-closed if inbound readable and a verb is missing) |
 | AC-10 | Independent generate subcommand writes this JSON to an invoking-user-readable dest; suite opens it without sudo |
 
 ---
@@ -270,13 +272,13 @@ Sibling (or this product) **MAY** decode then re-encode the grant when convertin
 | Key | Relationship |
 |-----|--------------|
 | `requirement-three-layer-privilege-model` | Privilege layers; submit/install workflow; trust tiers |
-| `requirement-domain-folder-backup` | `submit-sudoer-request` surface; defers JSON **body** here |
-| `requirement-folder-archive-backup` | `backup` / `restore` ops after elev |
+| `requirement-domain-grok-cli` | `submit-sudoer-request` surface; defers JSON **body** here |
+| `requirement-folder-archive-backup` | `backup` ops after elev |
 | `requirement-shell-cli-interface` | Verb routing |
 | `requirement-project-folder` | Global bin / ship unit |
 | `requirement-class-software-dev` | Residual points JSON sudoer file here |
 | `docs/requirements/index.md` | Registry |
-| `./src/folder-backup` | Implementation under test |
+| `./src/grok-cli` | Implementation under test |
 
 ---
 
@@ -284,12 +286,12 @@ Sibling (or this product) **MAY** decode then re-encode the grant when convertin
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-FOLDER-BACKUP-22** | `tests/test_domain_folder_backup.sh` | **have** — JSON sudoer file `path` is only `/usr/local/bin/folder-backup` |
-| **TP-FOLDER-BACKUP-22b** | same | **have** — JSON sudoer file contains no `mkdir`/`cp`/`tar`/`rm`/`install`/`chmod` |
-| **TP-FOLDER-BACKUP-22c** | same | **have** — JSON sudoer file contains no deposit/stage path and no `*.tar.gz` |
-| **TP-FOLDER-BACKUP-22e** | same | **have** — pretty emit through real `sudoer-cli` keeps `backup` and `restore` |
-| **TP-FOLDER-BACKUP-22f** | same | **have** — stub inbound body still contains both verbs (not file-count only) |
-| **TP-FOLDER-BACKUP-24 / 24d** | same | **have** — independent generate dest; suite reads file without sudo |
+| **TP-GROK-CLI-22** | `tests/test_domain_folder_backup.sh` | **have** — JSON sudoer file `path` is only `/usr/local/bin/grok-cli` |
+| **TP-GROK-CLI-22b** | same | **have** — JSON sudoer file contains no `mkdir`/`cp`/`tar`/`rm`/`install`/`chmod` |
+| **TP-GROK-CLI-22c** | same | **have** — JSON sudoer file contains no deposit/stage path and no `*.tar.gz` |
+| **TP-GROK-CLI-22e** | same | **have** — pretty emit through real `sudoer-cli` keeps `backup` |
+| **TP-GROK-CLI-22f** | same | **have** — stub inbound body still contains the backup verb (not file-count only) |
+| **TP-GROK-CLI-24 / 24d** | same | **have** — independent generate dest; suite reads file without sudo |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`

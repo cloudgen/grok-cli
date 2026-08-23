@@ -6,9 +6,24 @@
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for how folder-backup behaves in **interactive** (human + TTY) versus **non-interactive** (automation, CI/CD, pipes, `--json` / often `--quiet`) environments.
+This requirement is the **project Single Source of Truth** for how grok-cli behaves in **interactive** (human + TTY) versus **non-interactive** (automation, CI/CD, pipes, `--json` / often `--quiet`) environments.
 
 ---
+
+### 1.1 Human-facing
+
+Without a TTY, grok-cli will not wait for yes/no. Use `--force` for uninstall and draft remove. The numbered start list (`grok-cli menu` / `main`, when claimed) also **MUST NOT** appear off-TTY — that is `requirement-shell-cli-default-interaction` (not empty argv).
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| CI uses `--force` / `--json` | Interactive confirm on a real TTY | Live `[ -t` inside helpers |
+
+**Includes:** TTY/JSON/quiet confirm policy. **Excludes:** sudo password prompts.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Remove a draft in CI | Non-interactive needs `--force` | `grok-cli remove-project-sudoers --force` |
+
 
 ## 2. Core Rules / Requirements (Mandatory)
 
@@ -101,7 +116,7 @@ prompt_ask() {
 
 | Item | Value |
 |------|--------|
-| **Product** | `folder-backup` |
+| **Product** | `grok-cli` |
 | **No curl\|sh auto-install path** | Local-only; non-interactive does not mean Type O install-ensure |
 | **Prompt helper** | `prompt_yes_no` for uninstall (and any future destructive confirm) |
 

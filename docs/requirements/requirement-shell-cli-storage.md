@@ -6,11 +6,26 @@
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **shell CLI storage resolution** of folder-backup: volatile scratch and app-scoped cache path selection, per-user isolation, central resolver ownership, `app_main` wire, and about diagnostics.
+This requirement is the **project Single Source of Truth** for **shell CLI storage resolution** of grok-cli: volatile scratch and app-scoped cache path selection, per-user isolation, central resolver ownership, `app_main` wire, and about diagnostics.
 
 Used heavily for **tar.gz staging** before elevated deposit into `/var/backup/...`.
 
 ---
+
+### 1.1 Human-facing
+
+Scratch files go under a per-user storage dir, not a shared world-writable dump.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Let the CLI pick cache/scratch | `/var/grok-cli` is the durable store, not scratch | Putting tokens in `/tmp` with a guessed name |
+
+**Includes:** resolver, about field. **Excludes:** deposit chown.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Inspect scratch | about shows effective storage | `grok-cli --json about` |
+
 
 ## 2. Core Rules / Requirements (Mandatory)
 
@@ -45,7 +60,7 @@ First match that is available and writable:
 
 ```sh
 util_mktemp() {
-    : "${APP_NAME:=folder-backup}"
+    : "${APP_NAME:=grok-cli}"
     : "${EFFECTIVE_STORAGE_DIR:=}"
     _suffix="${1:-tmp}"
     case "${_suffix}" in
@@ -87,8 +102,8 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 
 | Item | Live value |
 |------|------------|
-| **Product / binary** | `folder-backup` |
-| **Resolver** | `util_resolve_storage` in `src/folder-backup` |
+| **Product / binary** | `grok-cli` |
+| **Resolver** | `util_resolve_storage` in `src/grok-cli` |
 | **Call sites** | `app_main`, `app_about`, domain staging |
 | **Not used for** | Durable `/var/backup` deposit root |
 
@@ -115,7 +130,7 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 
 1. Remove `${APP_NAME}` / `${USERNAME}` isolation.  
 2. Replace the fallback chain with a shared world-writable dump.  
-3. Scatter hard-coded `/tmp/folder-backup` roots outside the resolver.  
+3. Scatter hard-coded `/tmp/grok-cli` roots outside the resolver.  
 4. Leave the resolver dead with no call sites while claiming storage is product law.  
 5. Echo a tier path without creating it.  
 6. Stage durable deposits only in world-writable shared paths by design.  
@@ -142,7 +157,7 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 | Key | Relationship |
 |-----|--------------|
 | `requirement-project-folder` | Path classes |
-| `requirement-domain-folder-backup` | Staging use |
+| `requirement-domain-grok-cli` | Staging use |
 | `requirement-shell-cli-interface` | About fields |
 | `docs/requirements/index.md` | Registry |
 

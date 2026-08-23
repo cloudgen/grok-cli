@@ -1,18 +1,33 @@
 **file**: docs/requirements/requirement-shell-modular-function-design.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0)  
 **Area**: shell  
 **Key**: `requirement-shell-modular-function-design`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **modular function organization** of the folder-backup POSIX shell CLI.
+This requirement is the **project Single Source of Truth** for **modular function organization** of the grok-cli POSIX shell CLI.
 
 **Core idea:** Modularity is achieved through **clear function boundaries, consistent prefixes, and full CIAO documentation** — **not** by splitting the installable CLI into multiple shipped files.
 
-Ship unit remains a **single executable** at `src/folder-backup`.
+Ship unit remains a **single executable** at `src/grok-cli`.
 
 ---
+
+### 1.1 Human-facing
+
+One file `src/grok-cli` with prefixes: `out_`, `inst_`, `app_`, `gc_` for grok auth.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Read functions by prefix | Domain ops live under `gc_*` | Splitting into many shipped files |
+
+**Includes:** prefix table. **Excludes:** grant JSON schema.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Find backup code | Look for `gc_backup` | Open `src/grok-cli` |
+
 
 ## 2. Core Rules / Requirements (Mandatory)
 
@@ -37,13 +52,13 @@ Ship unit remains a **single executable** at `src/folder-backup`.
 | `app_` | Cross-cutting CLI surface | Entry, dispatch, about/help/version/where-is-me | `app_main`, `app_about`, `app_help`, `app_version`, `app_where_is_me` |
 | `path_` | Shell PATH & environment | Optional PATH ensure after user install | `path_add_shell` |
 | `prompt_` | Interactive prompts | TTY-safe confirmations | `prompt_yes_no` |
-| `fb_` | Domain business logic | Folder backup + sudoers fragment | `fb_backup`, `fb_print_sudoers`, `fb_next_archive_name`, `fb_stage_archive` |
+| `gc_` | Domain business logic | Grok auth backup/sync + sudoers fragment | `gc_backup`, `gc_check_session`, `gc_sync_auth`, `gc_print_sudoers` |
 
 **Notes:**
 
-- Domain prefix **`fb_`** is short for **folder-backup** (path-safe, stable).  
+- Domain prefix **`gc_`** is short for **grok-cli** (path-safe, stable).  
 - **Do not** put domain ops under `app_*`.  
-- **Do not** put generic about/help/main under `fb_*`.  
+- **Do not** put generic about/help/main under `gc_*`.  
 - Online-only prefixes from parent (`ver_check` remote network path, download install family) **MUST NOT** be reintroduced unless product mode changes.
 
 ### 2.3 Function documentation standards
@@ -66,7 +81,7 @@ Critical sections (output SSOT, install place/remove, storage resolve, domain ar
 
 | Item | Value |
 |------|--------|
-| **Ship unit** | `src/folder-backup` |
+| **Ship unit** | `src/grok-cli` |
 | **Domain prefix** | `fb_` |
 | **Bootstrap inheritance** | Prefix discipline from cli-template; domain prefix `fb_` added |
 | **Multi-file authoring** | Optional later only if pack still yields one installable artifact and this requirement is updated |
@@ -109,7 +124,7 @@ Critical sections (output SSOT, install place/remove, storage resolve, domain ar
 |----|-----------|
 | AC-1 | All functions use the prefix table |
 | AC-2 | Domain ops live under `fb_*` |
-| AC-3 | Single ship unit at `src/folder-backup` |
+| AC-3 | Single ship unit at `src/grok-cli` |
 | AC-4 | Product comments cite live requirements only |
 
 ---
@@ -120,7 +135,7 @@ Critical sections (output SSOT, install place/remove, storage resolve, domain ar
 |-----|--------------|
 | `requirement-shell-cli-interface` | Command → handler map |
 | `requirement-shell-output-requirements` | Owns `out_*` |
-| `requirement-domain-folder-backup` | Owns `fb_*` behavior |
+| `requirement-domain-grok-cli` | Owns `gc_*` behavior |
 | `docs/requirements/index.md` | Registry |
 
 ---

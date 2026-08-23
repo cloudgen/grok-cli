@@ -6,11 +6,26 @@
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **local self-managed lifecycle** of the folder-backup POSIX shell CLI: **`install`**, **`uninstall`**, and **`where-is-me`**, plus the local diagnostics package contract for **`version`**, **`about`**, and **`help`** (wiring owned with CLI interface).
+This requirement is the **project Single Source of Truth** for **local self-managed lifecycle** of the grok-cli POSIX shell CLI: **`install`**, **`uninstall`**, and **`where-is-me`**, plus the local diagnostics package contract for **`version`**, **`about`**, and **`help`** (wiring owned with CLI interface).
 
 **Install mode:** **local-only**. Online channel install, remote version-check, self-update, and self-uninstall are **out of scope** (intentionally absent).
 
 ---
+
+### 1.1 Human-facing
+
+Install copies grok-cli into your bin; uninstall removes that copy. It does not remove `/etc` sudoers.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| `grok-cli install` / `uninstall` | Admin installs the sudoers fragment | Online self-update |
+
+**Includes:** place/remove binary, mode 0755. **Excludes:** `/var/grok-cli` content.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Place locally | Copy ship unit to `~/.local/bin` | `grok-cli install` |
+
 
 ## 2. Core Rules (Mandatory)
 
@@ -68,7 +83,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 3. Absent → success no-op.  
 4. Interactive confirm unless `--force`; non-interactive/json/quiet without force → **fail closed** (`confirm_required`).  
 5. **MUST NOT** delete domain data, `/var/backup` archives, home trees, or unrelated binaries.  
-6. After remove, human mode **SHOULD** warn that host sudoers fragments under **`/etc/sudoers.d/folder-backup-<user>`** (and any legacy `/etc/sudoers.d/folder-backup`) are **not** removed by uninstall; admin must remove or reinstall fragment separately when leaving test elevation.
+6. After remove, human mode **SHOULD** warn that host sudoers fragments under **`/etc/sudoers.d/grok-cli-<user>`** (and any legacy `/etc/sudoers.d/grok-cli`) are **not** removed by uninstall; admin must remove or reinstall fragment separately when leaving test elevation.
 
 ### 2.5 Where-is-me rules
 
@@ -82,7 +97,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 
 | Variable | Role | Default / note |
 |----------|------|----------------|
-| `APP_NAME` | Binary basename SSOT | hard-assign `folder-backup` |
+| `APP_NAME` | Binary basename SSOT | hard-assign `grok-cli` |
 | `VERSION` | Local version SSOT | hard-assign `1.6.1` |
 | `GLOBAL_BIN` | System-wide bin | `/usr/local/bin` |
 | `USER_BIN` | Per-user bin | `${HOME}/.local/bin` |
@@ -95,9 +110,9 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 
 | Item | Value |
 |------|--------|
-| **Product / binary** | `folder-backup` |
-| **Ship unit** | `src/folder-backup` |
-| **Primary install path story** | Type 0 day-to-day: `${HOME}/.local/bin/folder-backup`; production elevation: `/usr/local/bin/folder-backup` |
+| **Product / binary** | `grok-cli` |
+| **Ship unit** | `src/grok-cli` |
+| **Primary install path story** | Type 0 day-to-day: `${HOME}/.local/bin/grok-cli`; production elevation: `/usr/local/bin/grok-cli` |
 | **Handlers** | `inst_local_install`, `inst_local_uninstall`, `app_where_is_me`, `app_version` |
 | **Detect** | `inst_is_installed` / privilege-correct path helpers |
 | **Online package** | **Absent by design** (inherited from cli-template) |

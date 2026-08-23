@@ -1,4 +1,4 @@
-# Reviews — folder-backup
+# Reviews — grok-cli
 
 Public product review surface (peer of `tests/`).
 
@@ -9,10 +9,11 @@ Public product review surface (peer of `tests/`).
 | `requirement-test-matrix.md` | Requirement → TP families |
 | `lessons.md` | Durable failure modes to re-check |
 | `index.md` | Report index |
+| `cli-routed-verb-table.md` | Kept live-command list: name, function, who may run, comment date, help one-liner (**`SK-CLI-ROUTED-VERB-TABLE`**) |
 | `reports/` | Dated review run reports |
 
-**Ship unit:** `src/folder-backup` (**VERSION 1.9.0**)  
+**Ship unit:** `src/grok-cli` (**VERSION 1.0.0**)  
 **Suite:** `./tests/run.sh`  
-**Last suite baseline:** see `test-plan.md` and `reports/` (2026-08-17: PASS=242 FAIL=0 SKIP=2)  
+**Last suite baseline:** see `test-plan.md` and `reports/` (2026-08-23: PASS=235 FAIL=0 SKIP=0)  
 
-**Privilege review focus (1.9.0):** trust tier **S13**, project-sudoers-file, **independent generate** (`generate-sudoer-request` AC-23/24 · S16), `submit-sudoer-request` public inbound, **host-probe add/update (AC-22)**, inbound fidelity (AC-21), **operator-readable errors** (TP-25), `print-sudoers-install-script`, `remove-project-sudoers` (draft only).
+**Privilege review focus (1.0.0):** session gate, `/var/grok-cli` deposit (`backup` only), unprivileged `sync-auth`, trust tier **S13**, project-sudoers-file, **independent generate** (`generate-sudoer-request`), `submit-sudoer-request` public inbound, inbound fidelity, **operator-readable errors**, `print-sudoers-install-script`, `remove-project-sudoers` (draft only).

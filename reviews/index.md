@@ -1,7 +1,10 @@
-# Review reports index — folder-backup
+# Review reports index — grok-cli
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-08-23 | `cli-routed-verb-table.md` | Kept live-command list (name, function, who may run, comment date, **human-readable** help one-liner) | **16 live** · 1 not-yet-wired (`restore` forbidden) | living |
+| 2026-08-22 | `reports/2026-08-22-product-review-grok-cli.md` | Full product grok-cli 1.0.0 | **Pass** | PASS=207 FAIL=0 SKIP=0 |
+| 2026-08-22 | `reports/2026-08-22-requirement-review-grok-cli.md` | Requirement review + authorized retarget | **Approve with follow-ups closed** | PASS=207 FAIL=0 SKIP=0 |
 | 2026-08-17 | `reports/2026-08-17-review-revision-test-plans.md` | Review/test-plan revision vs 1.9.0 generate + operator-readable errors | **PASS** (plans aligned; suite green) | PASS=242 FAIL=0 SKIP=2 |
 | 2026-08-17 | 1.9.0 generate-sudoer-request | Local verified compact JSON; submit compact handoff; TP-24 | living | 1.9.0 |
 | 2026-08-17 | INC-20260817-002 | Submit fail-closed error not human-readable; incomplete JSON not a standing class | living | 1.8.2 |

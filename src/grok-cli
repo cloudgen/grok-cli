@@ -1,13 +1,14 @@
 #!/bin/sh
 # =============================================================================
-# folder-backup - Local self-managed folder archive CLI (tar.gz + sudo deposit)
+# grok-cli - Local grok auth backup/sync with narrow sudo deposit
 # =============================================================================
 #
-# FULL FEATURED LOCAL TYPE 0 + DOMAIN BACKUP (CIAO / CIAO-Lite Compliant)
+# FULL FEATURED LOCAL TYPE 0 + DOMAIN GROK AUTH (CIAO / CIAO-Lite Compliant)
 #
-# Bootstrap origin: cli-template (Type 0 local-only template, hop 0).
-# Specialize: A=cli-template → B=folder-backup (domain extend). Do not reverse-copy.
-# Online install / remote self-update / channel checksum: absent on A; remain absent.
+# Bootstrap origin: sibling folder-backup (Type 0 + three-layer privilege).
+# Chain: cli-template → folder-backup → grok-cli. Direction A→B only.
+# Specialize: A=folder-backup → B=grok-cli (domain retarget). Do not reverse-copy.
+# Online install / remote self-update / channel checksum: absent; remain absent.
 #
 # Project requirements (docs/requirements/ only — never cite templates here):
 # - requirement-class-software-dev.md
@@ -17,24 +18,24 @@
 # - requirement-sudoer-json-file.md  (JSON sudoer file: PRJ_NAME only)
 # - requirement-shell-cli-interface.md
 # - requirement-shell-cli-zero-arguments.md  (Type N empty argv = help)
+# - requirement-shell-cli-default-interaction.md  (menu/main numbered list)
 # - requirement-shell-local-self-management.md
 # - requirement-shell-cli-storage.md
 # - requirement-shell-idempotency.md
 # - requirement-shell-modular-function-design.md
 # - requirement-shell-output-requirements.md
 # - requirement-shell-interactive-vs-noninteractive.md
-# - requirement-folder-archive-backup.md  (backup/restore ops SSOT — not domain)
-# - requirement-domain-folder-backup.md   (domain surface four pillars)
+# - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
+# - requirement-domain-grok-cli.md   (domain surface four pillars)
 # Plus CIAO Protection Zones and "DO NOT MODIFY" rules.
 #
 # Philosophy: CIAO (Caution • Intentional • Anti-fragile • Over-engineered)
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
-# APP NAME: hard-assign APP_NAME="folder-backup"
-# VERSION: hard-assign VERSION="1.9.0"
+# APP NAME: hard-assign APP_NAME="grok-cli"
+# VERSION: hard-assign VERSION="1.0.0"
 #
 # =============================================================================
-
 set -u  # Treat unset variables as error (defensive)
 # Note: We do NOT use set -e globally. We use explicit error handling via out_die.
 
@@ -42,18 +43,18 @@ set -u  # Treat unset variables as error (defensive)
 # GLOBAL SAFE DEFAULTS (Single Source of Truth for configuration)
 # =============================================================================
 # Product identity SSOT (extractors use: grep '^APP_NAME="' / '^VERSION="').
-APP_NAME="folder-backup"
-: "${APP_NAME:=folder-backup}"
-: "${APP_DESC:=Local folder archive backup/restore with narrow sudo deposit}"
+APP_NAME="grok-cli"
+: "${APP_NAME:=grok-cli}"
+: "${APP_DESC:=Local grok auth backup to /var/grok-cli and unprivileged sync-auth}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, backup, restore, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.9.0"
-: "${VERSION:=1.9.0}"
+VERSION="1.0.0"
+: "${VERSION:=1.0.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
-: "${REPO_NAME:=folder-backup}"
+: "${REPO_NAME:=grok-cli}"
 : "${SCRIPT_URL:=}"
 
 # Runtime flags (safe defaults)
@@ -98,14 +99,9 @@ fi
 : "${COMMAND:=help}"
 : "${SH:=sh}"
 
-# Domain / backup deposit SSOT
-: "${BACKUP_ROOT:=/var/backup}"
-: "${BACKUP_NOTATION:=folder-backup}"
-# Restore host SSOT: reverse of ram-drive-first → hard-disk is default restore target
-: "${RESTORE_HOST_DEFAULT:=hard-disk}"
-: "${RAM_ROOT:=/dev/shm}"
-: "${PROJECTS_ROOT:=}"
-: "${RESTORE_HOST:=}"
+# Domain / grok auth deposit SSOT
+: "${GROK_CLI_ROOT:=/var/grok-cli}"
+# GROK_HOME is resolved at call time (SUDO_USER-aware). Tests may export it.
 # Optional sudoer-cli compose (Type 0 submit into approval inbound)
 : "${SUDOER_CLI:=}"
 : "${SUDOER_ADM_USER:=sudoer-adm}"
@@ -930,7 +926,7 @@ util_resolve_storage() {
 # Forbidden: predictable $$ names (e.g. /tmp/${APP_NAME}.$$).
 # =============================================================================
 util_mktemp() {
-    : "${APP_NAME:=folder-backup}"
+    : "${APP_NAME:=grok-cli}"
     : "${EFFECTIVE_STORAGE_DIR:=}"
     _suffix="${1:-tmp}"
     _dollar='$'
@@ -1221,7 +1217,7 @@ INST_MANAGED_MODE="0755"
 # Last reviewed: 2026-08-09 — mode 0755 multi-user (requirement-shell-local-self-management §2.3.1)
 # =============================================================================
 inst_local_install() {
-    : "${APP_NAME:=folder-backup}"
+    : "${APP_NAME:=grok-cli}"
     : "${HOME:=/tmp}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${USER_BIN:=${HOME}/.local/bin}"
@@ -1345,7 +1341,7 @@ inst_local_install() {
 # Last reviewed: 2026-08-03
 # =============================================================================
 inst_local_uninstall() {
-    : "${APP_NAME:=folder-backup}"
+    : "${APP_NAME:=grok-cli}"
     : "${HOME:=/tmp}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${USER_BIN:=${HOME}/.local/bin}"
@@ -1381,7 +1377,7 @@ inst_local_uninstall() {
         out_die "Failed to remove ${_target}"
     fi
     out_success "Removed ${APP_NAME} from ${_target}"
-    _installed=$(fb_default_installed_sudoers_path)
+    _installed=$(gc_default_installed_sudoers_path)
     if [ "${JSON}" -eq 0 ]; then
         out_warn "Uninstall does not remove host sudoers fragments under /etc/sudoers.d/."
         out_info "If elevation was test-mode only, admin should uninstall soon: sudo rm ${_installed}"
@@ -1407,7 +1403,7 @@ inst_local_uninstall() {
 # Last reviewed: 2026-08-03
 # =============================================================================
 app_where_is_me() {
-    : "${APP_NAME:=folder-backup}"
+    : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
 
@@ -1441,1136 +1437,487 @@ app_where_is_me() {
 }
 
 # =============================================================================
-# Domain helpers (fb_*) — folder-backup
-# ALIGNMENT: requirement-domain-folder-backup.md
-# Specialized from cli-template Type 0; do not copy this block onto A.
+# Domain helpers (gc_*) — grok-cli
+# ALIGNMENT: requirement-domain-grok-cli.md
+# Ops SSOT: requirement-grok-auth-backup.md
+# Specialized from sibling grok-cli Type 0 + privilege; do not reverse-copy.
 # =============================================================================
 
 # =============================================================================
-# fb_sanitize_folder_name() - Path-safe basename for archive naming (class B)
-# =============================================================================
-fb_sanitize_folder_name() {
-    _raw="${1:-}"
-    _base=$(basename -- "${_raw}" 2>/dev/null || echo "")
-    case "${_base}" in
-        ""|"."|".."|/)
-            printf '%s' ""
-            return 1
-            ;;
-    esac
-    # Collapse unsafe chars to underscore (POSIX tr)
-    _safe=$(printf '%s' "${_base}" | tr -c 'A-Za-z0-9._-' '_' 2>/dev/null || printf '%s' "${_base}")
-    printf '%s' "${_safe}"
-}
-
-# =============================================================================
-# fb_next_archive_name() - Next free SOURCE-YYYYMMDD-N.tar.gz under deposit dir
+# gc_invoking_login() / gc_invoking_home() — SUDO_USER-aware identity (Class B)
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Allocate next N for the day without overwriting existing archives.
-# Class B: prints basename only on stdout.
-#
-# Last reviewed: 2026-08-03
+# When backup is re-exec'd as root via allowlisted sudo, HOME often becomes
+# /root. Use SUDO_USER's passwd home so auth.* still come from the login that
+# ran grok login.
 # =============================================================================
-fb_next_archive_name() {
-    _src_name="${1:-}"
-    _dest_dir="${2:-}"
-    _day=$(date +%Y%m%d)
-    _n=1
-    while [ -e "${_dest_dir}/${_src_name}-${_day}-${_n}.tar.gz" ]; do
-        _n=$((_n + 1))
-        if [ "${_n}" -gt 9999 ]; then
-            printf '%s' ""
-            return 1
+gc_invoking_login() {
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        printf '%s' "${SUDO_USER}"
+        return 0
+    fi
+    id -un 2>/dev/null || echo "unknown"
+}
+
+gc_invoking_home() {
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        _h=""
+        if command -v getent >/dev/null 2>&1; then
+            _h=$(getent passwd "${SUDO_USER}" 2>/dev/null | cut -d: -f6)
         fi
-    done
-    printf '%s' "${_src_name}-${_day}-${_n}.tar.gz"
+        if [ -z "${_h}" ] && [ -r /etc/passwd ]; then
+            _h=$(awk -F: -v u="${SUDO_USER}" '$1==u {print $6; exit}' /etc/passwd 2>/dev/null)
+        fi
+        if [ -n "${_h}" ] && [ -d "${_h}" ]; then
+            printf '%s' "${_h}"
+            return 0
+        fi
+    fi
+    printf '%s' "${HOME:-/tmp}"
 }
 
 # =============================================================================
-# fb_count_path_entries / fb_count_path_files - Source tree counts (Class B)
+# gc_resolve_grok_home() - ~/.grok (or GROK_HOME) for the invoking login
+# =============================================================================
+gc_resolve_grok_home() {
+    if [ -n "${GROK_HOME:-}" ]; then
+        printf '%s' "${GROK_HOME}"
+        return 0
+    fi
+    printf '%s' "$(gc_invoking_home)/.grok"
+}
+
+# =============================================================================
+# gc_resolve_cli_root() - durable host store (default /var/grok-cli)
+# =============================================================================
+gc_resolve_cli_root() {
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
+    printf '%s' "${GROK_CLI_ROOT}"
+}
+
+# =============================================================================
+# gc_list_auth_files() - Class B: newline list of regular auth.* files
+# =============================================================================
+gc_list_auth_files() {
+    _dir="${1:-}"
+    if [ -z "${_dir}" ] || [ ! -d "${_dir}" ]; then
+        return 1
+    fi
+    find "${_dir}" -maxdepth 1 -type f -name 'auth.*' 2>/dev/null | LC_ALL=C sort
+}
+
+# =============================================================================
+# gc_iso_to_epoch() - Class B: parse grok expires_at to unix seconds
+# =============================================================================
+gc_iso_to_epoch() {
+    _iso="${1:-}"
+    [ -n "${_iso}" ] || return 1
+    _iso=$(printf '%s' "${_iso}" | sed 's/\.[0-9]*Z$/Z/; s/\.[0-9]*+/+/')
+    if date -u -d "${_iso}" +%s >/dev/null 2>&1; then
+        date -u -d "${_iso}" +%s
+        return 0
+    fi
+    _plain=$(printf '%s' "${_iso}" | tr 'T' ' ' | sed 's/Z$//; s/+00:00$//; s/+0000$//')
+    if date -u -d "${_plain}" +%s >/dev/null 2>&1; then
+        date -u -d "${_plain}" +%s
+        return 0
+    fi
+    return 1
+}
+
+# =============================================================================
+# gc_auth_session_ok() - Fail-closed valid grok login in auth.json
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Count filesystem entries (find) and regular files under a source directory
-# for post-tar and post-deposit verification. Prints a single integer on stdout.
+# A valid session means auth.json exists and at least one credential can still
+# be used: a refresh_token, or an unexpired access token (expires_at in the
+# future). Never print token values.
 #
-# ALIGNMENT: requirement-domain-folder-backup.md (backup verification)
+# ALIGNMENT: requirement-grok-auth-backup.md
 # =============================================================================
-fb_count_path_entries() {
-    _root="${1:-}"
-    if [ -z "${_root}" ] || [ ! -d "${_root}" ]; then
-        printf '%s' "0"
-        return 1
-    fi
-    # Include the root directory itself (matches tar -C parent leaf member set)
-    find "${_root}" 2>/dev/null | wc -l | tr -d ' \t'
-}
+gc_auth_session_ok() {
+    _auth="${1:-}"
+    [ -n "${_auth}" ] || return 1
+    [ -f "${_auth}" ] || return 1
+    [ -s "${_auth}" ] || return 1
 
-fb_count_path_files() {
-    _root="${1:-}"
-    if [ -z "${_root}" ] || [ ! -d "${_root}" ]; then
-        printf '%s' "0"
-        return 1
-    fi
-    find "${_root}" -type f 2>/dev/null | wc -l | tr -d ' \t'
-}
-
-# =============================================================================
-# fb_tar_list_stream() - List archive members (elevated when deposit is root-owned)
-# =============================================================================
-#
-# GENERAL PURPOSE:
-# Stream `tar -tzf` listing for a .tar.gz. Prefer direct read; if unreadable,
-# use allowlisted `sudo -n /usr/bin/tar -tzf` (or /bin/tar) for Type 1 verify.
-#
-# Class B: member paths on stdout. Exit non-zero if listing fails.
-# =============================================================================
-fb_tar_list_stream() {
-    _arc="${1:-}"
-    if [ -z "${_arc}" ]; then
-        return 1
-    fi
-    if [ -r "${_arc}" ] || [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
-        tar -tzf "${_arc}"
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - "${_auth}" <<'PY'
+import datetime, json, sys
+path = sys.argv[1]
+try:
+    data = json.load(open(path, encoding="utf-8"))
+except Exception:
+    sys.exit(1)
+if not isinstance(data, dict) or not data:
+    sys.exit(1)
+now = datetime.datetime.now(datetime.timezone.utc)
+for v in data.values():
+    if not isinstance(v, dict):
+        continue
+    has_secret = bool(v.get("key") or v.get("refresh_token"))
+    if not has_secret:
+        continue
+    if v.get("refresh_token"):
+        sys.exit(0)
+    exp = v.get("expires_at")
+    if not exp:
+        sys.exit(0)
+    s = str(exp).replace("Z", "+00:00")
+    if "." in s and "+" in s[s.find("T"):]:
+        head, rest = s.split(".", 1)
+        tz = ""
+        if "+" in rest:
+            frac, tz = rest.split("+", 1)
+            tz = "+" + tz
+        elif "-" in rest:
+            frac, tz = rest.split("-", 1)
+            tz = "-" + tz
+        s = head + tz
+    try:
+        dt = datetime.datetime.fromisoformat(s)
+    except Exception:
+        continue
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    if dt > now:
+        sys.exit(0)
+sys.exit(1)
+PY
         return $?
     fi
-    # Non-root + root-owned deposit: elevate narrow tar list only
-    if ! command -v sudo >/dev/null 2>&1; then
+
+    # Fallback without python3: refresh_token, or expires_at still in the future.
+    if grep -q '"refresh_token"[[:space:]]*:[[:space:]]*"[^"]' "${_auth}" 2>/dev/null; then
+        return 0
+    fi
+    _exp=$(sed -n 's/.*"expires_at"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${_auth}" 2>/dev/null | head -n1)
+    if [ -n "${_exp}" ]; then
+        _exp_s=$(gc_iso_to_epoch "${_exp}") || return 1
+        _now=$(date -u +%s)
+        if [ "${_exp_s}" -gt "${_now}" ] 2>/dev/null; then
+            return 0
+        fi
         return 1
     fi
-    if [ -x /usr/bin/tar ]; then
-        if sudo -n /usr/bin/tar -tzf "${_arc}" 2>/dev/null; then
-            return 0
-        fi
-    fi
-    if [ -x /bin/tar ]; then
-        if sudo -n /bin/tar -tzf "${_arc}" 2>/dev/null; then
-            return 0
-        fi
+    if grep -q '"key"[[:space:]]*:[[:space:]]*"[^"]' "${_auth}" 2>/dev/null; then
+        return 0
     fi
     return 1
 }
 
 # =============================================================================
-# fb_count_tar_members / fb_count_tar_files - Archive inventory (Class B)
+# gc_session_status_word() - Class B: valid|invalid|missing
 # =============================================================================
-#
-# GENERAL PURPOSE:
-# Count tar members and non-directory members (no trailing /) for verification.
-# =============================================================================
-fb_count_tar_members() {
-    _arc="${1:-}"
-    _list=$(fb_tar_list_stream "${_arc}" 2>/dev/null) || {
-        printf '%s' ""
-        return 1
-    }
-    if [ -z "${_list}" ]; then
-        printf '%s' "0"
+gc_session_status_word() {
+    _home=$(gc_resolve_grok_home)
+    _auth="${_home}/auth.json"
+    if [ ! -f "${_auth}" ]; then
+        printf '%s' "missing"
         return 0
     fi
-    printf '%s\n' "${_list}" | wc -l | tr -d ' \t'
-}
-
-fb_count_tar_files() {
-    _arc="${1:-}"
-    _list=$(fb_tar_list_stream "${_arc}" 2>/dev/null) || {
-        printf '%s' ""
-        return 1
-    }
-    if [ -z "${_list}" ]; then
-        printf '%s' "0"
+    if gc_auth_session_ok "${_auth}"; then
+        printf '%s' "valid"
         return 0
     fi
-    # Members whose path does not end with / are non-directory entries (files, links)
-    printf '%s\n' "${_list}" | awk '!/\/$/ { n++ } END { print n+0 }'
-}
-
-# =============================================================================
-# fb_file_size_bytes() - Size of a path (Class B; metadata, no full read)
-# =============================================================================
-fb_file_size_bytes() {
-    _path="${1:-}"
-    if [ -z "${_path}" ]; then
-        printf '%s' ""
-        return 1
-    fi
-    if command -v stat >/dev/null 2>&1; then
-        # GNU stat first; BSD fallback
-        _sz=$(stat -c %s "${_path}" 2>/dev/null || stat -f %z "${_path}" 2>/dev/null || true)
-        if [ -n "${_sz}" ]; then
-            printf '%s' "${_sz}"
-            return 0
-        fi
-    fi
-    wc -c < "${_path}" 2>/dev/null | tr -d ' \t'
-}
-
-# =============================================================================
-# fb_verify_archive_counts() - Fail-closed count + size verification
-# =============================================================================
-#
-# GENERAL PURPOSE:
-# Compare source tree inventory to staged/deposited archive inventory.
-# Args: source_abs stage_or_dest_archive expected_members expected_files
-# Also checks non-zero size. Uses elevated tar list when deposit is unreadable.
-#
-# ALIGNMENT:
-# - requirement-domain-folder-backup.md (post-deposit verification)
-# - requirement-three-layer-privilege-model.md (Type 1 verify Cmnds)
-#
-# Last reviewed: 2026-08-03
-# =============================================================================
-fb_verify_archive_counts() {
-    _source_abs="${1:-}"
-    _archive="${2:-}"
-    _expect_members="${3:-}"
-    _expect_files="${4:-}"
-    _label="${5:-archive}"
-
-    if [ -z "${_archive}" ] || [ ! -e "${_archive}" ]; then
-        out_die "Verification failed: ${_label} missing: ${_archive}"
-    fi
-
-    _sz=$(fb_file_size_bytes "${_archive}")
-    if [ -z "${_sz}" ] || [ "${_sz}" -le 0 ] 2>/dev/null; then
-        out_die "Verification failed: ${_label} empty or unreadable size: ${_archive}"
-    fi
-
-    _got_members=$(fb_count_tar_members "${_archive}") || _got_members=""
-    if [ -z "${_got_members}" ]; then
-        out_die "Verification failed: cannot list ${_label} (need readable archive or allowlisted sudo tar -tzf). Run: ${APP_NAME:-folder-backup} print-sudoers"
-    fi
-    _got_files=$(fb_count_tar_files "${_archive}") || _got_files=""
-    if [ -z "${_got_files}" ]; then
-        out_die "Verification failed: cannot count files in ${_label}"
-    fi
-
-    if [ -n "${_expect_members}" ] && [ "${_got_members}" -ne "${_expect_members}" ]; then
-        out_die "Verification failed: ${_label} member count ${_got_members} != expected ${_expect_members}"
-    fi
-    if [ -n "${_expect_files}" ] && [ "${_got_files}" -ne "${_expect_files}" ]; then
-        out_die "Verification failed: ${_label} file count ${_got_files} != expected ${_expect_files}"
-    fi
-
-    # Optional source re-check when source still available
-    if [ -n "${_source_abs}" ] && [ -d "${_source_abs}" ]; then
-        _src_entries=$(fb_count_path_entries "${_source_abs}")
-        _src_files=$(fb_count_path_files "${_source_abs}")
-        if [ "${_got_members}" -ne "${_src_entries}" ]; then
-            out_die "Verification failed: ${_label} members ${_got_members} != source entries ${_src_entries}"
-        fi
-        if [ "${_got_files}" -ne "${_src_files}" ]; then
-            out_die "Verification failed: ${_label} files ${_got_files} != source files ${_src_files}"
-        fi
-    fi
-
-    # Export last verify results for caller (shell globals)
-    FB_VERIFY_MEMBERS="${_got_members}"
-    FB_VERIFY_FILES="${_got_files}"
-    FB_VERIFY_SIZE="${_sz}"
+    printf '%s' "invalid"
     return 0
 }
 
 # =============================================================================
-# fb_deposit_archive() - Type 1 elevated copy into /var/backup/notation
-# =============================================================================
-fb_deposit_archive() {
-    _stage_file="${1:-}"
-    _dest_file="${2:-}"
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
-
-    _dest_dir=$(dirname -- "${_dest_file}")
-
-    if [ ! -f "${_stage_file}" ]; then
-        out_die "Staged archive missing: ${_stage_file}"
-    fi
-
-    # Prefer install for mode control when available
-    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
-        if [ ! -d "${_dest_dir}" ]; then
-            mkdir -p "${_dest_dir}" || out_die "Cannot create ${_dest_dir}"
-        fi
-        if command -v install >/dev/null 2>&1; then
-            install -m 0640 "${_stage_file}" "${_dest_file}" || out_die "Root deposit failed"
-        else
-            cp "${_stage_file}" "${_dest_file}" || out_die "Root deposit failed"
-            chmod 0640 "${_dest_file}" 2>/dev/null || true
-        fi
-        return 0
-    fi
-
-    # Non-root Type 0: writable custom/test deposit dir (BACKUP_ROOT override)
-    if [ ! -d "${_dest_dir}" ]; then
-        mkdir -p "${_dest_dir}" 2>/dev/null || true
-    fi
-    if [ -d "${_dest_dir}" ] && [ -w "${_dest_dir}" ]; then
-        if command -v install >/dev/null 2>&1; then
-            if install -m 0640 "${_stage_file}" "${_dest_file}" 2>/dev/null; then
-                return 0
-            fi
-        fi
-        if cp "${_stage_file}" "${_dest_file}" 2>/dev/null; then
-            chmod 0640 "${_dest_file}" 2>/dev/null || true
-            return 0
-        fi
-    fi
-
-    # Non-root: require allowlisted sudo for root-owned deposit
-    if ! command -v sudo >/dev/null 2>&1; then
-        out_die "sudo not found. Deposit requires elevated copy into ${BACKUP_ROOT}/${BACKUP_NOTATION}/. Run: ${APP_NAME} print-sudoers"
-    fi
-
-    # Create destination dir if fragment allows; best-effort then copy
-    if ! sudo -n mkdir -p "${_dest_dir}" 2>/dev/null; then
-        if [ ! -d "${_dest_dir}" ]; then
-            out_die "Cannot create ${_dest_dir} (need admin sudoers). Run: ${APP_NAME} print-sudoers"
-        fi
-    fi
-
-    if command -v install >/dev/null 2>&1; then
-        if sudo -n install -m 0640 "${_stage_file}" "${_dest_file}" 2>/dev/null; then
-            return 0
-        fi
-    fi
-    if sudo -n cp "${_stage_file}" "${_dest_file}" 2>/dev/null; then
-        sudo -n chmod 0640 "${_dest_file}" 2>/dev/null || true
-        return 0
-    fi
-
-    out_die "Deposit failed (sudo not authorized for copy into ${_dest_dir}). Run: ${APP_NAME} print-sudoers and ask admin to install fragment under /etc/sudoers.d/"
-}
-
-# =============================================================================
-# fb_positive_int_or_default() - Class B: validate positive integer env caps
-# =============================================================================
-fb_positive_int_or_default() {
-    _raw="${1:-}"
-    _def="${2:-1}"
-    case "${_raw}" in
-        ''|*[!0-9]*)
-            printf '%s' "${_def}"
-            return 0
-            ;;
-    esac
-    if [ "${_raw}" -le 0 ] 2>/dev/null; then
-        printf '%s' "${_def}"
-        return 0
-    fi
-    printf '%s' "${_raw}"
-}
-
-# =============================================================================
-# fb_match_product_archive_basename() - Class B: exit 0 if NAME-YYYYMMDD-N.tar.gz
-# Args: file_basename source_folder_name
-# =============================================================================
-fb_match_product_archive_basename() {
-    _bn="${1:-}"
-    _src="${2:-}"
-    [ -n "${_bn}" ] && [ -n "${_src}" ] || return 1
-    case "${_bn}" in
-        "${_src}"-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-*.tar.gz) ;;
-        *) return 1 ;;
-    esac
-    _rest="${_bn#${_src}-}"
-    _daypart=$(printf '%s' "${_rest}" | cut -c1-8)
-    _npart="${_rest#????????-}"
-    _npart="${_npart%.tar.gz}"
-    case "${_daypart}" in
-        [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) ;;
-        *) return 1 ;;
-    esac
-    case "${_npart}" in
-        ''|*[!0-9]*) return 1 ;;
-    esac
-    return 0
-}
-
-# =============================================================================
-# fb_remove_deposit_archive() - Delete one durable archive (Type 0 or allowlisted)
-# =============================================================================
-#
-# ALIGNMENT: retention-total / retention-daily · three-layer narrow rm
-# =============================================================================
-fb_remove_deposit_archive() {
-    _path="${1:-}"
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
-    _dep="${BACKUP_ROOT}/${BACKUP_NOTATION}"
-
-    [ -n "${_path}" ] || return 1
-    case "${_path}" in
-        "${_dep}"/*) ;;
-        *)
-            out_warn "Retention refuse delete outside deposit: ${_path}"
-            return 1
-            ;;
-    esac
-    case "${_path}" in
-        *.tar.gz) ;;
-        *)
-            out_warn "Retention refuse delete non-archive: ${_path}"
-            return 1
-            ;;
-    esac
-    if [ ! -e "${_path}" ]; then
-        return 0
-    fi
-
-    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
-        rm -f "${_path}" 2>/dev/null && return 0
-        return 1
-    fi
-    # Type 0 when writable (user-owned / test deposit)
-    if [ -w "${_path}" ] || { [ -d "${_dep}" ] && [ -w "${_dep}" ]; }; then
-        if rm -f "${_path}" 2>/dev/null; then
-            return 0
-        fi
-    fi
-    if command -v sudo >/dev/null 2>&1; then
-        if sudo -n /bin/rm -f "${_path}" 2>/dev/null \
-            || sudo -n /usr/bin/rm -f "${_path}" 2>/dev/null; then
-            return 0
-        fi
-    fi
-    return 1
-}
-
-# =============================================================================
-# fb_apply_retention() - Daily then total prune after successful deposit
+# gc_check_session() - Type 0: grok login gate
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Enforce MAX_DAILY_BACKUPS (default 5) for basename+day, then MAX_TOTAL_BACKUPS
-# (default 30) for basename across all days. Oldest first (day asc, N asc).
-#
-# ALIGNMENT:
-# - requirement-folder-archive-backup-retention-daily.md
-# - requirement-folder-archive-backup-retention-total.md
-#
-# Sets globals: FB_RETENTION_DAILY_REMOVED FB_RETENTION_TOTAL_REMOVED
-#               FB_RETENTION_DAILY_REMAINING FB_RETENTION_TOTAL_REMAINING
+# Tell the operator whether ~/.grok/auth.json is a usable grok login. Backup
+# MUST call this (or gc_auth_session_ok) before any deposit.
 # =============================================================================
-fb_apply_retention() {
-    _src_name="${1:-}"
-    _dest_dir="${2:-}"
-    _day="${3:-}"
-    : "${APP_NAME:=folder-backup}"
-    : "${MAX_DAILY_BACKUPS:=5}"
-    : "${MAX_TOTAL_BACKUPS:=30}"
-
-    FB_RETENTION_DAILY_REMOVED=0
-    FB_RETENTION_TOTAL_REMOVED=0
-    FB_RETENTION_DAILY_REMAINING=0
-    FB_RETENTION_TOTAL_REMAINING=0
-
-    [ -n "${_src_name}" ] && [ -n "${_dest_dir}" ] && [ -d "${_dest_dir}" ] || return 0
-    if [ -z "${_day}" ]; then
-        _day=$(date +%Y%m%d)
-    fi
-
-    _max_daily=$(fb_positive_int_or_default "${MAX_DAILY_BACKUPS}" 5)
-    _max_total=$(fb_positive_int_or_default "${MAX_TOTAL_BACKUPS}" 30)
-    MAX_DAILY_BACKUPS="${_max_daily}"
-    MAX_TOTAL_BACKUPS="${_max_total}"
-
-    # --- Daily prune: rebuild sorted list each pass (lowest N first) ---
-    _guard=0
-    while [ "${_guard}" -lt 10000 ]; do
-        _guard=$((_guard + 1))
-        _daily_sorted=$(
-            for _f in "${_dest_dir}"/*; do
-                [ -f "${_f}" ] || continue
-                _bn=$(basename -- "${_f}")
-                fb_match_product_archive_basename "${_bn}" "${_src_name}" || continue
-                case "${_bn}" in
-                    "${_src_name}-${_day}-"*.tar.gz) ;;
-                    *) continue ;;
-                esac
-                _n="${_bn#${_src_name}-${_day}-}"
-                _n="${_n%.tar.gz}"
-                case "${_n}" in
-                    ''|*[!0-9]*) continue ;;
-                esac
-                printf '%s\t%s\n' "${_n}" "${_f}"
-            done | sort -n -k1,1
-        )
-        _daily_count=0
-        if [ -n "${_daily_sorted}" ]; then
-            _daily_count=$(printf '%s\n' "${_daily_sorted}" | grep -c . 2>/dev/null || echo 0)
-        fi
-        _daily_count=$(printf '%s' "${_daily_count}" | tr -d ' \t\r\n')
-        [ -n "${_daily_count}" ] || _daily_count=0
-        FB_RETENTION_DAILY_REMAINING="${_daily_count}"
-        if [ "${_daily_count}" -le "${_max_daily}" ]; then
-            break
-        fi
-        _oldpath=$(printf '%s\n' "${_daily_sorted}" | head -n1 | cut -f2-)
-        if [ -z "${_oldpath}" ] || [ ! -e "${_oldpath}" ]; then
-            break
-        fi
-        out_info "Retention daily: removing oldest same-day archive ${_oldpath} (cap=${_max_daily})"
-        if ! fb_remove_deposit_archive "${_oldpath}"; then
-            out_die "Retention daily prune failed (cannot remove ${_oldpath}). Run: ${APP_NAME} print-sudoers (need allowlisted rm under deposit) and admin-install fragment"
-        fi
-        FB_RETENTION_DAILY_REMOVED=$((FB_RETENTION_DAILY_REMOVED + 1))
-    done
-
-    # --- Total prune: oldest YYYYMMDD then N ---
-    _guard=0
-    while [ "${_guard}" -lt 10000 ]; do
-        _guard=$((_guard + 1))
-        _total_sorted=$(
-            for _f in "${_dest_dir}"/*; do
-                [ -f "${_f}" ] || continue
-                _bn=$(basename -- "${_f}")
-                fb_match_product_archive_basename "${_bn}" "${_src_name}" || continue
-                _rest="${_bn#${_src_name}-}"
-                _dpart=$(printf '%s' "${_rest}" | cut -c1-8)
-                _npart="${_rest#????????-}"
-                _npart="${_npart%.tar.gz}"
-                case "${_npart}" in
-                    ''|*[!0-9]*) continue ;;
-                esac
-                printf '%s\t%s\t%s\n' "${_dpart}" "${_npart}" "${_f}"
-            done | sort -k1,1 -k2,2n
-        )
-        _total_count=0
-        if [ -n "${_total_sorted}" ]; then
-            _total_count=$(printf '%s\n' "${_total_sorted}" | grep -c . 2>/dev/null || echo 0)
-        fi
-        _total_count=$(printf '%s' "${_total_count}" | tr -d ' \t\r\n')
-        [ -n "${_total_count}" ] || _total_count=0
-        FB_RETENTION_TOTAL_REMAINING="${_total_count}"
-        if [ "${_total_count}" -le "${_max_total}" ]; then
-            break
-        fi
-        _oldpath=$(printf '%s\n' "${_total_sorted}" | head -n1 | cut -f3-)
-        if [ -z "${_oldpath}" ] || [ ! -e "${_oldpath}" ]; then
-            break
-        fi
-        out_info "Retention total: removing oldest archive ${_oldpath} (cap=${_max_total})"
-        if ! fb_remove_deposit_archive "${_oldpath}"; then
-            out_die "Retention total prune failed (cannot remove ${_oldpath}). Run: ${APP_NAME} print-sudoers (need allowlisted rm under deposit) and admin-install fragment"
-        fi
-        FB_RETENTION_TOTAL_REMOVED=$((FB_RETENTION_TOTAL_REMOVED + 1))
-    done
-
-    if [ "${FB_RETENTION_DAILY_REMOVED}" -gt 0 ] || [ "${FB_RETENTION_TOTAL_REMOVED}" -gt 0 ]; then
-        out_info "Retention: daily_removed=${FB_RETENTION_DAILY_REMOVED} daily_remaining=${FB_RETENTION_DAILY_REMAINING}/${_max_daily} total_removed=${FB_RETENTION_TOTAL_REMOVED} total_remaining=${FB_RETENTION_TOTAL_REMAINING}/${_max_total}"
-    fi
-    return 0
-}
-
-# =============================================================================
-# fb_backup() - Domain: tar.gz source folder, elevated deposit, verify counts
-# =============================================================================
-#
-# GENERAL PURPOSE:
-# Validate source directory, create gzip tar in isolated staging, allocate
-# next archive name, elevate copy into /var/backup/${BACKUP_NOTATION}/, then
-# fail-closed verify member/file counts (and size) on stage and deposit.
-# Deposit archives are often root:root 0640 — listing uses Type 1 sudo tar -tzf.
-#
-# ALIGNMENT:
-# - requirement-folder-archive-backup.md  (ops SSOT)
-# - requirement-folder-archive-backup-retention-daily.md
-# - requirement-folder-archive-backup-retention-total.md
-# - requirement-three-layer-privilege-model.md
-# - requirement-shell-cli-storage.md
-# - requirement-domain-folder-backup.md    (verb surface only)
-#
-# Last reviewed: 2026-08-12
-# =============================================================================
-fb_backup() {
-    : "${APP_NAME:=folder-backup}"
+gc_check_session() {
+    : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
-    : "${QUIET:=0}"
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
-    : "${HOME:=/tmp}"
-    : "${USERNAME:=unknown}"
-    : "${VERSION:=1.8.0}"
-    : "${MAX_DAILY_BACKUPS:=5}"
-    : "${MAX_TOTAL_BACKUPS:=30}"
-
-    _source="${1:-}"
-    if [ -z "${_source}" ]; then
-        out_die "Usage: ${APP_NAME} backup <source-folder>"
-    fi
-    if [ ! -d "${_source}" ]; then
-        out_die "Source is not a directory: ${_source}"
-    fi
-    if [ ! -r "${_source}" ]; then
-        out_die "Source directory is not readable: ${_source}"
-    fi
-
-    # Resolve absolute source
-    _source_abs=$(CDPATH= cd -- "${_source}" 2>/dev/null && pwd) || out_die "Cannot resolve source path: ${_source}"
-    _src_name=$(fb_sanitize_folder_name "${_source_abs}")
-    if [ -z "${_src_name}" ]; then
-        out_die "Invalid source folder name"
-    fi
-
-    if [ -z "${EFFECTIVE_STORAGE_DIR:-}" ]; then
-        EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
-    fi
-    _dest_dir="${BACKUP_ROOT}/${BACKUP_NOTATION}"
-    # For next-N scan: if dest not readable, still allocate N=1 for planned name
-    _archive_name=$(fb_next_archive_name "${_src_name}" "${_dest_dir}")
-    if [ -z "${_archive_name}" ]; then
-        out_die "Could not allocate archive name under ${_dest_dir}"
-    fi
-
-    # Stage at one path segment under storage root so sudoers wildcards match
-    # (e.g. /dev/shm/folder-backup-user/NAME.tar.gz → /dev/shm/folder-backup-*/*).
-    _stage_file="${EFFECTIVE_STORAGE_DIR}/${_archive_name}"
-    _parent=$(dirname -- "${_source_abs}")
-    _leaf=$(basename -- "${_source_abs}")
-
-    # Cleanup staging on exit
-    _fb_cleanup() {
-        rm -f "${_stage_file}" 2>/dev/null || true
-    }
-    trap '_fb_cleanup' EXIT INT TERM
-
-    # Source inventory (before tar)
-    _src_entries=$(fb_count_path_entries "${_source_abs}")
-    _src_files=$(fb_count_path_files "${_source_abs}")
-    out_info "Source inventory: entries=${_src_entries} files=${_src_files}"
-
-    out_info "Creating archive ${_archive_name} from ${_source_abs}"
-    if ! command -v tar >/dev/null 2>&1; then
-        out_die "tar is required for backup"
-    fi
-
-    # Create gzip tar with top-level folder = leaf basename
-    if ! tar -C "${_parent}" -czf "${_stage_file}" "${_leaf}"; then
-        out_die "tar failed for ${_source_abs}"
-    fi
-    chmod 0600 "${_stage_file}" 2>/dev/null || true
-
-    # Verify staged archive against source (readable as invoking user)
-    out_info "Verifying staged archive counts..."
-    fb_verify_archive_counts "${_source_abs}" "${_stage_file}" "${_src_entries}" "${_src_files}" "staged archive"
-    _stage_members="${FB_VERIFY_MEMBERS}"
-    _stage_files="${FB_VERIFY_FILES}"
-    _stage_size="${FB_VERIFY_SIZE}"
-    out_info "Staged OK: members=${_stage_members} files=${_stage_files} size=${_stage_size}"
-
-    _dest_file="${_dest_dir}/${_archive_name}"
-    out_info "Depositing to ${_dest_file}"
-    fb_deposit_archive "${_stage_file}" "${_dest_file}"
-
-    # -------------------------------------------------------------------------
-    # Post-deposit verification (keep stage until done)
-    # 1) Size must match stage (metadata; no archive read required)
-    # 2) Prefer re-list deposited archive (direct or Type 1 sudo tar -tzf)
-    # 3) If re-list unavailable, stage already matched source — still report counts
-    # -------------------------------------------------------------------------
-    out_info "Verifying deposited archive..."
-    if [ ! -e "${_dest_file}" ]; then
-        out_die "Verification failed: deposited archive missing: ${_dest_file}"
-    fi
-    _dest_size=$(fb_file_size_bytes "${_dest_file}")
-    if [ -z "${_dest_size}" ] || [ "${_dest_size}" -le 0 ] 2>/dev/null; then
-        out_die "Verification failed: deposited archive empty or unreadable size: ${_dest_file}"
-    fi
-    if [ -n "${_stage_size}" ] && [ "${_stage_size}" -ne "${_dest_size}" ]; then
-        out_die "Verification failed: deposited size ${_dest_size} != staged size ${_stage_size}"
-    fi
-
-    _verify_mode="stage_counts+dest_size"
-    _dest_members="${_stage_members}"
-    _dest_files="${_stage_files}"
-    # Prefer re-list deposited archive (direct read or Type 1 sudo tar -tzf)
-    _rel_members=$(fb_count_tar_members "${_dest_file}" 2>/dev/null) || _rel_members=""
-    _rel_files=$(fb_count_tar_files "${_dest_file}" 2>/dev/null) || _rel_files=""
-    if [ -n "${_rel_members}" ] && [ -n "${_rel_files}" ]; then
-        if [ "${_rel_members}" -ne "${_stage_members}" ]; then
-            out_die "Verification failed: deposited members ${_rel_members} != staged ${_stage_members}"
+    _home=$(gc_resolve_grok_home)
+    _auth="${_home}/auth.json"
+    _st=$(gc_session_status_word) || true
+    if [ "${_st}" = "valid" ]; then
+        out_success "Grok is logged in with a valid session."
+        out_info "Auth file: ${_auth}"
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "check-session" "ok" \
+                "app" "${APP_NAME}" \
+                "grok_home" "${_home}" \
+                "auth_json" "${_auth}" \
+                "session" "valid"
         fi
-        if [ "${_rel_files}" -ne "${_stage_files}" ]; then
-            out_die "Verification failed: deposited files ${_rel_files} != staged ${_stage_files}"
-        fi
-        if [ "${_rel_members}" -ne "${_src_entries}" ] || [ "${_rel_files}" -ne "${_src_files}" ]; then
-            out_die "Verification failed: deposited inventory does not match source (members=${_rel_members} files=${_rel_files} source_entries=${_src_entries} source_files=${_src_files})"
-        fi
-        _dest_members="${_rel_members}"
-        _dest_files="${_rel_files}"
-        _verify_mode="dest_tar_list+size"
-        out_info "Deposited re-list OK: members=${_dest_members} files=${_dest_files} size=${_dest_size}"
-    else
-        # Re-list may need allowlisted: sudo -n tar -tzf under deposit dir
-        # Stage was already verified against source; size match proves deposit bytes.
-        out_info "Deposited size OK (${_dest_size}); re-list unavailable (add tar -tzf to sudoers via print-sudoers for full re-verify)"
-        out_info "Using staged inventory: members=${_dest_members} files=${_dest_files}"
+        return 0
     fi
+    if [ "${_st}" = "missing" ]; then
+        out_die "Grok is not logged in (no auth.json at ${_auth}). Next step: run grok login, then ${APP_NAME} check-session."
+    fi
+    out_die "Grok session is not valid (${_auth} present but expired or unusable). Next step: run grok login, then ${APP_NAME} check-session."
+}
 
-    # Success: remove stage (trap will also run)
-    rm -f "${_stage_file}" 2>/dev/null || true
-    trap - EXIT INT TERM
-
-    # Retention: daily (max 5) then total (max 30) per basename
-    _ret_day=$(date +%Y%m%d)
-    case "${_archive_name}" in
-        *-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-*)
-            _ret_day=$(printf '%s' "${_archive_name}" | sed -n 's/.*-\([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\)-[0-9][0-9]*\.tar\.gz$/\1/p')
-            [ -n "${_ret_day}" ] || _ret_day=$(date +%Y%m%d)
+# =============================================================================
+# gc_dest_needs_elev() - production /var/grok-cli write needs root
+# =============================================================================
+gc_dest_needs_elev() {
+    _d="${1:-}"
+    : "${_d:=/var/grok-cli}"
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+        return 1
+    fi
+    case "${_d}" in
+        /var/grok-cli|/var/grok-cli/*)
+            return 0
             ;;
     esac
-    fb_apply_retention "${_src_name}" "${_dest_dir}" "${_ret_day}"
+    if [ -d "${_d}" ] && [ -w "${_d}" ]; then
+        return 1
+    fi
+    if mkdir -p "${_d}" 2>/dev/null && [ -w "${_d}" ]; then
+        return 1
+    fi
+    return 0
+}
 
-    out_success "Backup complete: ${_dest_file}"
-    out_success "Verified: source_files=${_src_files} archive_files=${_dest_files} members=${_dest_members} size=${_dest_size} mode=${_verify_mode}"
+# =============================================================================
+# gc_deposit_auth() - copy auth.* into dest; root chowns root:root
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Push matching auth.* files into the durable store. When running as root,
+# chown root:root and chmod so a normal login can later sync-auth without sudo
+# (dir 0755, files 0644).
+# =============================================================================
+gc_deposit_auth() {
+    _src="${1:-}"
+    _dest="${2:-}"
+    : "${APP_NAME:=grok-cli}"
+    if [ -z "${_src}" ] || [ ! -d "${_src}" ]; then
+        out_die "Grok home is not a directory: ${_src}"
+    fi
+    if [ -z "${_dest}" ]; then
+        out_die "Deposit directory is empty"
+    fi
+
+    _list=$(gc_list_auth_files "${_src}") || _list=""
+    if [ -z "${_list}" ]; then
+        out_die "No auth.* files under ${_src}. Next step: run grok login so ${APP_NAME} can copy ~/.grok/auth.*."
+    fi
+
+    if [ ! -d "${_dest}" ]; then
+        mkdir -p "${_dest}" || out_die "Cannot create ${_dest} (need allowlisted sudo ${APP_NAME} backup). Run: ${APP_NAME} print-sudoers and ask sudoer-adm to approve the JSON grant."
+    fi
+    if [ ! -w "${_dest}" ]; then
+        out_die "Cannot write ${_dest}. Only an approved passwordless sudo ${APP_NAME} backup may push files there."
+    fi
+
+    _copied=""
+    _n=0
+    # Portable newline loop
+    while IFS= read -r _f; do
+        [ -n "${_f}" ] || continue
+        [ -f "${_f}" ] || continue
+        _bn=$(basename -- "${_f}")
+        _outp="${_dest}/${_bn}"
+        if command -v install >/dev/null 2>&1; then
+            install -m 0644 "${_f}" "${_outp}" || out_die "Failed to copy ${_bn} into ${_dest}"
+        else
+            cp "${_f}" "${_outp}" || out_die "Failed to copy ${_bn} into ${_dest}"
+            chmod 0644 "${_outp}" 2>/dev/null || true
+        fi
+        if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+            chown root:root "${_outp}" 2>/dev/null || true
+            chmod 0644 "${_outp}" 2>/dev/null || true
+        fi
+        _copied="${_copied}${_bn} "
+        _n=$((_n + 1))
+    done <<EOF
+${_list}
+EOF
+
+    if [ "${_n}" -le 0 ]; then
+        out_die "No auth.* files were copied from ${_src}"
+    fi
+
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+        chown root:root "${_dest}" 2>/dev/null || true
+        chmod 0755 "${_dest}" 2>/dev/null || true
+    fi
+
+    GC_LAST_COPIED="${_copied}"
+    GC_LAST_COUNT="${_n}"
+    return 0
+}
+
+# =============================================================================
+# gc_backup() - check valid grok session, then push auth.* to /var/grok-cli
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# 1) Fail closed unless grok is logged in with a valid session.
+# 2) As a normal login, re-exec the managed global binary via passwordless
+#    sudo (JSON grant approved by sudoer-adm): sudo grok-cli backup.
+# 3) As root, copy ~/.grok/auth.* into GROK_CLI_ROOT, chown root:root, chmod
+#    world-readable so sync-auth needs no sudo.
+#
+# ALIGNMENT:
+# - requirement-grok-auth-backup.md
+# - requirement-sudoer-json-file.md (grant is grok-cli backup only)
+# - requirement-three-layer-privilege-model.md
+# =============================================================================
+gc_backup() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    _src=$(gc_resolve_grok_home)
+    _dest=$(gc_resolve_cli_root)
+    _auth="${_src}/auth.json"
+
+    if ! gc_auth_session_ok "${_auth}"; then
+        if [ ! -f "${_auth}" ]; then
+            out_die "Cannot backup: grok is not logged in (missing ${_auth}). Next step: run grok login, then ${APP_NAME} backup."
+        fi
+        out_die "Cannot backup: grok session is not valid (${_auth}). Next step: run grok login, then ${APP_NAME} backup."
+    fi
+
+    _list=$(gc_list_auth_files "${_src}") || _list=""
+    if [ -z "${_list}" ]; then
+        out_die "Cannot backup: no auth.* files under ${_src}."
+    fi
+
+    if [ "$(id -u 2>/dev/null || echo 1)" -ne 0 ] && gc_dest_needs_elev "${_dest}"; then
+        _bin="${GLOBAL_BIN}/${APP_NAME}"
+        if [ ! -x "${_bin}" ]; then
+            out_die "Cannot push to ${_dest}: need the global binary ${_bin} (sudo ${APP_NAME} backup). Next step: sudo sh src/${APP_NAME} install, then ${APP_NAME} generate-sudoer-request and ${APP_NAME} submit-sudoer-request so sudoer-adm can approve passwordless sudo ${APP_NAME} backup."
+        fi
+        if ! command -v sudo >/dev/null 2>&1; then
+            out_die "sudo not found. Pushing into ${_dest} needs passwordless sudo ${APP_NAME} backup after sudoer-adm approval."
+        fi
+        out_info "Session valid. Elevating: sudo -n ${_bin} backup"
+        if [ "${JSON}" -eq 1 ]; then
+            if ! sudo -n "${_bin}" backup >/dev/null; then
+                out_die "sudo ${APP_NAME} backup was refused. Next step: ${APP_NAME} generate-sudoer-request && ${APP_NAME} submit-sudoer-request, then ask sudoer-adm to approve the JSON grant (NOPASSWD ${_bin} backup)."
+            fi
+        else
+            if ! sudo -n "${_bin}" backup; then
+                out_die "sudo ${APP_NAME} backup was refused. Next step: ${APP_NAME} generate-sudoer-request && ${APP_NAME} submit-sudoer-request, then ask sudoer-adm to approve the JSON grant (NOPASSWD ${_bin} backup)."
+            fi
+            return 0
+        fi
+        # JSON parent: report dest after child deposit
+        _n=0
+        _names=""
+        _child_list=$(gc_list_auth_files "${_dest}") || _child_list=""
+        while IFS= read -r _f; do
+            [ -n "${_f}" ] || continue
+            _n=$((_n + 1))
+            _names="${_names}$(basename -- "${_f}") "
+        done <<EOF
+${_child_list}
+EOF
+        if [ "${_n}" -le 0 ]; then
+            out_die "Elevated backup returned success but ${_dest} has no auth.* files."
+        fi
+        out_json "backup" "ok" \
+            "app" "${APP_NAME}" \
+            "grok_home" "${_src}" \
+            "destination" "${_dest}" \
+            "files" "${_names}" \
+            "count" "${_n}" \
+            "owner" "root:root" \
+            "elevated" "true"
+        return 0
+    fi
+
+    out_info "Session valid. Depositing auth.* from ${_src} → ${_dest}"
+    gc_deposit_auth "${_src}" "${_dest}"
+    _owner="invoking-user"
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+        _owner="root:root"
+    fi
+    out_success "Backup complete: ${_dest} (${GC_LAST_COUNT:-0} file(s): ${GC_LAST_COPIED:-})"
+    out_info "Store owner/mode: ${_owner}; files 0644 so a normal login can ${APP_NAME} sync-auth without sudo."
     if [ "${JSON}" -eq 1 ]; then
         out_json "backup" "ok" \
             "app" "${APP_NAME}" \
-            "source" "${_source_abs}" \
-            "archive_name" "${_archive_name}" \
-            "destination" "${_dest_file}" \
-            "backup_notation" "${BACKUP_NOTATION}" \
-            "source_entries" "${_src_entries}" \
-            "source_files" "${_src_files}" \
-            "archive_members" "${_dest_members}" \
-            "archive_files" "${_dest_files}" \
-            "archive_size" "${_dest_size}" \
-            "verified" "true" \
-            "verify_mode" "${_verify_mode}" \
-            "retention_daily_cap" "${MAX_DAILY_BACKUPS}" \
-            "retention_daily_removed" "${FB_RETENTION_DAILY_REMOVED:-0}" \
-            "retention_daily_remaining" "${FB_RETENTION_DAILY_REMAINING:-0}" \
-            "retention_total_cap" "${MAX_TOTAL_BACKUPS}" \
-            "retention_total_removed" "${FB_RETENTION_TOTAL_REMOVED:-0}" \
-            "retention_total_remaining" "${FB_RETENTION_TOTAL_REMAINING:-0}" \
-            "version" "${VERSION}"
+            "grok_home" "${_src}" \
+            "destination" "${_dest}" \
+            "files" "${GC_LAST_COPIED:-}" \
+            "count" "${GC_LAST_COUNT:-0}" \
+            "owner" "${_owner}" \
+            "elevated" "$([ "$(id -u 2>/dev/null || echo 1)" -eq 0 ] && echo true || echo false)"
     fi
     return 0
 }
 
 # =============================================================================
-# util_resolve_projects_root() - Hard-disk projects tree (Class B stdout)
+# gc_sync_auth() - Type 0: copy /var/grok-cli/auth.* into ~/.grok (no sudo)
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Resolve {{PROJECTS_ROOT}} for hard-disk restore SSOT without assuming one host
-# when env is set; fall back to common layout detection.
+# A normal login reads the root-owned store and writes owner-only copies into
+# that login's grok home. MUST NOT call sudo.
 # =============================================================================
-util_resolve_projects_root() {
-    if [ -n "${PROJECTS_ROOT:-}" ] && [ -d "${PROJECTS_ROOT}" ]; then
-        printf '%s' "${PROJECTS_ROOT}"
-        return 0
-    fi
-    # Detect .../prjs from this script location when ship unit lives under a projects tree
-    _here=$(CDPATH= cd -- "$(dirname -- "$0" 2>/dev/null || echo ".")" 2>/dev/null && pwd) || _here=""
-    case "${_here}" in
-        */prjs/*|*/prjs)
-            _cand=$(printf '%s' "${_here}" | sed -n 's|\(.*)/prjs\(/.*\)\?|\1/prjs|p')
-            if [ -n "${_cand}" ] && [ -d "${_cand}" ]; then
-                printf '%s' "${_cand}"
-                return 0
-            fi
-            ;;
-    esac
-    for _cand in \
-        "/var/www/grok.dr-sense.com/prjs" \
-        "${HOME}/prjs" \
-        "/var/www/html/prjs"
-    do
-        if [ -d "${_cand}" ]; then
-            printf '%s' "${_cand}"
-            return 0
-        fi
-    done
-    printf '%s' ""
-    return 1
-}
-
-# =============================================================================
-# fb_parse_archive_project_name() - NAME from NAME-YYYYMMDD-N.tar.gz (Class B)
-# =============================================================================
-fb_parse_archive_project_name() {
-    _arc="${1:-}"
-    _bn=$(basename -- "${_arc}")
-    _bn=$(printf '%s' "${_bn}" | sed 's/\.tar\.gz$//')
-    # Strip trailing -YYYYMMDD-N
-    _name=$(printf '%s' "${_bn}" | sed -E 's/-[0-9]{8}-[0-9]+$//')
-    if [ -z "${_name}" ] || [ "${_name}" = "${_bn}" ]; then
-        # Not matching pattern: use full basename without .tar.gz
-        printf '%s' "${_bn}"
-        return 0
-    fi
-    printf '%s' "${_name}"
-}
-
-# =============================================================================
-# fb_refuse_restore_dest() - Restore dest whitelist gate (RQ §2.6b.2a)
-# =============================================================================
-#
-# GENERAL PURPOSE:
-# Fail closed on hard-deny paths; allow only whitelist rows:
-#   W-ETC-USER  /etc/{{username}} (+ children); never /etc/passwd
-#   W-HOME      invoking passwd home (+ children) when not already covered
-#   W-DISK/W-RAM/tmp/other non-system paths remain allow-by-path (not under
-#               hard system under-prefix refuse)
-# Hard deny wins over every W-* row.
-#
-# ALIGNMENT:
-# - requirement-folder-archive-backup.md §2.6b.2a (W-ETC-USER, /etc/passwd)
-# - INC-20260812-001
-# =============================================================================
-fb_refuse_restore_dest() {
-    _d="${1:-}"
-    [ -n "${_d}" ] || out_die "Restore destination empty"
-
-    # Hard deny: exact OS roots
-    case "${_d}" in
-        /|/bin|/boot|/dev|/etc|/lib|/lib64|/proc|/root|/run|/sbin|/sys|/usr|/var)
-            out_die "Refusing restore to dangerous system path: ${_d}"
-            ;;
-    esac
-
-    # Hard deny: system account database (never a restore dest)
-    if [ "${_d}" = "/etc/passwd" ]; then
-        out_die "Refusing restore to protected system path: /etc/passwd"
-    fi
-
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
-    _dep="${BACKUP_ROOT}/${BACKUP_NOTATION}"
-    if [ "${_d}" = "${BACKUP_ROOT}" ] || [ "${_d}" = "${_dep}" ]; then
-        out_die "Refusing restore into deposit tree: ${_d}"
-    fi
-    case "${_d}" in
-        "${_dep}"/*)
-            out_die "Refusing restore into deposit tree: ${_d}"
-            ;;
-    esac
-
-    _user=$(id -un 2>/dev/null || printf '%s' "")
-    # W-ETC-USER: /etc/{{username}} or strict child (invoking user only).
-    # Hard deny /etc/passwd already handled; username "passwd" must not open a loophole.
-    if [ -n "${_user}" ] && [ "${_user}" != "passwd" ]; then
-        case "${_d}" in
-            "/etc/${_user}"|"/etc/${_user}"/*)
-                return 0
-                ;;
-        esac
-    fi
-
-    # W-HOME: invoking passwd home or strict child
-    _home=""
-    if [ -n "${_user}" ] && command -v getent >/dev/null 2>&1; then
-        _home=$(getent passwd "${_user}" 2>/dev/null | cut -d: -f6)
-    fi
-    if [ -z "${_home}" ] && [ -n "${HOME-}" ]; then
-        _home="${HOME}"
-    fi
-    if [ -n "${_home}" ] && [ "${_home}" != "/" ] && [ "${_home}" != "/etc/passwd" ]; then
-        case "${_d}" in
-            "${_home}"|"${_home}"/*)
-                return 0
-                ;;
-        esac
-    fi
-
-    # Under other FHS system prefixes: refuse (not on whitelist)
-    case "${_d}" in
-        /bin/*|/boot/*|/dev/*|/etc/*|/lib/*|/lib64/*|/proc/*|/root/*|/run/*|/sbin/*|/sys/*|/usr/*)
-            out_die "Refusing restore under system path (not on restore dest whitelist): ${_d}"
-            ;;
-    esac
-
-    return 0
-}
-
-# =============================================================================
-# fb_resolve_archive_path() - Find durable archive under deposit (Class B stdout)
-# =============================================================================
-#
-# GENERAL PURPOSE:
-# Resolve user archive operand to an absolute .tar.gz path under deposit dir
-# (or an explicit path). Supports exact name, absolute path, or project prefix
-# (latest NAME-YYYYMMDD-N.tar.gz).
-# =============================================================================
-fb_resolve_archive_path() {
-    _spec="${1:-}"
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
-    _dep="${BACKUP_ROOT}/${BACKUP_NOTATION}"
-
-    if [ -z "${_spec}" ]; then
-        printf '%s' ""
-        return 1
-    fi
-    # Existing file (absolute or relative)
-    if [ -f "${_spec}" ]; then
-        _dir=$(CDPATH= cd -- "$(dirname -- "${_spec}")" 2>/dev/null && pwd) || _dir=""
-        if [ -n "${_dir}" ]; then
-            printf '%s/%s' "${_dir}" "$(basename -- "${_spec}")"
-            return 0
-        fi
-        printf '%s' "${_spec}"
-        return 0
-    fi
-    # Exact basename under deposit
-    if [ -f "${_dep}/${_spec}" ]; then
-        printf '%s' "${_dep}/${_spec}"
-        return 0
-    fi
-    # Add .tar.gz if omitted
-    case "${_spec}" in
-        *.tar.gz) ;;
-        *)
-            if [ -f "${_dep}/${_spec}.tar.gz" ]; then
-                printf '%s' "${_dep}/${_spec}.tar.gz"
-                return 0
-            fi
-            ;;
-    esac
-    # Prefix match: latest by sort (YYYYMMDD-N sorts lexicographically for fixed width day)
-    _latest=$(ls -1 "${_dep}/${_spec}"-*.tar.gz 2>/dev/null | sort | tail -n1)
-    if [ -n "${_latest}" ] && [ -f "${_latest}" ]; then
-        printf '%s' "${_latest}"
-        return 0
-    fi
-    printf '%s' ""
-    return 1
-}
-
-# =============================================================================
-# fb_fetch_archive_readable() - Stage unreadable deposit archive for Type 0 tar
-# =============================================================================
-#
-# GENERAL PURPOSE:
-# If archive is not readable by invoking user (root:root 0640), copy via
-# allowlisted sudo -n cp deposit/* → user stage, then return staged path.
-# =============================================================================
-fb_fetch_archive_readable() {
-    # Class B: path only on stdout (no out_* chatter — would pollute $(…)).
-    _arc="${1:-}"
-    if [ -z "${_arc}" ] || [ ! -e "${_arc}" ]; then
-        return 1
-    fi
-    if [ -r "${_arc}" ]; then
-        printf '%s' "${_arc}"
-        return 0
-    fi
-    if [ -z "${EFFECTIVE_STORAGE_DIR:-}" ]; then
-        EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
-    fi
-    _bn=$(basename -- "${_arc}")
-    _stage="${EFFECTIVE_STORAGE_DIR}/${_bn}"
-    if ! command -v sudo >/dev/null 2>&1; then
-        return 1
-    fi
-    # Prefer absolute allowlisted paths matching print-sudoers reverse-cp lines
-    if sudo -n /usr/bin/cp "${_arc}" "${EFFECTIVE_STORAGE_DIR}/" 2>/dev/null \
-        || sudo -n /bin/cp "${_arc}" "${EFFECTIVE_STORAGE_DIR}/" 2>/dev/null; then
-        if [ -r "${_stage}" ]; then
-            printf '%s' "${_stage}"
-            return 0
-        fi
-        if [ -r "${EFFECTIVE_STORAGE_DIR}/${_bn}" ]; then
-            printf '%s' "${EFFECTIVE_STORAGE_DIR}/${_bn}"
-            return 0
-        fi
-    fi
-    return 1
-}
-
-# =============================================================================
-# fb_list_archives() - Human/JSON list of deposit archives
-# =============================================================================
-fb_list_archives() {
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
+gc_sync_auth() {
+    : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
-    _dep="${BACKUP_ROOT}/${BACKUP_NOTATION}"
-    if [ ! -d "${_dep}" ]; then
-        out_warn "Deposit directory missing: ${_dep}"
-        return 0
+    _src=$(gc_resolve_cli_root)
+    _dest=$(gc_resolve_grok_home)
+
+    if [ ! -d "${_src}" ]; then
+        out_die "Cannot sync-auth: store missing (${_src}). Next step: someone with an approved sudo ${APP_NAME} backup must push auth.* first."
     fi
-    if [ "${JSON}" -eq 1 ]; then
-        _names=$(ls -1 "${_dep}"/*.tar.gz 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')
-        out_json "list" "ok" "deposit_dir" "${_dep}" "archives" "${_names}"
-        return 0
-    fi
-    out_info "Archives under ${_dep}:"
-    ls -1 "${_dep}"/*.tar.gz 2>/dev/null | while read -r _f; do
-        out_plain "  $(basename -- "${_f}")"
-    done || out_plain "  (none)"
-}
-
-# =============================================================================
-# fb_restore() - Extract durable archive to host project path
-# =============================================================================
-#
-# GENERAL PURPOSE:
-# Restore NAME-YYYYMMDD-N.tar.gz from deposit (or path) into a destination.
-# Default destination SSOT is the **hard-disk** host version
-# (${PROJECTS_ROOT}/${project}) — the reverse of ram-drive-first — unless the
-# user specifies an explicit dest or RESTORE_HOST=ram-drive / --ram.
-#
-# ALIGNMENT:
-# - requirement-folder-archive-backup.md (restore)
-# - requirement-three-layer-privilege-model.md
-# - policy-ram-drive-first (restore default = hard-disk peer)
-#
-# Last reviewed: 2026-08-03
-# =============================================================================
-fb_restore() {
-    : "${APP_NAME:=folder-backup}"
-    : "${JSON:=0}"
-    : "${QUIET:=0}"
-    : "${FORCE:=0}"
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
-    : "${RESTORE_HOST_DEFAULT:=hard-disk}"
-    : "${RAM_ROOT:=/dev/shm}"
-    : "${VERSION:=1.2.0}"
-
-    _spec="${1:-}"
-    _dest_in="${2:-}"
-    _host="${RESTORE_HOST:-${RESTORE_HOST_DEFAULT}}"
-
-    if [ -z "${_spec}" ]; then
-        fb_list_archives
-        out_die "Usage: ${APP_NAME} restore <archive|project-prefix> [dest-dir]  (flags: --force --disk|--ram)"
+    _list=$(gc_list_auth_files "${_src}") || _list=""
+    if [ -z "${_list}" ]; then
+        out_die "Cannot sync-auth: no readable auth.* under ${_src}. Next step: run ${APP_NAME} backup (after grok login) so the store is populated; files must be world-readable (0644)."
     fi
 
-    _arc=$(fb_resolve_archive_path "${_spec}") || _arc=""
-    if [ -z "${_arc}" ] || [ ! -e "${_arc}" ]; then
-        out_die "Archive not found for '${_spec}' under ${BACKUP_ROOT}/${BACKUP_NOTATION}/ (or path). Try: ${APP_NAME} restore"
+    if [ ! -d "${_dest}" ]; then
+        mkdir -p "${_dest}" || out_die "Cannot create ${_dest}"
     fi
-    out_info "Archive: ${_arc}"
+    chmod 0700 "${_dest}" 2>/dev/null || true
 
-    _proj=$(fb_parse_archive_project_name "${_arc}")
-    if [ -z "${_proj}" ]; then
-        out_die "Could not parse project name from archive: ${_arc}"
-    fi
-
-    if [ -n "${_dest_in}" ]; then
-        _dest=$(CDPATH= cd -- "$(dirname -- "${_dest_in}")" 2>/dev/null && printf '%s/%s' "$(pwd)" "$(basename -- "${_dest_in}")") \
-            || _dest="${_dest_in}"
-        # If relative path given without existing parent, absolutize later via mkdir parent
-        case "${_dest_in}" in
-            /*) _dest="${_dest_in}" ;;
-            *)
-                _dest="$(pwd)/${_dest_in}"
-                ;;
-        esac
-        _host="explicit"
-    else
-        case "${_host}" in
-            ram|ram-drive|shm)
-                _host="ram-drive"
-                _dest="${RAM_ROOT}/${_proj}"
-                ;;
-            disk|hard-disk|harddisk|hdd|*)
-                _host="hard-disk"
-                _proot=$(util_resolve_projects_root) || _proot=""
-                if [ -z "${_proot}" ]; then
-                    out_die "Cannot resolve PROJECTS_ROOT for hard-disk restore. Set PROJECTS_ROOT or pass explicit dest. (Default restore SSOT is hard-disk — reverse of ram-drive-first.)"
-                fi
-                _dest="${_proot}/${_proj}"
-                ;;
-        esac
-    fi
-
-    fb_refuse_restore_dest "${_dest}"
-    out_info "Restore host SSOT: ${_host} → ${_dest}"
-
-    _parent=$(dirname -- "${_dest}")
-    _leaf=$(basename -- "${_dest}")
-    if [ "${_leaf}" != "${_proj}" ]; then
-        out_warn "Destination basename '${_leaf}' differs from archive project '${_proj}'; extracting archive top-level name into parent"
-    fi
-
-    if [ -e "${_dest}" ]; then
-        _nonempty=$(find "${_dest}" -mindepth 1 2>/dev/null | head -n1 || true)
-        if [ -n "${_nonempty}" ] && [ "${FORCE}" -ne 1 ]; then
-            out_die "Destination not empty: ${_dest} (re-run with --force to overwrite/merge extract)"
-        fi
-    fi
-
-    if [ ! -d "${_parent}" ]; then
-        mkdir -p "${_parent}" || out_die "Cannot create parent directory: ${_parent}"
-    fi
-
-    # Stage readable archive (Class B fetch — messages only here)
-    if [ -r "${_arc}" ]; then
-        _work="${_arc}"
-    else
-        out_info "Archive not user-readable; elevating copy deposit → stage for restore"
-        _work=$(fb_fetch_archive_readable "${_arc}") || _work=""
-        if [ -z "${_work}" ] || [ ! -r "${_work}" ]; then
-            out_die "Cannot stage archive for restore (need allowlisted sudo cp deposit→stage). Run: ${APP_NAME} print-sudoers and admin-install fragment"
-        fi
-    fi
-    out_info "Readable archive for extract: ${_work}"
-
-    # Expected inventory from archive listing
-    _exp_members=$(fb_count_tar_members "${_work}") || _exp_members=""
-    _exp_files=$(fb_count_tar_files "${_work}") || _exp_files=""
-    if [ -n "${_exp_members}" ]; then
-        out_info "Archive inventory: members=${_exp_members} files=${_exp_files:-?}"
-    fi
-
-    out_info "Extracting into ${_parent} (top-level folder from archive)"
-    if ! tar -C "${_parent}" -xzf "${_work}"; then
-        out_die "tar extract failed for ${_work}"
-    fi
-
-    # After extract, tree is ${_parent}/${_proj} if naming matches
-    _restored="${_parent}/${_proj}"
-    if [ ! -d "${_restored}" ]; then
-        # fall back to dest if strip layout differs
-        if [ -d "${_dest}" ]; then
-            _restored="${_dest}"
+    _copied=""
+    _n=0
+    while IFS= read -r _f; do
+        [ -n "${_f}" ] || continue
+        [ -r "${_f}" ] || out_die "Cannot read ${_f} without sudo. The store file must be world-readable (backup chmod 0644)."
+        _bn=$(basename -- "${_f}")
+        _outp="${_dest}/${_bn}"
+        if command -v install >/dev/null 2>&1; then
+            install -m 0600 "${_f}" "${_outp}" || out_die "Failed to write ${_outp}"
         else
-            out_die "Restore extract did not create expected directory: ${_parent}/${_proj}"
+            cp "${_f}" "${_outp}" || out_die "Failed to write ${_outp}"
+            chmod 0600 "${_outp}" 2>/dev/null || true
         fi
-    fi
+        case "${_bn}" in
+            auth.json)
+                chmod 0600 "${_outp}" 2>/dev/null || true
+                ;;
+        esac
+        _copied="${_copied}${_bn} "
+        _n=$((_n + 1))
+    done <<EOF
+${_list}
+EOF
 
-    # Verify counts against live tree
-    _got_entries=$(fb_count_path_entries "${_restored}")
-    _got_files=$(fb_count_path_files "${_restored}")
-    if [ -n "${_exp_members}" ] && [ "${_got_entries}" -ne "${_exp_members}" ]; then
-        out_die "Restore verification failed: tree entries ${_got_entries} != archive members ${_exp_members}"
+    if [ "${_n}" -le 0 ]; then
+        out_die "sync-auth copied nothing from ${_src}"
     fi
-    if [ -n "${_exp_files}" ] && [ "${_got_files}" -ne "${_exp_files}" ]; then
-        out_die "Restore verification failed: tree files ${_got_files} != archive files ${_exp_files}"
-    fi
-
-    # Cleanup staged copy if it was a stage path under storage
-    if [ "${_work}" != "${_arc}" ]; then
-        rm -f "${_work}" 2>/dev/null || true
-    fi
-
-    out_success "Restore complete: ${_restored}"
-    out_success "Verified: files=${_got_files} entries=${_got_entries} host=${_host}"
+    out_success "sync-auth complete: ${_src} → ${_dest} (${_n} file(s): ${_copied})"
     if [ "${JSON}" -eq 1 ]; then
-        out_json "restore" "ok" \
+        out_json "sync-auth" "ok" \
             "app" "${APP_NAME}" \
-            "archive" "${_arc}" \
-            "destination" "${_restored}" \
-            "restore_host" "${_host}" \
-            "project" "${_proj}" \
-            "source_entries" "${_got_entries}" \
-            "source_files" "${_got_files}" \
-            "archive_members" "${_exp_members}" \
-            "archive_files" "${_exp_files}" \
-            "verified" "true" \
-            "version" "${VERSION}"
+            "source" "${_src}" \
+            "grok_home" "${_dest}" \
+            "files" "${_copied}" \
+            "count" "${_n}"
     fi
     return 0
 }
 
-# =============================================================================
-# fb_sudoers_trust_tier() - Classify managed-install trust for print-sudoers
 # =============================================================================
 #
 # Prints one of: production | test_local | unmanaged
@@ -2580,8 +1927,8 @@ fb_restore() {
 #
 # ALIGNMENT: requirement-three-layer-privilege-model.md §2.3.1a
 # =============================================================================
-fb_sudoers_trust_tier() {
-    : "${APP_NAME:=folder-backup}"
+gc_sudoers_trust_tier() {
+    : "${APP_NAME:=grok-cli}"
     : "${HOME:=/tmp}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${USER_BIN:=${HOME}/.local/bin}"
@@ -2601,35 +1948,35 @@ fb_sudoers_trust_tier() {
 }
 
 # =============================================================================
-# fb_sudoers_fragment_text() - Class B: emit draft sudoers text to stdout
+# gc_sudoers_fragment_text() - Class B: emit draft sudoers text to stdout
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Build the sudoer-file text dual of fb_sudoers_json_text (same verbs, no *).
+# Build the sudoer-file text dual of gc_sudoers_json_text (same verbs, no *).
 #
 # ALIGNMENT:
 # - requirement-sudoer-json-file.md
 # - requirement-three-layer-privilege-model.md
-# - requirement-domain-folder-backup.md
+# - requirement-domain-grok-cli.md
 #
 # Last reviewed: 2026-08-15
 # =============================================================================
-fb_sudoers_fragment_text() {
-    : "${APP_NAME:=folder-backup}"
+gc_sudoers_fragment_text() {
+    : "${APP_NAME:=grok-cli}"
     : "${HOME:=/tmp}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${USER_BIN:=${HOME}/.local/bin}"
 
     _user=$(id -un 2>/dev/null || echo "unknown")
-    _tier=$(fb_sudoers_trust_tier)
+    _tier=$(gc_sudoers_trust_tier)
     _global_path="${GLOBAL_BIN}/${APP_NAME}"
     _local_path="${USER_BIN}/${APP_NAME}"
-    _installed=$(fb_default_installed_sudoers_path)
-    _purpose="Allow ${_user} to run ${APP_NAME} backup and restore as root."
+    _installed=$(gc_default_installed_sudoers_path)
+    _purpose="Allow ${_user} to run ${APP_NAME} backup as root."
 
     if [ "${_tier}" = "production" ]; then
         _trust_banner="# Trust tier: production (global managed binary: ${_global_path})
-# Residual: elevating backup/restore as root can read any path the binary can.
+# Residual: elevating backup as root can read the invoking user's ~/.grok/auth.* and write /var/grok-cli.
 # Multi-user: install as ${_installed} (per-user suffix; do not overwrite other users)."
     else
         _trust_banner="# =============================================================================
@@ -2644,7 +1991,7 @@ fb_sudoers_fragment_text() {
 
     cat <<EOF
 # Purpose: ${_purpose}
-# ${APP_NAME} — ${APP_NAME} backup/restore only (review before install)
+# ${APP_NAME} — ${APP_NAME} backup only (review before install)
 # Target user: ${_user}
 # Install: sudo install -m 0440 <this-file> ${_installed}
 # Validate: sudo visudo -c -f ${_installed}
@@ -2653,14 +2000,13 @@ ${_trust_banner}
 #
 # Grant is the project command only. Does NOT elevate ${_local_path}.
 # Does NOT allowlist mkdir/cp/tar/rm/install/chmod (complexity weakens security).
-# After elev, the ship unit performs deposit/verify/restore internally.
+# After elev, the ship unit copies auth.* and chown/chmod internally.
 ${_user} ALL=(root) NOPASSWD: ${_global_path} backup
-${_user} ALL=(root) NOPASSWD: ${_global_path} restore
 EOF
 }
 
 # =============================================================================
-# fb_sudoers_json_text() - Class B: emit JSON sudoer file to stdout
+# gc_sudoers_json_text() - Class B: emit JSON sudoer file to stdout
 # =============================================================================
 #
 # GENERAL PURPOSE:
@@ -2669,8 +2015,8 @@ EOF
 # ALIGNMENT: requirement-sudoer-json-file.md
 # Last reviewed: 2026-08-15
 # =============================================================================
-fb_sudoers_json_text() {
-    : "${APP_NAME:=folder-backup}"
+gc_sudoers_json_text() {
+    : "${APP_NAME:=grok-cli}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${SUBMIT_ACTION:=add}"
 
@@ -2685,7 +2031,7 @@ fb_sudoers_json_text() {
     cat <<EOF
 {
   "schema_version": 1,
-  "purpose": "Allow ${_user} to run ${APP_NAME} backup and restore as root.",
+  "purpose": "Allow ${_user} to run ${APP_NAME} backup as root.",
   "username": "${_user}",
   "service": "${APP_NAME}",
   "action": "${_action}",
@@ -2695,24 +2041,18 @@ fb_sudoers_json_text() {
       "tags": ["NOPASSWD"],
       "path": "${_global_path}",
       "args": ["backup"]
-    },
-    {
-      "runas": "root",
-      "tags": ["NOPASSWD"],
-      "path": "${_global_path}",
-      "args": ["restore"]
     }
   ]
 }
 EOF
 }
 
-# Compact one-line dual of fb_sudoers_json_text (same grant). Legal JSON.
+# Compact one-line dual of gc_sudoers_json_text (same grant). Legal JSON.
 # Sibling sudoer-cli 1.6.1 splits commands[] only on the token },{ — pretty
 # emit survives 1.6.2+; compact is the submit/generate handoff so inbound
-# still names backup and restore (INC-20260817-001 / 002).
-fb_sudoers_json_text_compact() {
-    : "${APP_NAME:=folder-backup}"
+# still names backup (INC-20260817-001 / 002).
+gc_sudoers_json_text_compact() {
+    : "${APP_NAME:=grok-cli}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${SUBMIT_ACTION:=add}"
 
@@ -2724,18 +2064,18 @@ fb_sudoers_json_text_compact() {
         *) _action="add" ;;
     esac
 
-    printf '%s\n' "{\"schema_version\":1,\"purpose\":\"Allow ${_user} to run ${APP_NAME} backup and restore as root.\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"commands\":[{\"runas\":\"root\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_global_path}\",\"args\":[\"backup\"]},{\"runas\":\"root\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_global_path}\",\"args\":[\"restore\"]}]}"
+    printf '%s\n' "{\"schema_version\":1,\"purpose\":\"Allow ${_user} to run ${APP_NAME} backup as root.\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"commands\":[{\"runas\":\"root\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_global_path}\",\"args\":[\"backup\"]}]}"
 }
 
 # =============================================================================
-# fb_sudoers_refuse_forbidden_grant() - Fail closed on OS-tool sudoer files
+# gc_sudoers_refuse_forbidden_grant() - Fail closed on OS-tool sudoer files
 # =============================================================================
 #
 # ALIGNMENT: requirement-sudoer-json-file.md §2.7 AC-7
 # =============================================================================
-fb_sudoers_refuse_forbidden_grant() {
+gc_sudoers_refuse_forbidden_grant() {
     _gf="${1:-}"
-    : "${APP_NAME:=folder-backup}"
+    : "${APP_NAME:=grok-cli}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     if [ -z "${_gf}" ] || [ ! -f "${_gf}" ]; then
         out_die "sudoer grant file missing"
@@ -2743,38 +2083,34 @@ fb_sudoers_refuse_forbidden_grant() {
     _gb=$(cat "${_gf}" 2>/dev/null || true)
     case "${_gb}" in
         *"/usr/bin/mkdir"*|*"/bin/mkdir"*|*"/usr/bin/cp"*|*"/bin/cp"*|*"/usr/bin/tar"*|*"/bin/tar"*|*"/bin/rm "*|*"/usr/bin/rm "*|*"/usr/bin/install"*|*"/usr/bin/chmod"*|*"/bin/chmod"*)
-            out_die "refusing sudoer grant with OS-tool commands (need ${GLOBAL_BIN}/${APP_NAME} backup|restore only)"
+            out_die "refusing sudoer grant with OS-tool commands (need ${GLOBAL_BIN}/${APP_NAME} backup only)"
             ;;
     esac
     return 0
 }
 
-# Fail closed unless the file still names both elev verbs.
-fb_sudoers_verify_grant_verbs() {
+# Fail closed unless the file still names the backup verb.
+gc_sudoers_verify_grant_verbs() {
     _gf="${1:-}"
-    : "${APP_NAME:=folder-backup}"
+    : "${APP_NAME:=grok-cli}"
     if [ -z "${_gf}" ] || [ ! -f "${_gf}" ]; then
-        out_die "sudoer file missing (cannot verify backup and restore)"
+        out_die "sudoer file missing (cannot verify backup)"
     fi
     _gb=$(cat "${_gf}" 2>/dev/null || true)
     case "${_gb}" in
         *'"backup"'*) ;;
         *) out_die "Sudoer file is incomplete: it does not allow backup. Path: ${_gf}" ;;
     esac
-    case "${_gb}" in
-        *'"restore"'*) ;;
-        *) out_die "Sudoer file is incomplete: it does not allow restore. Path: ${_gf}" ;;
-    esac
     return 0
 }
 
-# When sudoer-cli is present, convert must still list both verbs.
+# When sudoer-cli is present, convert must still list backup.
 # Returns 0 if convert kept both; 1 if sudoer-cli is absent (caller may skip).
-fb_sudoers_verify_sibling_convert() {
+gc_sudoers_verify_sibling_convert() {
     _gf="${1:-}"
-    : "${APP_NAME:=folder-backup}"
+    : "${APP_NAME:=grok-cli}"
     _cli=""
-    if _cli=$(fb_detect_sudoer_cli); then
+    if _cli=$(gc_detect_sudoer_cli); then
         :
     else
         return 1
@@ -2797,39 +2133,34 @@ fb_sudoers_verify_sibling_convert() {
         *" ${APP_NAME} backup"*|*"/${APP_NAME} backup"*) ;;
         *) out_die "sudoer-cli convert dropped backup from ${_gf}. Do not submit this file. Install sudoer-cli 1.6.2+ or regenerate with ${APP_NAME} generate-sudoer-request." ;;
     esac
-    case "${_txt}" in
-        *" ${APP_NAME} restore"*|*"/${APP_NAME} restore"*) ;;
-        *) out_die "sudoer-cli convert dropped restore from ${_gf}. Do not submit this file. Install sudoer-cli 1.6.2+ or regenerate with ${APP_NAME} generate-sudoer-request." ;;
-    esac
     return 0
 }
 
 # =============================================================================
-# fb_print_sudoers() - Emit narrow sudoers fragment (does NOT write /etc)
+# gc_print_sudoers() - Emit narrow sudoers fragment (does NOT write /etc)
 # =============================================================================
 #
 # ALIGNMENT:
-# - requirement-domain-folder-backup.md
+# - requirement-domain-grok-cli.md
 # - requirement-three-layer-privilege-model.md
-# - requirement-folder-archive-backup.md (deposit + restore stage fetch)
+# - requirement-grok-auth-backup.md (session check + auth deposit)
 #
 # Last reviewed: 2026-08-14
 # =============================================================================
-fb_print_sudoers() {
-    : "${APP_NAME:=folder-backup}"
+gc_print_sudoers() {
+    : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
     : "${HOME:=/tmp}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${USER_BIN:=${HOME}/.local/bin}"
     : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
 
     _user=$(id -un 2>/dev/null || echo "unknown")
-    _dest="${BACKUP_ROOT}/${BACKUP_NOTATION}"
+    _dest="${GROK_CLI_ROOT}"
     _out_path="${1:-}"
-    _tier=$(fb_sudoers_trust_tier)
+    _tier=$(gc_sudoers_trust_tier)
     _test_mode="false"
     _global_path="${GLOBAL_BIN}/${APP_NAME}"
 
@@ -2840,9 +2171,9 @@ fb_print_sudoers() {
         fi
     fi
 
-    _installed=$(fb_default_installed_sudoers_path)
-    _draft_default=$(fb_default_project_sudoers_path)
-    _fragment=$(fb_sudoers_fragment_text)
+    _installed=$(gc_default_installed_sudoers_path)
+    _draft_default=$(gc_default_project_sudoers_path)
+    _fragment=$(gc_sudoers_fragment_text)
 
     if [ "${_test_mode}" = "true" ] && [ "${JSON}" -eq 0 ]; then
         out_warn "TEST MODE ONLY: trust tier=${_tier}. Uninstall ${_installed} soon. Prefer global install for production."
@@ -2855,7 +2186,7 @@ fb_print_sudoers() {
         fi
         printf '%s\n' "${_fragment}" > "${_out_path}" || out_die "Cannot write ${_out_path}"
         _json_path="${_out_path}.json"
-        fb_sudoers_json_text > "${_json_path}" || out_die "Cannot write ${_json_path}"
+        gc_sudoers_json_text > "${_json_path}" || out_die "Cannot write ${_json_path}"
         out_success "Wrote sudoers fragment to ${_out_path}"
         out_info "JSON sudoer file: ${_json_path}"
         out_info "Admin: sudo visudo -c -f ${_out_path}"
@@ -2887,8 +2218,8 @@ fb_print_sudoers() {
         return 0
     fi
 
-    out_info "Sudoers fragment for user ${_user} → ${GLOBAL_BIN}/${APP_NAME} backup|restore (trust_tier=${_tier})"
-    out_warn "Host Type 1 still uses sudo mkdir/cp until backup/restore re-exec; installing this fragment now will fail those steps."
+    out_info "Sudoers fragment for user ${_user} → ${GLOBAL_BIN}/${APP_NAME} backup (trust_tier=${_tier})"
+    out_warn "Host Type 1 is sudo ${APP_NAME} backup (NOPASSWD) after sudoer-adm approves the JSON grant."
     out_info "Admin steps: review → visudo -c -f FILE → install -m 0440 FILE ${_installed}"
     out_empty_line
     out_plain "${_fragment}"
@@ -2898,7 +2229,7 @@ fb_print_sudoers() {
 }
 
 # =============================================================================
-# fb_detect_sudoer_cli() - Class B: path of sudoer-cli, or fail
+# gc_detect_sudoer_cli() - Class B: path of sudoer-cli, or fail
 # =============================================================================
 #
 # GENERAL PURPOSE:
@@ -2906,12 +2237,12 @@ fb_print_sudoers() {
 # Does not claim the approval queues exist.
 #
 # ALIGNMENT:
-# - requirement-domain-folder-backup.md
+# - requirement-domain-grok-cli.md
 # - requirement-three-layer-privilege-model.md
 #
 # Last reviewed: 2026-08-14
 # =============================================================================
-fb_detect_sudoer_cli() {
+gc_detect_sudoer_cli() {
     : "${HOME:=/tmp}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${USER_BIN:=${HOME}/.local/bin}"
@@ -2941,7 +2272,7 @@ fb_detect_sudoer_cli() {
 }
 
 # =============================================================================
-# fb_detect_sudoer_adm() - Class B: sudoer-adm login if present
+# gc_detect_sudoer_adm() - Class B: sudoer-adm login if present
 # =============================================================================
 #
 # GENERAL PURPOSE:
@@ -2949,12 +2280,12 @@ fb_detect_sudoer_cli() {
 # Account name defaults to sudoer-adm; override with SUDOER_ADM_USER.
 #
 # ALIGNMENT:
-# - requirement-domain-folder-backup.md
+# - requirement-domain-grok-cli.md
 # - requirement-three-layer-privilege-model.md
 #
 # Last reviewed: 2026-08-14
 # =============================================================================
-fb_detect_sudoer_adm() {
+gc_detect_sudoer_adm() {
     : "${SUDOER_ADM_USER:=sudoer-adm}"
     if id "${SUDOER_ADM_USER}" >/dev/null 2>&1; then
         printf '%s' "${SUDOER_ADM_USER}"
@@ -2964,7 +2295,7 @@ fb_detect_sudoer_adm() {
 }
 
 # =============================================================================
-# fb_detect_sudoer_inbound() - Class B: inbound approval dir if present
+# gc_detect_sudoer_inbound() - Class B: inbound approval dir if present
 # =============================================================================
 #
 # GENERAL PURPOSE:
@@ -2973,11 +2304,11 @@ fb_detect_sudoer_adm() {
 #
 # ALIGNMENT:
 # - requirement-three-layer-privilege-model.md §2.3.3c (AC-16)
-# - requirement-domain-folder-backup.md
+# - requirement-domain-grok-cli.md
 #
 # Last reviewed: 2026-08-15
 # =============================================================================
-fb_detect_sudoer_inbound() {
+gc_detect_sudoer_inbound() {
     : "${SUDOER_ADM_USER:=sudoer-adm}"
     : "${SUDOER_QUEUE_INBOUND:=}"
     : "${SUDOER_APPROVAL_APP:=sudoer-cli}"
@@ -3013,11 +2344,11 @@ fb_detect_sudoer_inbound() {
 }
 
 # =============================================================================
-# fb_sudoer_queue_root_from_inbound() - parent of real public inbound, or test override
+# gc_sudoer_queue_root_from_inbound() - parent of real public inbound, or test override
 # =============================================================================
 # MUST NOT treat a legacy …/sudoer-approving parent as the public queue root.
 # =============================================================================
-fb_sudoer_queue_root_from_inbound() {
+gc_sudoer_queue_root_from_inbound() {
     _in="${1:-}"
     [ -n "${_in}" ] || return 1
     _base=$(basename -- "${_in}")
@@ -3038,14 +2369,14 @@ fb_sudoer_queue_root_from_inbound() {
 }
 
 # =============================================================================
-# fb_sudoers_require_emit_trust() - Fail-closed unless production or test-allow
+# gc_sudoers_require_emit_trust() - Fail-closed unless production or test-allow
 # =============================================================================
-fb_sudoers_require_emit_trust() {
-    : "${APP_NAME:=folder-backup}"
+gc_sudoers_require_emit_trust() {
+    : "${APP_NAME:=grok-cli}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
     _cmd="${1:-submit-sudoer-request}"
-    _tier=$(fb_sudoers_trust_tier)
+    _tier=$(gc_sudoers_trust_tier)
     if [ "${_tier}" != "production" ]; then
         if [ "${ALLOW_TEST_LOCAL_SUDOERS}" -ne 1 ]; then
             out_die "${_cmd} trust tier is ${_tier} (not production). Prefer: sudo ${APP_NAME} install  (global ${GLOBAL_BIN}/${APP_NAME}). To emit a test file: ${APP_NAME} ${_cmd} --allow-test-local  or ALLOW_TEST_LOCAL_SUDOERS=1"
@@ -3054,25 +2385,25 @@ fb_sudoers_require_emit_trust() {
 }
 
 # =============================================================================
-# fb_generate_sudoer_request() - Type 0: write a local JSON grant you can verify
+# gc_generate_sudoer_request() - Type 0: write a local JSON grant you can verify
 # =============================================================================
 #
 # GENERAL PURPOSE:
 # Write this product's sudoer JSON to a local path (default under ~/.config),
-# verify backup + restore are present, and when sudoer-cli exists convert the
+# verify backup is present, and when sudoer-cli exists convert the
 # file so a dropped verb fails here — not after inbound queue. Does not write
 # /etc, does not write inbound, does not mkdir inbound.
 #
 # ALIGNMENT:
 # - requirement-three-layer-privilege-model.md §2.3.3d
 # - requirement-sudoer-json-file.md
-# - requirement-domain-folder-backup.md
+# - requirement-domain-grok-cli.md
 # - INC-20260817-002 (operator-readable; incomplete JSON is not a standing class)
 #
 # Last reviewed: 2026-08-17
 # =============================================================================
-fb_generate_sudoer_request() {
-    : "${APP_NAME:=folder-backup}"
+gc_generate_sudoer_request() {
+    : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${HOME:=/tmp}"
     : "${SUBMIT_ACTION:=add}"
@@ -3083,7 +2414,7 @@ fb_generate_sudoer_request() {
 
     _host_path=""
     _host_present="false"
-    if _host_path=$(fb_probe_current_user_host_sudoers); then
+    if _host_path=$(gc_probe_current_user_host_sudoers); then
         _host_present="true"
     else
         _host_path=""
@@ -3100,10 +2431,10 @@ fb_generate_sudoer_request() {
         *) out_die "generate-sudoer-request action must be add or update (got ${SUBMIT_ACTION})" ;;
     esac
 
-    fb_sudoers_require_emit_trust "generate-sudoer-request"
+    gc_sudoers_require_emit_trust "generate-sudoer-request"
 
     if [ -z "${_out_path}" ]; then
-        _out_path=$(fb_default_sudoer_request_path)
+        _out_path=$(gc_default_sudoer_request_path)
     fi
     case "${_out_path}" in
         /etc|/etc/*)
@@ -3124,16 +2455,16 @@ fb_generate_sudoer_request() {
         mkdir -p "${_dir}" || out_die "Cannot create ${_dir}"
     fi
 
-    fb_sudoers_json_text_compact >"${_out_path}" || out_die "Cannot write ${_out_path}"
+    gc_sudoers_json_text_compact >"${_out_path}" || out_die "Cannot write ${_out_path}"
     chmod 0644 "${_out_path}" 2>/dev/null || true
     if [ ! -r "${_out_path}" ]; then
         out_die "generated sudoer file is not readable: ${_out_path}"
     fi
-    fb_sudoers_refuse_forbidden_grant "${_out_path}"
-    fb_sudoers_verify_grant_verbs "${_out_path}"
+    gc_sudoers_refuse_forbidden_grant "${_out_path}"
+    gc_sudoers_verify_grant_verbs "${_out_path}"
 
     _convert="skipped"
-    if fb_sudoers_verify_sibling_convert "${_out_path}"; then
+    if gc_sudoers_verify_sibling_convert "${_out_path}"; then
         _convert="ok"
     fi
 
@@ -3150,18 +2481,18 @@ fb_generate_sudoer_request() {
     fi
 
     out_success "Wrote verified sudoer file to ${_out_path}"
-    out_info "Grant allows: ${APP_NAME} backup and restore (action=${SUBMIT_ACTION})"
+    out_info "Grant allows: ${APP_NAME} backup (action=${SUBMIT_ACTION})"
     if [ "${_convert}" = "ok" ]; then
-        out_info "Convert check: backup and restore still present after sudoer-cli json-to-sudoers"
+        out_info "Convert check: backup still present after sudoer-cli json-to-sudoers"
     else
-        out_info "Convert check: skipped (sudoer-cli not found). File still lists backup and restore."
+        out_info "Convert check: skipped (sudoer-cli not found). File still lists backup."
     fi
     out_info "Review the file, then submit it:"
     out_info "   ${APP_NAME} submit-sudoer-request ${_out_path}"
 }
 
 # =============================================================================
-# fb_submit_sudoer_request() - Type 0: queue this product's sudoers for approval
+# gc_submit_sudoer_request() - Type 0: queue this product's sudoers for approval
 # =============================================================================
 #
 # GENERAL PURPOSE:
@@ -3172,15 +2503,15 @@ fb_generate_sudoer_request() {
 # Default emit is the compact verified grant (same as generate-sudoer-request).
 #
 # ALIGNMENT:
-# - requirement-domain-folder-backup.md
+# - requirement-domain-grok-cli.md
 # - requirement-three-layer-privilege-model.md
 # - requirement-sudoer-json-file.md (JSON grant body: PRJ_NAME only)
 # - requirement-shell-cli-interface.md
 #
 # Last reviewed: 2026-08-17
 # =============================================================================
-fb_submit_sudoer_request() {
-    : "${APP_NAME:=folder-backup}"
+gc_submit_sudoer_request() {
+    : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
     : "${HOME:=/tmp}"
@@ -3194,12 +2525,12 @@ fb_submit_sudoer_request() {
     _user=$(id -un 2>/dev/null || echo "unknown")
     _purpose="${SUBMIT_PURPOSE}"
     if [ -z "${_purpose}" ]; then
-        _purpose="Allow ${_user} to run ${APP_NAME} backup and restore as root."
+        _purpose="Allow ${_user} to run ${APP_NAME} backup as root."
     fi
 
     _host_path=""
     _host_present="false"
-    if _host_path=$(fb_probe_current_user_host_sudoers); then
+    if _host_path=$(gc_probe_current_user_host_sudoers); then
         _host_present="true"
     else
         _host_path=""
@@ -3225,18 +2556,18 @@ fb_submit_sudoer_request() {
         if [ -L "${_src_file}" ]; then
             out_die "refusing symlink sudoers input: ${_src_file}"
         fi
-        fb_sudoers_refuse_forbidden_grant "${_src_file}"
+        gc_sudoers_refuse_forbidden_grant "${_src_file}"
     fi
 
     _cli=""
-    if _cli=$(fb_detect_sudoer_cli); then
+    if _cli=$(gc_detect_sudoer_cli); then
         :
     else
         out_die "sudoer-cli not found (set SUDOER_CLI or install sudoer-cli to ${GLOBAL_BIN:-/usr/local/bin}/sudoer-cli). Submit is Type 0 compose — this CLI does not write /etc."
     fi
 
     _adm=""
-    if _adm=$(fb_detect_sudoer_adm); then
+    if _adm=$(gc_detect_sudoer_adm); then
         :
     else
         out_die "sudoer-adm not found (id ${SUDOER_ADM_USER} failed). Ask an admin to run: sudo sudoer-cli setup"
@@ -3244,7 +2575,7 @@ fb_submit_sudoer_request() {
 
     : "${SUDOER_PUBLIC_ROOT:=/var/${SUDOER_APPROVAL_APP:-sudoer-cli}}"
     _inbound=""
-    if _inbound=$(fb_detect_sudoer_inbound); then
+    if _inbound=$(gc_detect_sudoer_inbound); then
         :
     else
         out_die "sudoer inbound queue not found (preferred ${SUDOER_PUBLIC_ROOT}/sudoer-request). Ask an admin to run: sudo sudoer-cli setup"
@@ -3264,21 +2595,21 @@ fb_submit_sudoer_request() {
         _tmp="${_src_file}"
         _cleanup_tmp=0
     else
-        fb_sudoers_require_emit_trust "submit-sudoer-request"
+        gc_sudoers_require_emit_trust "submit-sudoer-request"
         if [ -z "${EFFECTIVE_STORAGE_DIR}" ]; then
             EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
         fi
         _tmp=$(util_mktemp sudoer)
-        fb_sudoers_json_text_compact >"${_tmp}" || out_die "cannot write temp sudoer JSON ${_tmp}"
+        gc_sudoers_json_text_compact >"${_tmp}" || out_die "cannot write temp sudoer JSON ${_tmp}"
         _cleanup_tmp=1
     fi
-    fb_sudoers_refuse_forbidden_grant "${_tmp}"
-    fb_sudoers_verify_grant_verbs "${_tmp}"
-    fb_sudoers_verify_sibling_convert "${_tmp}" || true
+    gc_sudoers_refuse_forbidden_grant "${_tmp}"
+    gc_sudoers_verify_grant_verbs "${_tmp}"
+    gc_sudoers_verify_sibling_convert "${_tmp}" || true
 
     # Point sudoer-cli at the public queue root (parent of real inbound).
     # Do not export a legacy sudoer-approving parent as the public trio root.
-    if _qr=$(fb_sudoer_queue_root_from_inbound "${_inbound}"); then
+    if _qr=$(gc_sudoer_queue_root_from_inbound "${_inbound}"); then
         SUDOER_CLI_QUEUE_ROOT="${_qr}"
         export SUDOER_CLI_QUEUE_ROOT
         if [ -n "${SUDOER_QUEUE_INBOUND}" ] && [ "${_inbound}" = "${SUDOER_QUEUE_INBOUND}" ]; then
@@ -3320,17 +2651,13 @@ fb_submit_sudoer_request() {
         _rid=$(printf '%s\n' "${_out}" | sed -n 's/.*request_id=\([^[:space:]]*\).*/\1/p')
     fi
 
-    # When inbound is readable, queued body MUST still name both elev verbs.
+    # When inbound is readable, queued body MUST still name backup.
     # Purpose text and [OK] submitted are not completeness. INC-20260817-001.
     if [ -n "${_rid}" ] && [ -r "${_inbound}/${_rid}" ]; then
         _ibody=$(cat "${_inbound}/${_rid}" 2>/dev/null || true)
         case "${_ibody}" in
             *'"backup"'*) ;;
-            *) out_die "Queued sudo request is incomplete: it allows restore but not backup. Do not approve ${_rid}. Reject or leave it pending. Write a verified file, then submit that file: ${APP_NAME} generate-sudoer-request && ${APP_NAME} submit-sudoer-request <path>" ;;
-        esac
-        case "${_ibody}" in
-            *'"restore"'*) ;;
-            *) out_die "Queued sudo request is incomplete: it allows backup but not restore. Do not approve ${_rid}. Reject or leave it pending. Write a verified file, then submit that file: ${APP_NAME} generate-sudoer-request && ${APP_NAME} submit-sudoer-request <path>" ;;
+            *) out_die "Queued sudo request is incomplete: it does not allow backup. Do not approve ${_rid}. Reject or leave it pending. Write a verified file, then submit that file: ${APP_NAME} generate-sudoer-request && ${APP_NAME} submit-sudoer-request <path>" ;;
         esac
     fi
 
@@ -3364,66 +2691,66 @@ fb_submit_sudoer_request() {
 }
 
 # =============================================================================
-# fb_current_login_user() - Class B: invoking login name for path suffixes
+# gc_current_login_user() - Class B: invoking login name for path suffixes
 # =============================================================================
-fb_current_login_user() {
+gc_current_login_user() {
     id -un 2>/dev/null || echo "unknown"
 }
 
 # =============================================================================
-# fb_default_project_sudoers_path() - Class B: default project-sudoers-file path
+# gc_default_project_sudoers_path() - Class B: default project-sudoers-file path
 # =============================================================================
 # Per-user draft: ${HOME}/.config/${APP_NAME}/sudoers.fragment-<user>
 # Multi-user: each login keeps a distinct draft filename (not a shared basename).
 # =============================================================================
-fb_default_project_sudoers_path() {
-    : "${APP_NAME:=folder-backup}"
+gc_default_project_sudoers_path() {
+    : "${APP_NAME:=grok-cli}"
     : "${HOME:=/tmp}"
-    _user=$(fb_current_login_user)
+    _user=$(gc_current_login_user)
     printf '%s' "${HOME}/.config/${APP_NAME}/sudoers.fragment-${_user}"
 }
 
 # Local verified JSON grant for generate-sudoer-request (not inbound).
-fb_default_sudoer_request_path() {
-    : "${APP_NAME:=folder-backup}"
+gc_default_sudoer_request_path() {
+    : "${APP_NAME:=grok-cli}"
     : "${HOME:=/tmp}"
-    _user=$(fb_current_login_user)
+    _user=$(gc_current_login_user)
     printf '%s' "${HOME}/.config/${APP_NAME}/sudoer-request-${_user}.json"
 }
 
 # =============================================================================
-# fb_default_installed_sudoers_path() - Class B: host /etc/sudoers.d path
+# gc_default_installed_sudoers_path() - Class B: host /etc/sudoers.d path
 # =============================================================================
 # Per-user installed name: /etc/sudoers.d/${APP_NAME}-<user>
 # Prevents multi-user admin installs from overwriting another user's fragment.
 # =============================================================================
-fb_sudoers_d_dir() {
+gc_sudoers_d_dir() {
     : "${SUDOERS_D_DIR:=/etc/sudoers.d}"
     printf '%s' "${SUDOERS_D_DIR}"
 }
 
-fb_default_installed_sudoers_path() {
-    : "${APP_NAME:=folder-backup}"
-    _user=$(fb_current_login_user)
-    printf '%s' "$(fb_sudoers_d_dir)/${APP_NAME}-${_user}"
+gc_default_installed_sudoers_path() {
+    : "${APP_NAME:=grok-cli}"
+    _user=$(gc_current_login_user)
+    printf '%s' "$(gc_sudoers_d_dir)/${APP_NAME}-${_user}"
 }
 
 # =============================================================================
-# fb_legacy_installed_sudoers_path() - Class B: pre-user-suffix host path
+# gc_legacy_installed_sudoers_path() - Class B: pre-user-suffix host path
 # =============================================================================
-fb_legacy_installed_sudoers_path() {
-    : "${APP_NAME:=folder-backup}"
-    printf '%s' "$(fb_sudoers_d_dir)/${APP_NAME}"
+gc_legacy_installed_sudoers_path() {
+    : "${APP_NAME:=grok-cli}"
+    printf '%s' "$(gc_sudoers_d_dir)/${APP_NAME}"
 }
 
 # =============================================================================
-# fb_list_project_sudoers_drafts() - Class B: list draft paths under config
+# gc_list_project_sudoers_drafts() - Class B: list draft paths under config
 # =============================================================================
 # Emits one absolute path per line: legacy sudoers.fragment then sudoers.fragment-*.
 # ALIGNMENT: term project-sudoers-file · multi-user remove-project-sudoers
 # =============================================================================
-fb_list_project_sudoers_drafts() {
-    : "${APP_NAME:=folder-backup}"
+gc_list_project_sudoers_drafts() {
+    : "${APP_NAME:=grok-cli}"
     : "${HOME:=/tmp}"
     _dir="${HOME}/.config/${APP_NAME}"
     if [ ! -d "${_dir}" ]; then
@@ -3445,15 +2772,15 @@ fb_list_project_sudoers_drafts() {
 }
 
 # =============================================================================
-# fb_list_host_sudoers_fragments() - Class B: list readable host elev paths
+# gc_list_host_sudoers_fragments() - Class B: list readable host elev paths
 # =============================================================================
 # Lists /etc/sudoers.d/${APP_NAME} (legacy) and /etc/sudoers.d/${APP_NAME}-*
 # when present (probe-only; Type 0 never deletes them).
 # =============================================================================
-fb_list_host_sudoers_fragments() {
-    : "${APP_NAME:=folder-backup}"
-    _dir=$(fb_sudoers_d_dir)
-    _legacy=$(fb_legacy_installed_sudoers_path)
+gc_list_host_sudoers_fragments() {
+    : "${APP_NAME:=grok-cli}"
+    _dir=$(gc_sudoers_d_dir)
+    _legacy=$(gc_legacy_installed_sudoers_path)
     if [ -e "${_legacy}" ]; then
         printf '%s\n' "${_legacy}"
     fi
@@ -3466,7 +2793,7 @@ fb_list_host_sudoers_fragments() {
 }
 
 # =============================================================================
-# fb_probe_current_user_host_sudoers() - Class B: this user's installed fragment
+# gc_probe_current_user_host_sudoers() - Class B: this user's installed fragment
 # =============================================================================
 # Prefer per-user ${SUDOERS_D_DIR}/${APP_NAME}-<user>, then legacy unsuffixed.
 # Other users' ${APP_NAME}-<other> files do not count.
@@ -3474,7 +2801,7 @@ fb_list_host_sudoers_fragments() {
 # 0750/unreadable, try sudo -n test -e (no password; miss → stay-honest absent).
 # Prints the first existing path; exit 1 if none found.
 # =============================================================================
-fb_host_sudoers_exists() {
+gc_host_sudoers_exists() {
     _hp="${1:-}"
     [ -n "${_hp}" ] || return 1
     if [ -e "${_hp}" ]; then
@@ -3486,14 +2813,14 @@ fb_host_sudoers_exists() {
     return 1
 }
 
-fb_probe_current_user_host_sudoers() {
-    _per=$(fb_default_installed_sudoers_path)
-    _leg=$(fb_legacy_installed_sudoers_path)
-    if fb_host_sudoers_exists "${_per}"; then
+gc_probe_current_user_host_sudoers() {
+    _per=$(gc_default_installed_sudoers_path)
+    _leg=$(gc_legacy_installed_sudoers_path)
+    if gc_host_sudoers_exists "${_per}"; then
         printf '%s' "${_per}"
         return 0
     fi
-    if [ "${_leg}" != "${_per}" ] && fb_host_sudoers_exists "${_leg}"; then
+    if [ "${_leg}" != "${_per}" ] && gc_host_sudoers_exists "${_leg}"; then
         printf '%s' "${_leg}"
         return 0
     fi
@@ -3501,15 +2828,15 @@ fb_probe_current_user_host_sudoers() {
 }
 
 # =============================================================================
-# fb_default_sudoers_admin_script_path() - Class B: admin install script path
+# gc_default_sudoers_admin_script_path() - Class B: admin install script path
 # =============================================================================
 #
 # Prefer /dev/shm (volatile, multi-user handoff); else EFFECTIVE_STORAGE_DIR /tmp.
 # ALIGNMENT: term project-sudoers-file · requirement-three-layer-privilege-model
 # =============================================================================
-fb_default_sudoers_admin_script_path() {
-    : "${APP_NAME:=folder-backup}"
-    _user=$(fb_current_login_user)
+gc_default_sudoers_admin_script_path() {
+    : "${APP_NAME:=grok-cli}"
+    _user=$(gc_current_login_user)
     _name="${APP_NAME}-${_user}-sudoers-admin.sh"
     if [ -d "/dev/shm" ] && [ -w "/dev/shm" ]; then
         printf '%s' "/dev/shm/${_name}"
@@ -3524,11 +2851,11 @@ fb_default_sudoers_admin_script_path() {
 }
 
 # =============================================================================
-# fb_print_sudoers_install_script() - Type 0: emit admin install/uninstall script
+# gc_print_sudoers_install_script() - Type 0: emit admin install/uninstall script
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# 1) Refresh project-sudoers-file (draft) via fb_print_sudoers
+# 1) Refresh project-sudoers-file (draft) via gc_print_sudoers
 # 2) Write a shell script under /dev/shm (or temp) for an account WITH sudo
 #    to install | uninstall | replace the fragment under /etc/sudoers.d/
 # Does NOT write /etc itself.
@@ -3539,28 +2866,27 @@ fb_default_sudoers_admin_script_path() {
 #
 # Last reviewed: 2026-08-09
 # =============================================================================
-fb_print_sudoers_install_script() {
-    : "${APP_NAME:=folder-backup}"
+gc_print_sudoers_install_script() {
+    : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
     : "${HOME:=/tmp}"
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
     : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
 
-    _user=$(fb_current_login_user)
-    _draft=$(fb_default_project_sudoers_path)
+    _user=$(gc_current_login_user)
+    _draft=$(gc_default_project_sudoers_path)
     _script_out="${1:-}"
     if [ -z "${_script_out}" ]; then
-        _script_out=$(fb_default_sudoers_admin_script_path)
+        _script_out=$(gc_default_sudoers_admin_script_path)
     fi
-    _installed=$(fb_default_installed_sudoers_path)
-    _legacy=$(fb_legacy_installed_sudoers_path)
-    _deposit="${BACKUP_ROOT}/${BACKUP_NOTATION}"
-    _tier=$(fb_sudoers_trust_tier)
+    _installed=$(gc_default_installed_sudoers_path)
+    _legacy=$(gc_legacy_installed_sudoers_path)
+    _deposit="${GROK_CLI_ROOT}"
+    _tier=$(gc_sudoers_trust_tier)
 
     # Refresh project-sudoers-file first (same trust gate as print-sudoers)
-    fb_print_sudoers "${_draft}" || return $?
+    gc_print_sudoers "${_draft}" || return $?
 
     _script_dir=$(dirname -- "${_script_out}")
     if [ ! -d "${_script_dir}" ]; then
@@ -3657,7 +2983,7 @@ cmd_uninstall() {
     if command -v visudo >/dev/null 2>&1; then
         visudo -c >/dev/null 2>&1 || info "WARN: visudo -c reported issues after remove (check other fragments)"
     fi
-    info "Note: does not remove ${APP_NAME} binaries, other users' fragments, or /var/backup archives"
+    info "Note: does not remove ${APP_NAME} binaries, other users' fragments, or /var/grok-cli auth files"
 }
 
 cmd_replace() {
@@ -3741,7 +3067,7 @@ EOF
 }
 
 # =============================================================================
-# fb_remove_project_sudoers() - Type 0: remove project-sudoers-file (draft only)
+# gc_remove_project_sudoers() - Type 0: remove project-sudoers-file (draft only)
 # =============================================================================
 #
 # GENERAL PURPOSE:
@@ -3759,8 +3085,8 @@ EOF
 #
 # Last reviewed: 2026-08-09
 # =============================================================================
-fb_remove_project_sudoers() {
-    : "${APP_NAME:=folder-backup}"
+gc_remove_project_sudoers() {
+    : "${APP_NAME:=grok-cli}"
     : "${HOME:=/tmp}"
     : "${FORCE:=0}"
     : "${JSON:=0}"
@@ -3768,19 +3094,19 @@ fb_remove_project_sudoers() {
     : "${TTY:=0}"
 
     _path="${1:-}"
-    _installed=$(fb_default_installed_sudoers_path)
-    _legacy=$(fb_legacy_installed_sudoers_path)
-    _default_draft=$(fb_default_project_sudoers_path)
+    _installed=$(gc_default_installed_sudoers_path)
+    _legacy=$(gc_legacy_installed_sudoers_path)
+    _default_draft=$(gc_default_project_sudoers_path)
     _host_present=0
     _host_list=""
-    _host_list=$(fb_list_host_sudoers_fragments 2>/dev/null || true)
+    _host_list=$(gc_list_host_sudoers_fragments 2>/dev/null || true)
     if [ -n "${_host_list}" ]; then
         _host_present=1
     fi
 
     # --- Resolve which draft path to remove ---
     if [ -z "${_path}" ]; then
-        _draft_list=$(fb_list_project_sudoers_drafts 2>/dev/null || true)
+        _draft_list=$(gc_list_project_sudoers_drafts 2>/dev/null || true)
         _count=0
         if [ -n "${_draft_list}" ]; then
             _count=$(printf '%s\n' "${_draft_list}" | grep -c . 2>/dev/null || echo 0)
@@ -3910,8 +3236,8 @@ EOF
 # app_version() - Local version only (no network)
 # =============================================================================
 app_version() {
-    : "${APP_NAME:=folder-backup}"
-    : "${VERSION:=1.8.0}"
+    : "${APP_NAME:=grok-cli}"
+    : "${VERSION:=1.0.0}"
     : "${JSON:=0}"
     if [ "${JSON}" -eq 1 ]; then
         out_json "version" "" "app" "${APP_NAME}" "version" "${VERSION}"
@@ -3926,7 +3252,7 @@ app_version() {
 #
 # ALIGNMENT:
 # - requirement-shell-cli-interface.md
-# - requirement-domain-folder-backup.md (about domain fields)
+# - requirement-domain-grok-cli.md (about domain fields)
 # - requirement-shell-cli-storage.md
 #
 # Last reviewed: 2026-08-03
@@ -3934,23 +3260,17 @@ app_version() {
 app_about() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
-    : "${APP_NAME:=folder-backup}"
-    : "${VERSION:=1.8.0}"
+    : "${APP_NAME:=grok-cli}"
+    : "${VERSION:=1.0.0}"
     : "${REPO_USER:=cloudgen}"
-    : "${REPO_NAME:=folder-backup}"
+    : "${REPO_NAME:=grok-cli}"
     : "${SCRIPT_URL:=}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
     : "${USERNAME:=unknown}"
-    : "${RESTORE_HOST_DEFAULT:=hard-disk}"
-    : "${PROJECTS_ROOT:=}"
-    : "${RAM_ROOT:=/dev/shm}"
     : "${XDG_CACHE_HOME:=${HOME}/.cache}"
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
-    : "${MAX_DAILY_BACKUPS:=5}"
-    : "${MAX_TOTAL_BACKUPS:=30}"
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ -z "${EFFECTIVE_STORAGE_DIR:-}" ]; then
         EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
@@ -3988,16 +3308,16 @@ app_about() {
     fi
 
     _sudoer_cli="not_found"
-    if _scli_path=$(fb_detect_sudoer_cli); then
+    if _scli_path=$(gc_detect_sudoer_cli); then
         _sudoer_cli="${_scli_path}"
     fi
     _sudoer_adm="absent"
-    if _sadm_name=$(fb_detect_sudoer_adm); then
+    if _sadm_name=$(gc_detect_sudoer_adm); then
         _sudoer_adm="${_sadm_name}"
     fi
     _sudoer_inbound="not_found"
     _sudoer_inbound_writable="false"
-    if _sin_path=$(fb_detect_sudoer_inbound); then
+    if _sin_path=$(gc_detect_sudoer_inbound); then
         _sudoer_inbound="${_sin_path}"
         if [ -w "${_sin_path}" ]; then
             _sudoer_inbound_writable="true"
@@ -4006,7 +3326,7 @@ app_about() {
 
     _host_sudoers_present="false"
     _host_sudoers_path=""
-    if _hsp=$(fb_probe_current_user_host_sudoers); then
+    if _hsp=$(gc_probe_current_user_host_sudoers); then
         _host_sudoers_present="true"
         _host_sudoers_path="${_hsp}"
     fi
@@ -4027,22 +3347,18 @@ app_about() {
             "user" "${_user}" \
             "effective_storage" "${EFFECTIVE_STORAGE_DIR}" \
             "storage_dir" "${STORAGE_DIR}" \
-            "backup_root" "${BACKUP_ROOT}" \
-            "backup_notation" "${BACKUP_NOTATION}" \
-            "deposit_dir" "${BACKUP_ROOT}/${BACKUP_NOTATION}" \
+            "grok_home" "$(gc_resolve_grok_home)" \
+            "grok_cli_root" "${GROK_CLI_ROOT}" \
+            "deposit_dir" "${GROK_CLI_ROOT}" \
+            "session" "$(gc_session_status_word 2>/dev/null || echo missing)" \
             "sudo_deposit" "${_sudo_deposit}" \
-            "sudoers_trust_tier" "$(fb_sudoers_trust_tier)" \
+            "sudoers_trust_tier" "$(gc_sudoers_trust_tier)" \
             "sudoer_cli" "${_sudoer_cli}" \
             "sudoer_adm" "${_sudoer_adm}" \
             "sudoer_inbound" "${_sudoer_inbound}" \
             "sudoer_inbound_writable" "${_sudoer_inbound_writable}" \
             "host_sudoers_present" "${_host_sudoers_present}" \
-            "host_sudoers_path" "${_host_sudoers_path}" \
-            "max_daily_backups" "$(fb_positive_int_or_default "${MAX_DAILY_BACKUPS}" 5)" \
-            "max_total_backups" "$(fb_positive_int_or_default "${MAX_TOTAL_BACKUPS}" 30)" \
-            "restore_host_default" "${RESTORE_HOST_DEFAULT}" \
-            "projects_root" "$(util_resolve_projects_root 2>/dev/null || echo "")" \
-            "ram_root" "${RAM_ROOT}"
+            "host_sudoers_path" "${_host_sudoers_path}"
         return 0
     fi
 
@@ -4059,7 +3375,7 @@ app_about() {
     out_empty_line
     out_info "Global install  (${GLOBAL_BIN}/${APP_NAME}):   ${_global_ver}"
     out_info "Local install   (${USER_BIN}/${APP_NAME}):    ${_local_ver}"
-    _tier=$(fb_sudoers_trust_tier)
+    _tier=$(gc_sudoers_trust_tier)
     out_info "Sudoers trust tier: ${_tier}  (production requires global; local-only = test mode)"
     out_empty_line
     out_info "Repository:        ${REPO_USER}/${REPO_NAME}"
@@ -4086,9 +3402,9 @@ app_about() {
     out_info "Storage (effective): ${EFFECTIVE_STORAGE_DIR}"
     out_info "Storage (fallback):  ${STORAGE_DIR}"
     out_empty_line
-    out_info "Backup root:       ${BACKUP_ROOT}"
-    out_info "Backup notation:   ${BACKUP_NOTATION}"
-    out_info "Deposit directory: ${BACKUP_ROOT}/${BACKUP_NOTATION}"
+    out_info "Grok home:         $(gc_resolve_grok_home)"
+    out_info "Session:           $(gc_session_status_word 2>/dev/null || echo missing)"
+    out_info "Deposit directory: ${GROK_CLI_ROOT}"
     out_info "Sudo deposit:      ${_sudo_deposit}"
     out_info "sudoer-cli:        ${_sudoer_cli}"
     out_info "sudoer-adm:        ${_sudoer_adm}"
@@ -4097,39 +3413,310 @@ app_about() {
     else
         out_info "sudoer inbound:    ${_sudoer_inbound} (writable=${_sudoer_inbound_writable})"
     fi
-    out_info "Retention daily:   max $(fb_positive_int_or_default "${MAX_DAILY_BACKUPS}" 5) per basename per day (MAX_DAILY_BACKUPS)"
-    out_info "Retention total:   max $(fb_positive_int_or_default "${MAX_TOTAL_BACKUPS}" 30) per basename (MAX_TOTAL_BACKUPS)"
-    _proot=$(util_resolve_projects_root 2>/dev/null || echo "")
-    out_info "Restore default host: ${RESTORE_HOST_DEFAULT} (reverse of ram-drive-first)"
-    out_info "Projects root (hard-disk): ${_proot:-unset — set PROJECTS_ROOT}"
-    out_info "RAM root:          ${RAM_ROOT}"
     out_empty_line
     out_info "Useful commands:"
     out_info "   ${APP_NAME} help            → Full usage"
+    out_info "   ${APP_NAME} menu            → Numbered list of live commands (real terminal)"
     out_info "   ${APP_NAME} install         → Local install to ~/.local/bin"
     out_info "   ${APP_NAME} print-sudoers   → Sudoers fragment for admin"
     out_info "   ${APP_NAME} generate-sudoer-request → Write a local JSON grant you can verify"
     out_info "   ${APP_NAME} submit-sudoer-request → JSON request into /var/sudoer-cli/sudoer-request"
-    out_info "   ${APP_NAME} backup <dir>    → Archive + deposit + retention prune"
-    out_info "   ${APP_NAME} restore <name>  → Restore archive (default dest: hard-disk)"
+    out_info "   ${APP_NAME} check-session   → Confirm grok is logged in"
+    out_info "   ${APP_NAME} backup          → Push ~/.grok/auth.* to /var/grok-cli (sudo grant)"
+    out_info "   ${APP_NAME} sync-auth       → Copy /var/grok-cli/auth.* into ~/.grok (no sudo)"
     out_info "   ${APP_NAME} --json          → Machine-readable output"
+}
+
+# =============================================================================
+# app_default_print_menu() - Numbered main-menu list (TTY)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Print the grok-cli daily-work list: check-session, backup, sync-auth,
+# sudoers family, then Exit 9.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-08-23
+# =============================================================================
+app_default_print_menu() {
+    : "${APP_NAME:=grok-cli}"
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+
+    out_info "${APP_NAME} — numbered list of live commands"
+    out_plain "1. check-session: Confirm grok is logged in"
+    out_plain "2. backup: Push ~/.grok/auth.* to ${GROK_CLI_ROOT}"
+    out_plain "3. sync-auth: Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok"
+    out_plain "4. sudoers: Grant and drafts"
+    out_plain "9. Exit"
+}
+
+# =============================================================================
+# app_default_print_sudoers_menu() - Sudoers family submenu (TTY)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Print the grant/draft list grouped behind main-menu family row sudoers.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-08-23
+# =============================================================================
+app_default_print_sudoers_menu() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+
+    out_info "${APP_NAME} — sudoers (grant and drafts)"
+    out_plain "1. generate-sudoer-request: Write a JSON grant you can read"
+    out_plain "2. submit-sudoer-request: Queue the JSON grant inbound"
+    out_plain "3. print-sudoers: Emit sudoers draft"
+    out_plain "4. print-sudoers-install-script: Write admin install script"
+    out_plain "5. remove-project-sudoers: Remove sudoers draft only"
+    out_plain "8. Back"
+    out_plain "9. Exit"
+}
+
+# =============================================================================
+# app_default_run_pick() - Run one main-menu choice (number or verb)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Map a main-list pick to a live handler. Family row sudoers is not handled
+# here (caller opens the submenu). Returns 1 if the pick is not on the list.
+# Returns 0 after a run or Exit.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-08-23
+# =============================================================================
+app_default_run_pick() {
+    _pick="${1:-}"
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
+
+    case "${_pick}" in
+        1|check-session)
+            gc_check_session
+            ;;
+        2|backup)
+            gc_backup
+            ;;
+        3|sync-auth)
+            gc_sync_auth
+            ;;
+        generate-sudoer-request)
+            gc_generate_sudoer_request
+            ;;
+        submit-sudoer-request)
+            gc_submit_sudoer_request
+            ;;
+        print-sudoers)
+            gc_print_sudoers
+            ;;
+        print-sudoers-install-script)
+            gc_print_sudoers_install_script
+            ;;
+        remove-project-sudoers)
+            gc_remove_project_sudoers
+            ;;
+        9|99|exit|quit|Exit|QUIT)
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+# =============================================================================
+# app_default_run_sudoers_pick() - Run one sudoers-submenu choice
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Map a submenu number or member verb to the live handler. Back/Exit are
+# owned by the submenu loop. Returns 1 if the pick is not a member.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-08-23
+# =============================================================================
+app_default_run_sudoers_pick() {
+    _pick="${1:-}"
+
+    case "${_pick}" in
+        1|generate-sudoer-request)
+            gc_generate_sudoer_request
+            ;;
+        2|submit-sudoer-request)
+            gc_submit_sudoer_request
+            ;;
+        3|print-sudoers)
+            gc_print_sudoers
+            ;;
+        4|print-sudoers-install-script)
+            gc_print_sudoers_install_script
+            ;;
+        5|remove-project-sudoers)
+            gc_remove_project_sudoers
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+# =============================================================================
+# app_default_sudoers_loop() - Interactive sudoers submenu
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Show the grant/draft list. Back returns 1 (main list). Exit or a run
+# returns 0 (leave menu). Never hangs off-TTY (caller is TTY-only).
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-08-23
+# =============================================================================
+app_default_sudoers_loop() {
+    : "${APP_NAME:=grok-cli}"
+    : "${_menu_json:=0}"
+    : "${_menu_quiet:=0}"
+
+    while true; do
+        JSON=0
+        QUIET=0
+        export JSON QUIET
+        app_default_print_sudoers_menu
+        out_msg_n "Choice: "
+        _pick=""
+        if ! read -r _pick; then
+            return 0
+        fi
+        case "${_pick}" in
+            8|back|Back)
+                return 1
+                ;;
+            9|99|exit|quit|Exit|QUIT)
+                return 0
+                ;;
+        esac
+        JSON="${_menu_json}"
+        QUIET="${_menu_quiet}"
+        export JSON QUIET
+        if app_default_run_sudoers_pick "${_pick}"; then
+            return 0
+        fi
+        out_warn "Not a menu choice. Type 1-5, 8 back, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+    done
+}
+
+# =============================================================================
+# app_default() - Default interaction: TTY numbered menu / off-TTY help
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Command menu / main. On a real terminal: ignore --json, show the numbered
+# list, run one pick (or open the sudoers submenu). Off-TTY: help (JSON help
+# when --json). Never hang.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+# - requirement-shell-interactive-vs-noninteractive.md
+# - requirement-shell-cli-zero-arguments.md
+#
+# Last updated: 2026-08-23
+# =============================================================================
+app_default() {
+    : "${TTY:=0}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+    : "${APP_NAME:=grok-cli}"
+
+    if [ "${TTY}" -ne 1 ]; then
+        _menu_quiet="${QUIET}"
+        if [ "${JSON}" -ne 1 ]; then
+            QUIET=0
+        fi
+        app_help
+        QUIET="${_menu_quiet}"
+        return 0
+    fi
+
+    _menu_json="${JSON}"
+    _menu_quiet="${QUIET}"
+    JSON=0
+    QUIET=0
+    export JSON QUIET
+
+    while true; do
+        app_default_print_menu
+        out_msg_n "Choice: "
+        _pick=""
+        if ! read -r _pick; then
+            JSON="${_menu_json}"
+            QUIET="${_menu_quiet}"
+            export JSON QUIET
+            return 0
+        fi
+        case "${_pick}" in
+            9|99|exit|quit|Exit|QUIT)
+                JSON="${_menu_json}"
+                QUIET="${_menu_quiet}"
+                export JSON QUIET
+                return 0
+                ;;
+            4|sudoers)
+                JSON="${_menu_json}"
+                QUIET="${_menu_quiet}"
+                export JSON QUIET
+                if app_default_sudoers_loop; then
+                    JSON="${_menu_json}"
+                    QUIET="${_menu_quiet}"
+                    export JSON QUIET
+                    return 0
+                fi
+                JSON=0
+                QUIET=0
+                export JSON QUIET
+                continue
+                ;;
+        esac
+        JSON="${_menu_json}"
+        QUIET="${_menu_quiet}"
+        export JSON QUIET
+        if app_default_run_pick "${_pick}"; then
+            return 0
+        fi
+        JSON=0
+        QUIET=0
+        export JSON QUIET
+        out_warn "Not a menu choice. Type 1-4, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+    done
 }
 
 # =============================================================================
 # app_help() - Usage (local Type 0 + domain)
 # =============================================================================
+#
+# Last updated: 2026-08-23
+# =============================================================================
 app_help() {
-    : "${SHORT_DESCRIPTION:=${APP_DESC:-Local folder archive backup/restore with narrow sudo deposit}}"
-    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, backup, restore, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
-    : "${BACKUP_ROOT:=/var/backup}"
-    : "${BACKUP_NOTATION:=folder-backup}"
-    : "${RESTORE_HOST_DEFAULT:=hard-disk}"
-    : "${RAM_ROOT:=/dev/shm}"
+    : "${SHORT_DESCRIPTION:=${APP_DESC:-Local grok auth backup to /var/grok-cli and unprivileged sync-auth}}"
+    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
         out_json "success" "Help text available in human-readable mode. Run without --json." \
             "command" "help" \
-            "note" "Use --json with version, about, install, uninstall, where-is-me, backup, restore."
+            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth. menu/main off-TTY uses this help."
         return 0
     fi
     if [ "${QUIET}" -eq 1 ]; then
@@ -4150,28 +3737,34 @@ app_help() {
     out_plain "  version              Show local version"
     out_plain "  about                Show diagnostics (incl. sudoers trust tier)"
     out_plain "  help                 Show this help"
+    out_plain "  menu                 Show the numbered list of live commands (TTY; help off-TTY)"
+    out_plain "  main                 Same as menu"
     out_empty_line
-    out_info "Domain (Type 0 archive + Type 1 deposit/restore-stage):"
-    out_plain "  backup <folder>      tar.gz folder → ${BACKUP_ROOT}/${BACKUP_NOTATION}/NAME-YYYYMMDD-N.tar.gz"
-    out_plain "  restore <archive|prefix> [dest]  Extract archive (default dest: hard-disk SSOT)"
-    out_plain "  print-sudoers [path] Emit project-sudoers-file (draft) for admin"
+    out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
+    out_plain "  check-session        Confirm grok is logged in"
+    out_plain "  backup               Push ~/.grok/auth.* to ${GROK_CLI_ROOT}/"
+    out_plain "                       (checks session first; sudo -n ${GLOBAL_BIN}/${APP_NAME} backup after sudoer-adm grant;"
+    out_plain "                       chown root:root, chmod 0644 so others can sync-auth)"
+    out_plain "  sync-auth            Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok (no sudo)"
+    out_plain "  print-sudoers [path] Emit sudoers draft for admin"
     out_plain "                       (test_local/unmanaged needs --allow-test-local);"
     out_plain "                       default: ~/.config/${APP_NAME}/sudoers.fragment-<user>"
     out_plain "  print-sudoers-install-script [path]"
-    out_plain "                       Write admin script (/dev/shm or temp) to install|uninstall|replace"
+    out_plain "                       Write admin install script (/dev/shm or temp) to install|uninstall|replace"
     out_plain "                       per-user fragment /etc/sudoers.d/${APP_NAME}-<user> (run with sudo)"
     out_plain "  remove-project-sudoers [path]"
-    out_plain "                       Remove project-sudoers-file draft only (not host elev;"
+    out_plain "                       Remove sudoers draft only (not host elev;"
     out_plain "                       lists drafts and lets you choose when multiple;"
     out_plain "                       confirm or --force; probes /etc/sudoers.d/ and warns if active)"
     out_plain "  generate-sudoer-request [path]"
-    out_plain "                       Type 0 independent generate: write a JSON sudoer file"
-    out_plain "                       (compact, both verbs) to a dest tests/review can read."
+    out_plain "                       Write a JSON grant you can read"
+    out_plain "                       (Type 0 independent generate; compact; backup verb)."
     out_plain "                       Does not write /etc or inbound."
     out_plain "                       default: ~/.config/${APP_NAME}/sudoer-request-<user>.json"
     out_plain "  submit-sudoer-request [file]"
-    out_plain "                       Type 0: detect sudoer-cli + sudoer-adm; sibling writes"
-    out_plain "                       JSON into /var/sudoer-cli/sudoer-request"
+    out_plain "                       Queue the JSON grant inbound"
+    out_plain "                       (Type 0: detect sudoer-cli + sudoer-adm; sibling writes"
+    out_plain "                       JSON into /var/sudoer-cli/sudoer-request)"
     out_plain "                       action=update if this user's /etc/sudoers.d/${APP_NAME}-<user>"
     out_plain "                       (or legacy ${APP_NAME}) exists; else add"
     out_plain "                       (does not write /etc; does not mkdir inbound)"
@@ -4180,23 +3773,16 @@ app_help() {
     out_info "Global Options:"
     out_plain "  --quiet, -q          Suppress info/success (errors still shown)"
     out_plain "  --json               Machine-readable JSON (implies --quiet)"
-    out_plain "  --force              Force reinstall / skip uninstall confirm / restore into non-empty dest"
+    out_plain "  --force              Force reinstall / skip uninstall confirm"
     out_plain "  --global             Install to GLOBAL_BIN (production elevation path)"
     out_plain "  --allow-test-local   Allow print-sudoers / generate-sudoer-request / submit when only local/unmanaged (TEST MODE)"
     out_plain "  --update             Force submit-sudoer-request action=update"
     out_plain "  --add                Force submit-sudoer-request action=add"
-    out_plain "  --disk               Restore host: hard-disk (default; reverse of ram-drive-first)"
-    out_plain "  --ram                Restore host: RAM-drive (/dev/shm/<project>)"
     out_plain "  --debug              Debug diagnostics on stderr"
     out_empty_line
     out_info "Environment:"
-    out_plain "  BACKUP_ROOT          ${BACKUP_ROOT}"
-    out_plain "  BACKUP_NOTATION      ${BACKUP_NOTATION}"
-    out_plain "  MAX_DAILY_BACKUPS    5  (per basename per day; prune oldest same-day N)"
-    out_plain "  MAX_TOTAL_BACKUPS    30 (per basename; prune oldest across days)"
-    out_plain "  PROJECTS_ROOT        hard-disk projects tree (auto-detect when possible)"
-    out_plain "  RAM_ROOT             ${RAM_ROOT}"
-    out_plain "  RESTORE_HOST_DEFAULT ${RESTORE_HOST_DEFAULT}  (hard-disk|ram-drive)"
+    out_plain "  GROK_HOME            grok auth dir (default ~/.grok of invoking login)"
+    out_plain "  GROK_CLI_ROOT        durable store (default /var/grok-cli)"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers / generate / submit"
     out_plain "  SUDOER_CLI              override path to sudoer-cli"
@@ -4216,14 +3802,14 @@ app_help() {
     out_plain "  ${APP_NAME} generate-sudoer-request         # verified JSON under ~/.config/"
     out_plain "  ${APP_NAME} submit-sudoer-request           # JSON into /var/sudoer-cli/sudoer-request"
     out_plain "  ${APP_NAME} submit-sudoer-request ~/.config/${APP_NAME}/sudoer-request-\$(id -un).json"
-    out_plain "  ${APP_NAME} backup /path/to/project"
-    out_plain "  ${APP_NAME} restore genesis-template"
-    out_plain "  ${APP_NAME} restore genesis-template --ram"
-    out_plain "  ${APP_NAME} restore genesis-template-20260803-3.tar.gz /tmp/restore-out"
+    out_plain "  ${APP_NAME} menu"
+    out_plain "  ${APP_NAME} check-session"
+    out_plain "  ${APP_NAME} backup"
+    out_plain "  ${APP_NAME} sync-auth"
     out_empty_line
     out_info "Empty argv shows help (Type N — local-only; no curl|sh install-ensure)."
-    out_info "Restore default destination is hard-disk (not RAM) unless --ram or dest is set."
-    out_info "Local install + sudoers is TEST MODE ONLY; prefer global for durable elevation."
+    out_info "backup needs a valid grok login, then passwordless sudo ${APP_NAME} backup (sudoer-adm)."
+    out_info "sync-auth never uses sudo. Local install + sudoers is TEST MODE ONLY; prefer global."
 }
 
 # =============================================================================
@@ -4231,16 +3817,17 @@ app_help() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Single dispatcher for folder-backup (specialized from cli-template; local Type 0 + domain).
+# Single dispatcher for grok-cli (specialized from folder-backup; local Type 0 + grok auth domain).
 # Empty argv = Type N help (not install-ensure).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-interface.md
 # - requirement-shell-cli-zero-arguments.md
+# - requirement-shell-cli-default-interaction.md
 #
 # !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
 #
-# Last reviewed: 2026-08-03
+# Last updated: 2026-08-23
 # =============================================================================
 app_main() {
     : "${COMMAND:=help}"
@@ -4257,7 +3844,7 @@ app_main() {
     : "${USERNAME:=unknown}"
     : "${HOME:=/tmp}"
     : "${XDG_CACHE_HOME:=${HOME}/.cache}"
-    : "${APP_NAME:=folder-backup}"
+    : "${APP_NAME:=grok-cli}"
     : "${STORAGE_DIR:=${XDG_CACHE_HOME}/${APP_NAME}-${USERNAME}}"
 
     EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
@@ -4271,8 +3858,6 @@ app_main() {
     fi
 
     _domain_arg=""
-    _domain_arg2=""
-    : "${RESTORE_HOST:=}"
     while [ $# -gt 0 ]; do
         case "$1" in
             --quiet|-q) QUIET=1 ;;
@@ -4302,34 +3887,18 @@ app_main() {
                 SUBMIT_ACTION_EXPLICIT=1
                 export SUBMIT_ACTION SUBMIT_ACTION_EXPLICIT
                 ;;
-            --disk|--hard-disk)
-                RESTORE_HOST="hard-disk"
-                export RESTORE_HOST
-                ;;
-            --ram|--ram-drive)
-                RESTORE_HOST="ram-drive"
-                export RESTORE_HOST
-                ;;
-            version|about|help|install|uninstall|where-is-me|backup|restore|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
+            version|about|help|menu|main|install|uninstall|where-is-me|check-session|backup|sync-auth|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
                 COMMAND="$1"
                 ;;
             *)
                 # Positional operands for domain verbs
-                if [ "${COMMAND}" = "backup" ] || [ "${COMMAND}" = "print-sudoers" ] \
+                if [ "${COMMAND}" = "print-sudoers" ] \
                     || [ "${COMMAND}" = "print-sudoers-install-script" ] \
                     || [ "${COMMAND}" = "remove-project-sudoers" ] \
                     || [ "${COMMAND}" = "generate-sudoer-request" ] \
                     || [ "${COMMAND}" = "submit-sudoer-request" ]; then
                     if [ -z "${_domain_arg}" ]; then
                         _domain_arg="$1"
-                    else
-                        out_die "Unexpected argument: $1. See '${APP_NAME} help'."
-                    fi
-                elif [ "${COMMAND}" = "restore" ]; then
-                    if [ -z "${_domain_arg}" ]; then
-                        _domain_arg="$1"
-                    elif [ -z "${_domain_arg2}" ]; then
-                        _domain_arg2="$1"
                     else
                         out_die "Unexpected argument: $1. See '${APP_NAME} help'."
                     fi
@@ -4341,21 +3910,23 @@ app_main() {
         shift
     done
 
-    out_debug "dispatch command=${COMMAND} quiet=${QUIET} json=${JSON} force=${FORCE} force_global=${FORCE_GLOBAL} allow_test_local=${ALLOW_TEST_LOCAL_SUDOERS} restore_host=${RESTORE_HOST:-}"
+    out_debug "dispatch command=${COMMAND} quiet=${QUIET} json=${JSON} force=${FORCE} force_global=${FORCE_GLOBAL} allow_test_local=${ALLOW_TEST_LOCAL_SUDOERS}"
 
     case "${COMMAND}" in
         version)      app_version ;;
         about)        app_about ;;
+        menu|main)    app_default ;;
         install)      inst_local_install ;;
         uninstall)    inst_local_uninstall ;;
         where-is-me)  app_where_is_me ;;
-        backup)       fb_backup "${_domain_arg}" ;;
-        restore)      fb_restore "${_domain_arg}" "${_domain_arg2}" ;;
-        print-sudoers) fb_print_sudoers "${_domain_arg}" ;;
-        print-sudoers-install-script) fb_print_sudoers_install_script "${_domain_arg}" ;;
-        remove-project-sudoers) fb_remove_project_sudoers "${_domain_arg}" ;;
-        generate-sudoer-request) fb_generate_sudoer_request "${_domain_arg}" ;;
-        submit-sudoer-request) fb_submit_sudoer_request "${_domain_arg}" ;;
+        check-session) gc_check_session ;;
+        backup)       gc_backup ;;
+        sync-auth)    gc_sync_auth ;;
+        print-sudoers) gc_print_sudoers "${_domain_arg}" ;;
+        print-sudoers-install-script) gc_print_sudoers_install_script "${_domain_arg}" ;;
+        remove-project-sudoers) gc_remove_project_sudoers "${_domain_arg}" ;;
+        generate-sudoer-request) gc_generate_sudoer_request "${_domain_arg}" ;;
+        submit-sudoer-request) gc_submit_sudoer_request "${_domain_arg}" ;;
         help|*)       app_help ;;
     esac
 }

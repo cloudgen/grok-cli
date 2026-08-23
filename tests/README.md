@@ -1,4 +1,4 @@
-# Tests — folder-backup
+# Tests — grok-cli
 
 ## Run
 
@@ -18,19 +18,19 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 | `helpers.sh` | Asserts + isolated HOME | — |
 | `test_cli.sh` | CLI surface, Type N empty argv, offline online-reject | **TP-CLI-*** |
 | `test_local_lifecycle.sh` | install / uninstall / where-is-me | **TP-LC-*** |
-| `test_domain_folder_backup.sh` | backup ops + domain surface + sudoers print + JSON grant + submit inbound detect | **TP-FOLDER-BACKUP-*** (ops → `requirement-folder-archive-backup`; grant → `requirement-sudoer-json-file`; submit → three-layer §2.3.3c) |
+| `test_domain_grok_cli.sh` | session gate + backup/sync-auth + sudoers print + JSON grant + submit inbound | **TP-GROK-CLI-*** |
 
 ## Isolation
 
 - Temp `HOME` + `USER_BIN` for install tests  
 - **No** public network  
 - **No** write to `/etc/sudoers.d` (suite never installs sudoers)  
-- Deposit **fail-closed** forced with a PATH-local fake `sudo` (stays valid when host sudoers is installed)  
-- Deposit **success** when root **or** allowlisted `sudo -n mkdir -p /var/backup/folder-backup` works (Type 1 escalate); otherwise SKIP 07/08
+- Auth fixtures are synthetic (no live tokens)  
+- Backup **success** uses writable `GROK_CLI_ROOT` override (not `/var/grok-cli`)
 
 ## Ship unit under test
 
-`src/folder-backup`
+`src/grok-cli`
 
 ## Maps
 

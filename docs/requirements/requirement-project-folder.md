@@ -1,16 +1,31 @@
 **file**: docs/requirements/requirement-project-folder.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0)  
 **Area**: architecture  
 **Key**: `requirement-project-folder`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-Define **project folder structure** and path ownership for the folder-backup CLI: source layout, install locations, staging/scratch, and the privileged durable backup deposit root.
+Define **project folder structure** and path ownership for the grok-cli CLI: source layout, install locations, staging/scratch, and the privileged durable grok-auth deposit root.
 
 **Critical distinction:** CLI tool own paths vs target folders being archived vs host durable backup deposit.
 
 ---
+
+### 1.1 Human-facing
+
+This file says where grok-cli lives: `src/grok-cli`, user/global bins, and `/var/grok-cli` for shared auth.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Install to `~/.local/bin` or `/usr/local/bin` | Root writes `/var/grok-cli` via `grok-cli backup` | Archiving arbitrary project folders |
+
+**Includes:** ship path, bins, store root. **Excludes:** session parsing.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Place the program | Copy the ship unit into a bin | `grok-cli install` |
+
 
 ## 2. Core Rules (Mandatory)
 
@@ -18,7 +33,7 @@ Define **project folder structure** and path ownership for the folder-backup CLI
 
 | Path | Role |
 |------|------|
-| `src/folder-backup` | **Ship unit** — single POSIX shell executable source |
+| `src/grok-cli` | **Ship unit** — single POSIX shell executable source |
 | `tests/` | CLI tests when present |
 | `docs/requirements/` | Product law (this surface) |
 | Product root README / CHANGELOG / LICENSE / SECURITY | Product user docs when specialized |
@@ -31,8 +46,8 @@ Define **project folder structure** and path ownership for the folder-backup CLI
 
 | Mode | Binary path | Default |
 |------|-------------|---------|
-| **Per-user (normal)** | `${USER_BIN}/${APP_NAME}` | `${HOME}/.local/bin/folder-backup` |
-| **Global (root)** | `${GLOBAL_BIN}/${APP_NAME}` | `/usr/local/bin/folder-backup` |
+| **Per-user (normal)** | `${USER_BIN}/${APP_NAME}` | `${HOME}/.local/bin/grok-cli` |
+| **Global (root)** | `${GLOBAL_BIN}/${APP_NAME}` | `/usr/local/bin/grok-cli` |
 
 Rules:
 
@@ -56,20 +71,20 @@ Rules:
 2. Temps **MUST** clean up (`trap`) after success/failure of a backup run.  
 3. Staging archives are **EPHEMERAL** until successfully deposited; do not leave world-writable archives.
 
-### 2.4 Durable host backup deposit (not CLI config)
+### 2.4 Durable host grok-auth deposit (not CLI config)
 
 | Item | Value |
 |------|--------|
-| **Backup root** | `/var/backup` |
-| **Backup notation directory** | `/var/backup/${BACKUP_NOTATION}/` |
-| **Default notation** | `folder-backup` (same as `APP_NAME` unless overridden by env/config) |
-| **Archive basename pattern** | `${SOURCE_FOLDER_NAME}-YYYYMMDD-N.tar.gz` |
+| **Store root** | `/var/grok-cli` |
+| **Override** | `GROK_CLI_ROOT` |
+| **Auth glob** | `auth.*` under grok home |
 
 Rules:
 
-1. Writing into `/var/backup/...` **MUST** use the **narrow elevated path** defined in privilege + domain law — not unrestricted root shell.  
-2. Normal users **MUST NOT** be granted write to all of `/var` — only the allowlisted deposit.  
-3. Archive **creation** (tar gzip) **MUST** run as the invoking user into staging; only the **deposit copy** is elevated.
+1. Writing into `/var/grok-cli` **MUST** use the **narrow elevated path** (`sudo grok-cli backup`) — not unrestricted root shell and not OS-tool sudoers.  
+2. Normal users **MUST NOT** be granted write to all of `/var` — only the approved product command may push.  
+3. Session check and reading `~/.grok/auth.*` **MUST** run as the invoking login; only the **deposit copy + chown/chmod** is elevated.  
+4. Store files **MUST** be world-readable after root deposit so `sync-auth` needs no sudo.
 
 ### 2.5 Target folders being backed up
 
@@ -81,13 +96,13 @@ Rules:
 
 | Item | Value |
 |------|--------|
-| **APP_NAME** | `folder-backup` |
-| **Ship unit path** | `src/folder-backup` |
+| **APP_NAME** | `grok-cli` |
+| **Ship unit path** | `src/grok-cli` |
 | **USER_BIN default** | `${HOME}/.local/bin` |
 | **GLOBAL_BIN default** | `/usr/local/bin` |
-| **BACKUP_ROOT** | `/var/backup` |
-| **BACKUP_NOTATION default** | `folder-backup` |
-| **Config dir (optional)** | `${HOME}/.config/folder-backup/` for generated sudoers drafts |
+| **GROK_CLI_ROOT** | `/var/grok-cli` |
+| **BACKUP_NOTATION default** | `grok-cli` |
+| **Config dir (optional)** | `${HOME}/.config/grok-cli/` for generated sudoers drafts |
 | **No Type 2 app data tree** | No dedicated system app user for routine ops |
 
 ### 2.7 Why This Requirement Exists (CIAO)
@@ -104,7 +119,7 @@ Rules:
 - **Caution**: Fail loud if deposit root or staging is not usable under policy.  
 - **Intentional**: Path classes are documented and not mixed.  
 - **Anti-fragile**: Per-user isolation under multi-user hosts.  
-- **Over-protect**: Do not “simplify” by writing archives straight into `/var/backup` as a normal user or by running the whole CLI as root.
+- **Over-protect**: Do not “simplify” by writing archives straight into `/var/grok-cli` as a normal user or by running the whole CLI as root.
 
 ---
 
@@ -126,8 +141,8 @@ Rules:
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | Ship unit lives at `src/folder-backup` |
-| AC-2 | Default user install path is `~/.local/bin/folder-backup` |
+| AC-1 | Ship unit lives at `src/grok-cli` |
+| AC-2 | Default user install path is `~/.local/bin/grok-cli` |
 | AC-3 | Durable deposit is under `/var/backup/${BACKUP_NOTATION}/` |
 | AC-4 | Archive naming pattern documented and owned with domain law |
 
@@ -139,7 +154,7 @@ Rules:
 |-----|--------------|
 | `requirement-shell-local-self-management` | Place/remove binary |
 | `requirement-shell-cli-storage` | Scratch resolve |
-| `requirement-domain-folder-backup` | Archive + deposit behavior |
+| `requirement-domain-grok-cli` | Archive + deposit behavior |
 | `requirement-three-layer-privilege-model` | Elevation boundary |
 | `docs/requirements/index.md` | Registry |
 

@@ -1,49 +1,53 @@
 # Requirements index
 
-**Product:** folder-backup (POSIX `/bin/sh` local self-managed CLI — folder tar.gz backup with narrow sudo deposit)  
-**Workspace state:** Specialized product law (left genesis); **software-development** class; bootstrap **cli-template → folder-backup** (domain extend; online install **intentionally absent** on A and B).  
-**Updated:** 2026-08-17
+**Product:** grok-cli (POSIX `/bin/sh` local self-managed CLI — grok auth backup to `/var/grok-cli` with narrow sudo deposit + unprivileged sync-auth)  
+**Workspace state:** Specialized product law (left genesis); **software-development** class; bootstrap **cli-template → folder-backup → grok-cli** (domain retarget; online install **intentionally absent**).  
+**Updated:** 2026-08-23 (18 Active + 4 superseded)
 
 | ID / key | Title | Area | Status | Path | Updated |
 |----------|-------|------|--------|------|---------|
-| requirement-class-software-dev | Software-development class law + residual stack (posix-sh, local-only); multi-vault forge push identity §2.0.5a | class | Active | `requirement-class-software-dev.md` | 2026-08-11 |
-| requirement-bootstrap-chain | Bootstrap chain A=cli-template → B=folder-backup (domain extend) | architecture | Active (2.0.0) | `requirement-bootstrap-chain.md` | 2026-08-13 |
-| requirement-project-folder | Project layout (`src/`), install bins, `/var/backup` deposit | architecture | Active | `requirement-project-folder.md` | 2026-08-03 |
-| requirement-three-layer-privilege-model | Type 0 + narrow Type 1 deposit; sudoers emit + **install-script** handoff; **per-user** fragment names; **trust tiers** (S13); submit workflow + inbound fidelity + **host-probe add/update** + **independent generate** (readable dest); fragment example is `folder-backup` backup/restore only | architecture | Active (1.10.0) | `requirement-three-layer-privilege-model.md` | 2026-08-17 |
-| requirement-sudoer-json-file | **JSON sudoer file** SSOT: `{{PRJ_NAME}}` only; pretty/compact legal; re-encode **MUST** keep every `commands[]` object; **independent generate** dest readable | architecture | Active (1.2.0) | `requirement-sudoer-json-file.md` | 2026-08-17 |
-| requirement-folder-archive-backup | **Backup/restore ops SSOT**: backup + verify + **restore**; dest whitelist **W-ETC-USER** `/etc/{{username}}` (never `/etc/passwd`) | backup | Active (1.2.0) | `requirement-folder-archive-backup.md` | 2026-08-12 |
-| requirement-folder-archive-backup-retention-total | **Total retention**: max **30** archives per project basename; prune oldest after successful deposit | backup | Active (1.0.0) | `requirement-folder-archive-backup-retention-total.md` | 2026-08-12 |
-| requirement-folder-archive-backup-retention-daily | **Daily retention**: max **5** archives per basename per calendar day; prune oldest same-day `N` | backup | Active (1.0.0) | `requirement-folder-archive-backup-retention-daily.md` | 2026-08-12 |
-| requirement-shell-cli-interface | Shell CLI interface (commands, flags, dispatch, modes); submit `--add`/`--update`; **generate-sudoer-request** (independent readable dest) | shell | Active (1.3.1) | `requirement-shell-cli-interface.md` | 2026-08-17 |
-| requirement-shell-cli-zero-arguments | Empty argv Type N help (local-only) | shell | Active | `requirement-shell-cli-zero-arguments.md` | 2026-08-03 |
+| requirement-class-software-dev | Software-development class law + residual stack (posix-sh, local-only); residual no dest approver / no dest fence; §1.1 | class | Active (1.2.0) | `requirement-class-software-dev.md` | 2026-08-22 |
+| requirement-bootstrap-chain | Bootstrap chain cli-template → folder-backup → grok-cli (domain retarget) | architecture | Active (3.0.0) | `requirement-bootstrap-chain.md` | 2026-08-22 |
+| requirement-project-folder | Project layout (`src/`), install bins, `/var/grok-cli` deposit | architecture | Active (1.1.0) | `requirement-project-folder.md` | 2026-08-22 |
+| requirement-three-layer-privilege-model | Type 0 + narrow Type 1 `grok-cli backup`; sudoers emit + install-script; per-user fragments; submit workflow; grant is backup only | architecture | Active (2.0.0) | `requirement-three-layer-privilege-model.md` | 2026-08-22 |
+| requirement-sudoer-json-file | JSON sudoer file SSOT: `{{PRJ_NAME}}` only; args `["backup"]` only; independent generate dest readable | architecture | Active (2.0.0) | `requirement-sudoer-json-file.md` | 2026-08-22 |
+| requirement-grok-auth-backup | **Auth ops SSOT**: session gate + deposit `auth.*` to `/var/grok-cli` (root:root 0644) + unprivileged `sync-auth` | backup | Active (1.0.0) | `requirement-grok-auth-backup.md` | 2026-08-22 |
+| requirement-shell-cli-interface | Shell CLI interface (commands, flags, dispatch, modes); generate-sudoer-request; check-session / backup / sync-auth; intended Gap `menu`/`main` | shell | Active (2.1.0) | `requirement-shell-cli-interface.md` | 2026-08-23 |
+| requirement-shell-cli-zero-arguments | Empty argv Type N help (local-only); menu is verb `menu`/`main`, not empty argv | shell | Active (1.2.0) | `requirement-shell-cli-zero-arguments.md` | 2026-08-23 |
+| requirement-shell-cli-default-interaction | Case 3: numbered `menu`/`main` (check-session/backup/sync-auth + sudoers family; Exit 9; Back 8); empty argv stays help; **Implemented** | shell | Active (1.6.0) | `requirement-shell-cli-default-interaction.md` | 2026-08-23 |
 | requirement-shell-local-self-management | Local install / uninstall / where-is-me; **mode 0755** multi-user | shell | Active (1.2.0) | `requirement-shell-local-self-management.md` | 2026-08-09 |
 | requirement-shell-output-requirements | Central `out_*` output SSOT | shell | Active | `requirement-shell-output-requirements.md` | 2026-08-03 |
 | requirement-operator-readable-error | Operator-facing error **wording** (human-intro style: what happened / next step) | shell | Active (1.0.0) | `requirement-operator-readable-error.md` | 2026-08-17 |
-| requirement-shell-modular-function-design | Single-file modular prefixes (`out_`/`inst_`/`app_`/`fb_`) | shell | Active | `requirement-shell-modular-function-design.md` | 2026-08-03 |
-| requirement-shell-idempotency | Re-run safety; archive next-N no overwrite | shell | Active | `requirement-shell-idempotency.md` | 2026-08-03 |
+| requirement-shell-modular-function-design | Single-file modular prefixes (`out_`/`inst_`/`app_`/`gc_`) | shell | Active (1.1.0) | `requirement-shell-modular-function-design.md` | 2026-08-22 |
+| requirement-shell-script-coding | POSIX sh coding style (`set -u`, `out_*`, `gc_*`, fail-closed elev) | shell | Active (1.0.0) | `requirement-shell-script-coding.md` | 2026-08-22 |
+| requirement-shell-idempotency | Re-run safety; backup overwrite of same auth.* basenames | shell | Active | `requirement-shell-idempotency.md` | 2026-08-03 |
 | requirement-shell-interactive-vs-noninteractive | Interactive vs non-interactive / confirm policy | shell | Active | `requirement-shell-interactive-vs-noninteractive.md` | 2026-08-03 |
-| requirement-shell-cli-storage | Scratch/cache resolve + backup staging root | shell | Active | `requirement-shell-cli-storage.md` | 2026-08-03 |
-| requirement-domain-folder-backup | Domain **surface** SSOT (four pillars); ops defer to folder-archive-backup; submit public inbound; **host-probe add/update**; **independent generate-sudoer-request** | domain | Active (1.6.1) | `requirement-domain-folder-backup.md` | 2026-08-17 |
+| requirement-shell-cli-storage | Scratch/cache resolve + staging root | shell | Active | `requirement-shell-cli-storage.md` | 2026-08-03 |
+| requirement-domain-grok-cli | Domain **surface** SSOT (four pillars); ops defer to grok-auth-backup | domain | Active (1.0.0) | `requirement-domain-grok-cli.md` | 2026-08-22 |
+| requirement-domain-folder-backup | Retired folder-archive domain surface | domain | superseded | `requirement-domain-folder-backup.md` | 2026-08-22 |
+| requirement-folder-archive-backup | Retired folder tar.gz backup/restore ops | backup | superseded | `requirement-folder-archive-backup.md` | 2026-08-22 |
+| requirement-folder-archive-backup-retention-total | Retired total retention | backup | superseded | `requirement-folder-archive-backup-retention-total.md` | 2026-08-22 |
+| requirement-folder-archive-backup-retention-daily | Retired daily retention | backup | superseded | `requirement-folder-archive-backup-retention-daily.md` | 2026-08-22 |
 
 ## Intentionally absent (by design — inherited from cli-template)
 
-| Parent (cli-template) surface | Status on folder-backup |
-|-------------------------------|-------------------------|
-| Online install / `SCRIPT_URL` / Type O empty-argv install-ensure | **Absent** (A already absent) |
-| `version-check` / `self-update` / `self-uninstall` | **Absent** (A already absent) |
-| Automatic companion `.sha256` channel integrity law | **Absent** (A already absent) |
+| Parent (cli-template) surface | Status on grok-cli |
+|-------------------------------|---------------------|
+| Online install / `SCRIPT_URL` / Type O empty-argv install-ensure | **Absent** |
+| `version-check` / `self-update` / `self-uninstall` | **Absent** |
+| Automatic companion `.sha256` channel integrity law | **Absent** |
 
 **Install mode:** **local-only** (`install` + `uninstall` + `where-is-me`). Not dual-mode.
 
 **Rules for agents:**
 
-1. Treat rows above as the **live product-law inventory** for folder-backup.  
+1. Treat Active rows above as the **live product-law inventory** for grok-cli.  
 2. **Do not invent** additional `requirement-*.md` paths — verify on disk and add a registry row in the same change when creating one.  
 3. Product source comments cite **only** these live requirement files — never templates/skills as behavioral authority.  
-4. This versioned surface lists **requirement rows only** — do not dump templates / skills / terminologies / incidents path inventories here.  
+4. This versioned surface lists **requirement rows only**.  
 5. Keep Status and Path in sync with each file’s header when status changes.  
-6. **Class gate:** software-development requires exactly one Active `requirement-class-software-dev.md` (this registry includes it).  
-7. **Domain SSOT:** exactly one Active `requirement-domain-*` (`requirement-domain-folder-backup`).  
+6. **Class gate:** software-development requires exactly one Active `requirement-class-software-dev.md`.  
+7. **Domain SSOT:** exactly one Active `requirement-domain-*` (`requirement-domain-grok-cli`).  
 8. **Do not reintroduce** online install package without explicit user order and registry update.
 
 When adding a requirement: append a row, create the file under `docs/requirements/`, keep Status in sync with the file header.

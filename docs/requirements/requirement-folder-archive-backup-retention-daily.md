@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-folder-archive-backup-retention-daily.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: superseded (2026-08-22 — grok-cli uses a single auth snapshot, no archive retention)  
 **Area**: backup  
 **Key**: `requirement-folder-archive-backup-retention-daily`  
 **Optional RQ-ID**: `RQ-FOLDER-ARCHIVE-BACKUP-RETENTION-DAILY`  

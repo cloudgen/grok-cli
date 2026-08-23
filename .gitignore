@@ -1,6 +1,6 @@
 # =============================================================================
 # .gitignore — skill-create-gitignore (+ skill-commit-check)
-# Product: folder-backup (specialized software-dev; local shell CLI)
+# Product: grok-cli (specialized software-dev; local shell CLI)
 # Docs: track docs/requirements/** ; ignore skills/incidents/terminologies/policies/templates
 # Track: README, CHANGELOG, LICENSE, SECURITY, src/, tests/, reviews/
 # Artifacts: universal compiled/temp/secrets/caches; shell run debris

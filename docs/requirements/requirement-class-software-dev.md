@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.0.0 – folder-backup class law + residual stack)  
+**Status**: Active (Version 1.2.0 – grok-cli identity retarget)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -9,6 +9,22 @@
 Declare this workspace as a **software-development** project class and hold the **residual collection** of software-engineering stack facts **not already owned** by more specific Active peer requirements: primary language, toolchain policy, package/test tooling, and runtime OS family.
 
 This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycle, domain backup, output, or storage tables (those stay on peer requirements).
+
+### 1.1 Human-facing
+
+This file says the workspace is a **shippable program** (grok-cli) and records leftover stack facts that no other requirement already owns.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Read this file to learn the project class and leftover stack (language, tools, “no dest approver”) | Peer requirements own backup ops, install, sudoers grant body, and CLI verbs | A dest approval machine, a second class file, or online-install law |
+
+**Includes:** class membership, residual stack, honest “none” for dest approver and dest fences.  
+**Excludes:** inventing an approver account; inventing dest fence rows; duplicating peer backup/install tables.
+
+| Step | What it means | What you type |
+|------|---------------|---------------|
+| Classify | Agents treat this tree as software-development, not a blank seed. | Open `docs/requirements/requirement-class-software-dev.md` |
+| Own-or-point | Stack facts live here until a peer requirement takes them. | Follow the residual ownership table in this file |
 
 ---
 
@@ -66,9 +82,9 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 ### 2.7 Implementation Notes (this project)
 
-| Field | Value (folder-backup) |
+| Field | Value (grok-cli) |
 |-------|---------------------|
-| **Project display name** | `folder-backup` |
+| **Project display name** | `grok-cli` |
 | **Project class** | software-development |
 | **Class requirement basename** | `requirement-class-software-dev.md` |
 | **Primary language(s)** | `posix-sh` (`/bin/sh`) |
@@ -84,9 +100,9 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh` + `tar` + `gzip`/`tar -z` + `mktemp` exist) |
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
 | **Git surface** | used when product is published |
-| **Ship unit / install** | yes — `src/folder-backup` → `${USER_BIN}/folder-backup` (default `~/.local/bin/folder-backup`); **local-only** install (no online channel) |
-| **Product version SSOT** | `VERSION="1.8.0"` hard-assign in `src/folder-backup` |
-| **Bootstrap origin** | sibling product **cli-template** (`/home/leolio/prjs/cli-template`) — Type 0 local-only template; domain extend only |
+| **Ship unit / install** | yes — `src/grok-cli` → `${USER_BIN}/grok-cli` (default `~/.local/bin/grok-cli`); **local-only** install (no online channel) |
+| **Product version SSOT** | `VERSION="1.0.0"` hard-assign in `src/grok-cli` |
+| **Bootstrap origin** | sibling product **folder-backup**; chain cli-template → folder-backup → grok-cli (domain retarget) |
 
 **Residual ownership table:**
 
@@ -106,10 +122,13 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Idempotency / re-run safety | `requirement-shell-idempotency` | Do not duplicate |
 | Interactive vs non-interactive | `requirement-shell-interactive-vs-noninteractive` | Do not duplicate |
 | Modular prefixes / single-file layout | `requirement-shell-modular-function-design` | Do not duplicate |
+| POSIX sh coding style | `requirement-shell-script-coding` | `set -u`, `out_*`, fail-closed elev; do not duplicate |
 | Privilege layers + sudoers **files** (emit/install/fail-closed) | `requirement-three-layer-privilege-model` | Type 0 + narrow Type 1 deposit; §2.3 sudoers workflow SSOT |
 | JSON sudoer file (grant body) | `requirement-sudoer-json-file` | `{{PRJ_NAME}}` only; no `cp`/`mkdir`/OS-tool commands |
-| Folder archive **backup operations** | `requirement-folder-archive-backup` | Create / name / deposit / verify (not domain) |
-| Domain surface (verbs, help, about) | `requirement-domain-folder-backup` | Four pillars only; ops pointer |
+| Grok auth **backup operations** | `requirement-grok-auth-backup` | Session check / deposit / sync-auth (not domain) |
+| Domain surface (verbs, help, about) | `requirement-domain-grok-cli` | Four pillars only; ops pointer |
+| Actor / role / subject / approver | **this file** (residual) | **considered — no dest approver and no approval subject**. This product has no dest approval machine. **MUST NOT** invent an approver. |
+| Dest fence conditions | **this file** (residual) | **considered — no dest fence conditions**. No dest Fence table. **MUST NOT** invent a dest fence. |
 | Online install / remote self-management / companion checksum | **intentionally absent** | Absent on A; remain absent on B |
 
 ---
@@ -168,7 +187,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-bootstrap-chain` | Lineage A=cli-template → B=folder-backup (domain extend) |
+| `requirement-bootstrap-chain` | Lineage A=cli-template → B=grok-cli (domain retarget) |
 | `requirement-project-folder` | Layout and install locations |
 | `requirement-shell-cli-interface` | Command surface, flags, dispatch |
 | `requirement-shell-cli-zero-arguments` | Type N empty argv |
@@ -179,10 +198,11 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | `requirement-shell-idempotency` | Re-run safety |
 | `requirement-shell-interactive-vs-noninteractive` | Mode policy |
 | `requirement-shell-modular-function-design` | Prefixes / single-file modularity |
+| `requirement-shell-script-coding` | POSIX sh coding style |
 | `requirement-three-layer-privilege-model` | Privilege + working with sudoers fragment files |
 | `requirement-sudoer-json-file` | JSON sudoer file body (`{{PRJ_NAME}}` only) |
-| `requirement-folder-archive-backup` | Folder archive backup operations SSOT |
-| `requirement-domain-folder-backup` | Domain four pillars |
+| `requirement-grok-auth-backup` | Grok auth backup operations SSOT |
+| `requirement-domain-grok-cli` | Domain four pillars |
 | `docs/requirements/index.md` | Registry SSOT |
 
 ---
@@ -194,9 +214,11 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | 2026-08-03 | Active | Specialized class law for folder-backup (left genesis; then named selfmanaged as origin) |
 | 2026-08-13 | Active | Origin retarget: A=cli-template → B=folder-backup |
 | 2026-08-15 | Active | Residual: JSON sudoer file → `requirement-sudoer-json-file` |
+| 2026-08-19 | Active (1.1.0) | Residual: **considered — no dest approver and no approval subject**; **considered — no dest fence conditions**. §1.1 Human-facing. Version SSOT note 1.9.0. |
+| 2026-08-22 | Active (1.2.0) | Identity retarget to grok-cli; ops residual → grok-auth-backup; domain → grok-cli. Version SSOT 1.0.0. |
 
 ---
 
-**Last Updated**: 2026-08-15  
+**Last Updated**: 2026-08-22  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

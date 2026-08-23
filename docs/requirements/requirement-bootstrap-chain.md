@@ -1,16 +1,31 @@
 **file**: docs/requirements/requirement-bootstrap-chain.md  
-**Status**: Active (Version 2.0.0)  
+**Status**: Active (Version 3.0.0)  
 **Area**: architecture  
 **Key**: `requirement-bootstrap-chain`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-Declare the **bootstrap chain** for this product: ordered lineage, direction, architecture inheritance, and the **domain extend** of folder-archive backup onto the Type 0 parent.
+Declare the **bootstrap chain** for this product: ordered lineage, direction, architecture inheritance, and the **domain retarget** from folder-archive backup onto grok auth backup/sync.
 
 **Direction is sacred:** ancestor → descendant only. Never reverse-copy this product onto the bootstrap parent.
 
 ---
+
+### 1.1 Human-facing
+
+This file says grok-cli grew from cli-template through sibling folder-backup. Do not copy grok-cli back onto those parents.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Read the hop table so you know where architecture came from | Parent products stay their own workspaces | Reverse-copy; wiping grok-cli law to look like genesis |
+
+**Includes:** lineage, keep/extend matrix. **Excludes:** grok auth verb catalog.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Check origin | Confirm dest is grok-cli specialized from folder-backup | Open `docs/requirements/requirement-bootstrap-chain.md` |
+
 
 ## 2. Core Rules (Mandatory)
 
@@ -24,17 +39,18 @@ Declare the **bootstrap chain** for this product: ordered lineage, direction, ar
 
 | Field | Value |
 |-------|--------|
-| **Root / hop 0 (A)** | `cli-template` — Type 0 local-only template (sibling workspace `/home/leolio/prjs/cli-template`) |
-| **Leaf / hop 1 (B)** | `folder-backup` — this workspace product |
-| **Immediate origin of leaf** | `cli-template` |
-| **Specialize mode** | **Domain extend** (folder archive backup + sudoers-elevated deposit). Online / Type O already **absent on A** — not a second online trim. |
-| **A ship unit** | Sibling: `/home/leolio/prjs/cli-template/src/cli-template` (not in this tree) |
-| **B ship unit** | `src/folder-backup` |
+| **Root / hop 0** | `cli-template` — Type 0 local-only template (sibling `/home/leolio/prjs/cli-template`) |
+| **Hop 1** | `folder-backup` — architecture parent (sibling `/home/leolio/prjs/folder-backup`; **do not edit from this product**) |
+| **Leaf / hop 2 (B)** | `grok-cli` — this workspace product |
+| **Immediate origin of leaf** | `folder-backup` |
+| **Specialize mode** | **Domain retarget** (grok auth backup/sync + sudoers-elevated `backup`). Online / Type O already **absent**. |
+| **A ship unit (immediate)** | Sibling: `/home/leolio/prjs/folder-backup/src/folder-backup` |
+| **B ship unit** | `src/grok-cli` |
 | **A channel ownership** | **None** — local-only install |
 | **B channel ownership** | **None** — local-only install (inherited) |
-| **A domain** | none (Type 0 lifecycle template) |
-| **B domain** | folder tar.gz backup + sudoers-elevated deposit (see `requirement-domain-folder-backup`) |
-| **Retired names (not live hops)** | `selfmanaged` — historical 2026-08-03 origin declaration. **Not** the live parent. |
+| **A domain** | folder tar.gz backup (sibling; not this product) |
+| **B domain** | grok session gate + `/var/grok-cli` deposit + `sync-auth` (see `requirement-domain-grok-cli`) |
+| **Retired names (not live hops)** | `selfmanaged` — historical origin of folder-backup. **Not** a live hop of grok-cli. |
 
 ### 2.3 Architecture inheritance (B from A)
 
@@ -44,7 +60,7 @@ B **MUST** inherit A’s structural contracts:
 |-------|------------------|
 | Runtime | POSIX `/bin/sh`, `set -u`, explicit errors |
 | Output SSOT | `out_*` family |
-| Modular prefixes | `out_`, `inst_`, `util_`, `app_`, `path_`, `prompt_`; domain uses dedicated `fb_` prefix |
+| Modular prefixes | `out_`, `inst_`, `util_`, `app_`, `path_`, `prompt_`; domain uses dedicated `gc_` prefix |
 | Entry / dispatch | Single `app_main`; always call `app_main "$@"` at end |
 | Global flags | `--quiet` / `--json` / `--debug` / `--force` / `--global` |
 | Integrity companion | **Absent** (A has none) |
@@ -67,15 +83,15 @@ B **MUST** inherit A’s structural contracts:
 | Remote `version-check` / `self-update` / `self-uninstall` | **Absent (inherited)** | Unknown commands |
 | Companion `.sha256` product law | **Absent (inherited)** | No channel integrity package |
 | Local `install` / `uninstall` / `where-is-me` | **Keep** | Local self-managed package |
-| Domain backup + sudoers fragment | **Add** | Domain SSOT |
+| Domain grok auth + sudoers fragment | **Retarget** | Domain SSOT `requirement-domain-grok-cli` |
 | Domain / out Protection Zones | **Keep spirit** | Do not “simplify away” defensive layers for style |
 
 ### 2.5 Identity retarget (B only)
 
 | Concern | B value |
 |---------|---------|
-| `APP_NAME` | `folder-backup` |
-| `VERSION` | `1.6.1` (product version SSOT in ship unit) |
+| `APP_NAME` | `grok-cli` |
+| `VERSION` | `1.0.0` (product version SSOT in ship unit) |
 | Primary install story | Local copy from running ship unit → `${USER_BIN}` (default `~/.local/bin`) |
 | README one-liner | **No** `curl \| sh` channel claim |
 

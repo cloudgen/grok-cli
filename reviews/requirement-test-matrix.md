@@ -1,30 +1,30 @@
-# Requirement ↔ test matrix — folder-backup
+# Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-08-17 (1.9.0)  
-**Product VERSION:** 1.9.0  
-**Suite:** `tests/run.sh` (PASS=242 FAIL=0 SKIP=2)
+**Updated:** 2026-08-23  
+**Product VERSION:** 1.0.0  
+**Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
 |-----------------|------|-------------|----------------|
 | requirement-class-software-dev | class | TP-CLI-01, TP-CLI-11 | Syntax + stack residual; no online package |
 | requirement-bootstrap-chain | architecture | TP-CLI-04, TP-CLI-10 | Online surface absent |
-| requirement-project-folder | architecture | TP-LC-01, TP-FOLDER-BACKUP-06 | src ship unit; deposit path naming |
-| requirement-three-layer-privilege-model | architecture | TP-FOLDER-BACKUP-01, **01b**, 01c, 02, 05, **14**, **15**, **15b**, **19**, **20**, **21**, **21b**, **22e**, **23**, **23b**, **23c**, **24**, **24b**, **24c**, **24d** | Trust tiers **S13**; submit workflow AC-16–22; independent generate AC-23/24; inbound fidelity; host-probe add/update; other-user dest ignored |
-| requirement-sudoer-json-file | architecture | TP-FOLDER-BACKUP-**22**, **22b**, **22c**, **22d**, **22e**, **22f**, **24**, **24c**, **24d** | JSON grant is `folder-backup` backup/restore only; pretty emit + inbound body keep both verbs; independent generate dest readable; OS-tool submit refuse |
-| requirement-folder-archive-backup | backup | TP-FOLDER-BACKUP-03..08, 10..13, **16** | Source/name/deposit/verify/next-N/**restore** + dest whitelist W-ETC-USER (ops SSOT) |
-| requirement-folder-archive-backup-retention-total | backup | TP-FOLDER-BACKUP-17, 17b, **17c** | Max **30** per basename; oldest-first prune; failed backup does not prune |
-| requirement-folder-archive-backup-retention-daily | backup | TP-FOLDER-BACKUP-18, 18b, **18c** | Max **5** per basename per day; lowest-`N` same-day prune; failed backup does not prune |
-| requirement-shell-cli-interface | shell | TP-CLI-* | Commands, flags, dispatch (incl. new sudoers verbs) |
-| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 | Type N help |
-| requirement-shell-local-self-management | shell | TP-LC-* (incl. **09/10** mode) | install/uninstall/where-is-me; **0755** multi-user; global preferred for elev |
+| requirement-project-folder | architecture | TP-LC-01, TP-GROK-CLI-07 | src ship unit; `/var/grok-cli` store |
+| requirement-three-layer-privilege-model | architecture | TP-GROK-CLI-01, 01b, 02, 12, 14, 15, 15b, 19, 20, 21, 21b, 22e, 23, 23b, 23c, 24* | Trust tiers; submit; independent generate; inbound; host-probe add/update |
+| requirement-sudoer-json-file | architecture | TP-GROK-CLI-22* · 24* | JSON grant is `grok-cli backup` only |
+| requirement-grok-auth-backup | backup | TP-GROK-CLI-03..10, 12 | Session gate; deposit; sync-auth; production dest fail-closed |
+| requirement-shell-cli-interface | shell | TP-CLI-* | Commands, flags, dispatch |
+| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 | Type N help (not the numbered menu) |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 | Case 3 `menu`/`main` — daily-work list + sudoers submenu / off-TTY help |
+| requirement-shell-local-self-management | shell | TP-LC-* | install/uninstall/where-is-me; 0755 |
 | requirement-shell-output-requirements | shell | TP-CLI-03,05,08,09 | JSON / quiet / errors |
-| requirement-operator-readable-error | shell | TP-FOLDER-BACKUP-**25**, **25b**, **25c** | Operator-facing `[ERROR]` wording (what happened / next step / no jargon-only) |
-| requirement-shell-modular-function-design | shell | (indirect) | `fb_print_sudoers*`, `fb_remove_project_sudoers`, deposit/restore |
-| requirement-shell-idempotency | shell | TP-LC-03,07 · TP-FOLDER-BACKUP-06,08 | Re-install; next-N |
-| requirement-shell-interactive-vs-noninteractive | shell | TP-LC-05 · TP-FOLDER-BACKUP-15 · **15b** | Uninstall / remove-project-sudoers confirm; multi-draft non-interactive path required |
-| requirement-shell-cli-storage | shell | TP-CLI-12 · domain staging | Isolation + per-user stage roots |
-| requirement-domain-folder-backup | domain | TP-FOLDER-BACKUP-01,02,09,14,15,19,20,**21**,**21b**,**23**,**23b**,**24** · TP-CLI-04,06 | Surface verbs/help/about; submit public inbound; generate-sudoer-request; host-probe add/update |
+| requirement-operator-readable-error | shell | TP-GROK-CLI-25* | Operator-facing `[ERROR]` |
+| requirement-shell-modular-function-design | shell | TP-CLI-01 | `gc_*` prefix |
+| requirement-shell-script-coding | shell | TP-CLI-01, TP-CLI-11 | posix-sh `set -u` |
+| requirement-shell-idempotency | shell | TP-LC-03,07 · TP-GROK-CLI-08 | Re-install; auth overwrite |
+| requirement-shell-interactive-vs-noninteractive | shell | TP-LC-05 · TP-GROK-CLI-15 · 15b | Confirm fail-closed |
+| requirement-shell-cli-storage | shell | TP-CLI-12 | Isolation |
+| requirement-domain-grok-cli | domain | TP-GROK-CLI-01,02,11,14,15,19,20,21*,23*,24* · TP-CLI-04,06 | Surface verbs/help/about |
+| requirement-domain-folder-backup | superseded | n/a | Retired |
+| requirement-folder-archive-backup* | superseded | n/a | Retired (TP-GROK-CLI-11 proves restore unknown) |
 
-**Checklist / mold (harness, not product suite):** **S11–S12** elev tables (when claimed); **S13** trust tier; **S14** emit; **S15** convert/inbound; **S16** independent generate dest — agent path `SK-CREATE-SUDOERS-FILE` / `CL-CREATE-SUDOERS-SECURITY`. Operator errors: `SK-OPERATOR-READABLE-ERROR` / `CL-OPERATOR-READABLE-ERROR`.
-
-**Absent by design (no TP Core):** online-install, remote self-management, automatic channel checksum.
+**Absent by design (no TP Core):** online-install, remote self-management, automatic channel checksum, dest fence-test (no dest approval machine).

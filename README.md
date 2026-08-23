@@ -1,122 +1,105 @@
-# folder-backup - Local folder archive backup and restore with narrow sudo deposit
+# grok-cli - Grok auth backup to /var/grok-cli and unprivileged sync-auth
 
-![Version](https://img.shields.io/badge/Version-1.9.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
-[![Stars](https://img.shields.io/github/stars/cloudgen/folder-backup?style=flat-square)](https://github.com/cloudgen/folder-backup)
+[![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
 
-POSIX `/bin/sh` local CLI that archives a folder to gzip tar, deposits it under `/var/backup/folder-backup/` with narrow Type 1 sudo, verifies counts and size, and restores archives with **hard-disk destination as the default SSOT** (reverse of ram-drive-first). Local install only (no online `curl|sh` channel).
+**grok-cli** checks that grok is logged in with a valid session, then copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` so other logins can read them. A normal login installs the program locally, writes a grant file you can read, and submits it. Only an approved passwordless `sudo grok-cli backup` (JSON request approved by **sudoer-adm**) can push and chmod that store. Without sudo, any login can `sync-auth` from `/var/grok-cli` into their own `~/.grok`. There is no online `curl|sh` install.
+
+| You (your own login) | Admin / already root | Not this |
+|----------------------|----------------------|----------|
+| Install to `~/.local/bin`, generate and submit a grant, run `check-session` / `backup` / `sync-auth` once the grant exists | Install into `/usr/local/bin` and install the sudoers fragment | No download-and-run install channel; a normal login does not write `/etc`; `sync-auth` never uses sudo |
 
 ## Features
 
-- **Local self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`
-- **Backup**: `backup <folder>` → stage tar.gz → elevated deposit → verify → **retention prune** (max **5**/day, **30** total per project basename)
-- **Retention**: `MAX_DAILY_BACKUPS` / `MAX_TOTAL_BACKUPS` (defaults 5 / 30); oldest first; never cross-basename
-- **Restore**: `restore <archive|prefix> [dest]` — default dest is hard-disk `${PROJECTS_ROOT}/<project>`
-- **Restore dest whitelist**: allow `/etc/{{username}}` (invoking user); always refuse `/etc/passwd` and other non-whitelisted system paths
-- **Narrow sudoers**: `print-sudoers` emits deposit / verify-list / restore-stage allowlist (admin installs to `/etc/sudoers.d/`)
-- **Sudoer approval submit**: `generate-sudoer-request` writes a local JSON grant you can review; then `submit-sudoer-request` lets sudoer-cli allocate a JSON request into `/var/sudoer-cli/sudoer-request` (does not write `/etc`, does not `mkdir` inbound)
-- **Fail-closed**: missing source, unauthorized deposit, verify mismatch, non-empty restore without `--force`
+- **Local self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
+- **Session gate**: `check-session` — confirm grok is logged in (`~/.grok/auth.json`)
+- **Backup**: `backup` → check session → elevated deposit of `auth.*` into `/var/grok-cli` → `chown root:root` → `chmod 0644`
+- **sync-auth**: copy `/var/grok-cli/auth.*` into `~/.grok` as the invoking login (mode `0600` on `auth.json`; **no sudo**)
+- **Narrow sudoers**: `print-sudoers` emits `NOPASSWD: /usr/local/bin/grok-cli backup` only (admin installs to `/etc/sudoers.d/`)
+- **Sudoer approval submit**: `generate-sudoer-request` writes a local JSON grant you can review; then `submit-sudoer-request` lets sudoer-cli allocate a JSON request into `/var/sudoer-cli/sudoer-request`
+- **Fail-closed**: missing login, unauthorized deposit, unreadable store
 - **CIAO / CIAO-Lite** defensive design (Protection Zones, `out_*` output SSOT)
 
 ## Quick Installation
 
-**Local (Type 0 day-to-day):**
+**Local (your own login, no root needed):**
 
 ```sh
 # From this repository checkout
-sh src/folder-backup install
+sh src/grok-cli install
 # or force refresh after updates
-sh src/folder-backup install --force
+sh src/grok-cli install --force
 
 # Ensure ~/.local/bin is on PATH, then:
-folder-backup version
+grok-cli version
 ```
 
 **Global (preferred before durable sudoers / production elevation):**
 
 ```sh
-sudo sh src/folder-backup install
-# or: folder-backup install --global   # needs write access to /usr/local/bin
+sudo sh src/grok-cli install
+# or: grok-cli install --global   # needs write access to /usr/local/bin
 # Managed binary mode is always 0755 so every user can run the shell ship unit.
-# If an older install left 0711 (rwx--x--x), re-run: sudo sh src/folder-backup install
 ```
 
-**Sudoers (required for non-root deposit / restore of root-owned archives):**
+**Sudoers (required for non-root deposit of root-owned `/var/grok-cli`):**
 
 ```sh
-# Prefer: refresh project-sudoers-file + write admin script under /dev/shm
-# Production (global install present):
-folder-backup print-sudoers-install-script
-# Test mode only (local/unmanaged):
-folder-backup print-sudoers-install-script --allow-test-local
-
+grok-cli print-sudoers-install-script
 # Admin (account with sudo rights) — handoff script (path printed by CLI):
-sudo sh /dev/shm/folder-backup-<user>-sudoers-admin.sh install   # visudo + install 0440
-sudo sh /dev/shm/folder-backup-<user>-sudoers-admin.sh replace   # remove old then install
-sudo sh /dev/shm/folder-backup-<user>-sudoers-admin.sh uninstall # leave test elevation
-sudo sh /dev/shm/folder-backup-<user>-sudoers-admin.sh status
+sudo sh /dev/shm/grok-cli-<user>-sudoers-admin.sh install
 
-# Manual equivalent still valid (paths are per-user — multi-user safe):
-# sudo visudo -c -f ~/.config/folder-backup/sudoers.fragment-<user>
-# sudo install -m 0440 ~/.config/folder-backup/sudoers.fragment-<user> /etc/sudoers.d/folder-backup-<user>
+# Or JSON grant for sudoer-adm:
+grok-cli generate-sudoer-request
+grok-cli submit-sudoer-request
 ```
 
-**Security note:** Local `~/.local/bin` install is **not** production-secure for host elevation — the user can change the binary and stage trees. Prefer global install for any host that keeps `/etc/sudoers.d/folder-backup-<user>`. Multi-user hosts get **one fragment file per user** (no shared overwrite). See [`SECURITY.md`](./SECURITY.md).
+**Security note:** Local `~/.local/bin` install is **not** production-secure for host elevation — the user can change the binary. Prefer global install for any host that keeps `/etc/sudoers.d/grok-cli-<user>`. See [`SECURITY.md`](./SECURITY.md).
 
-This product is **local-only** for its install *channel* (no default `SCRIPT_URL` online install). Global vs local here means install *location*, not an online channel.
+This product is **local-only** for its install *channel* (no default `SCRIPT_URL` online install).
 
-**Source repository:** [cloudgen/folder-backup](https://github.com/cloudgen/folder-backup)  
-Config identity: `REPO_USER=cloudgen`, `REPO_NAME=folder-backup` (override with env if needed; does not enable online install while `SCRIPT_URL` is empty).
+**Source repository:** [cloudgen/grok-cli](https://github.com/cloudgen/grok-cli)  
+Config identity: `REPO_USER=cloudgen`, `REPO_NAME=grok-cli` (override with env if needed; does not enable online install while `SCRIPT_URL` is empty).
 
 ## Usage
 
 ```sh
-folder-backup help
-folder-backup about
-folder-backup --json about
+grok-cli help
+grok-cli menu
+grok-cli about
+grok-cli --json about
 
-folder-backup backup /path/to/project
-folder-backup restore project-name              # → hard-disk PROJECTS_ROOT/project-name
-folder-backup restore project-name --disk       # explicit hard-disk
-folder-backup restore project-name --ram        # → /dev/shm/project-name
-folder-backup restore NAME-YYYYMMDD-N.tar.gz /explicit/dest
-folder-backup restore project-name --force      # allow non-empty dest
+grok-cli check-session
+grok-cli backup
+grok-cli sync-auth
 
-folder-backup print-sudoers
-folder-backup generate-sudoer-request   # local verified JSON (review this file)
-folder-backup submit-sudoer-request     # JSON request into /var/sudoer-cli/sudoer-request (if present)
-folder-backup submit-sudoer-request ~/.config/folder-backup/sudoer-request-$(id -un).json
-folder-backup uninstall --force
+grok-cli print-sudoers
+grok-cli generate-sudoer-request
+grok-cli submit-sudoer-request
+grok-cli uninstall --force
 ```
 
 **Environment (selected):**
 
 | Variable | Role |
 |----------|------|
-| `REPO_USER` | Git host owner (default `cloudgen`) |
-| `REPO_NAME` | Git repository name (default `folder-backup`) |
-| `SCRIPT_URL` | Online install channel (default **empty** — local only) |
-| `BACKUP_ROOT` | Durable root (default `/var/backup`) |
-| `BACKUP_NOTATION` | Subdir (default `folder-backup`) |
-| `PROJECTS_ROOT` | Hard-disk projects tree for restore default |
-| `RAM_ROOT` | RAM projects root (default `/dev/shm`) |
-| `RESTORE_HOST_DEFAULT` | `hard-disk` (default) or `ram-drive` |
-| `ALLOW_TEST_LOCAL_SUDOERS` | `1` = allow test-mode `print-sudoers` / `generate-sudoer-request` / `submit-sudoer-request` without `--allow-test-local` |
+| `GROK_HOME` | Grok auth directory (default `~/.grok` of the invoking login) |
+| `GROK_CLI_ROOT` | Durable store (default `/var/grok-cli`) |
+| `ALLOW_TEST_LOCAL_SUDOERS` | `1` = allow test-mode sudoers emit without `--allow-test-local` |
 | `SUDOER_CLI` | Override path to `sudoer-cli` |
 | `SUDOER_ADM_USER` | Approver login to detect (default `sudoer-adm`) |
 
 ## Examples
 
 ```sh
-# Backup the RAM genesis tree
-folder-backup backup /dev/shm/genesis-template
+# Confirm grok is logged in, then push auth.* into the shared store
+grok-cli check-session
+grok-cli backup
 
-# Restore latest genesis-template-* archive to hard-disk projects tree
-folder-backup restore genesis-template
-
-# Restore into a temporary path
-folder-backup restore genesis-template-20260803-3.tar.gz /tmp/genesis-restore
+# Another login on the same host, no sudo:
+grok-cli sync-auth
 ```
 
 ## Platform Compatibility
@@ -124,20 +107,20 @@ folder-backup restore genesis-template-20260803-3.tar.gz /tmp/genesis-restore
 | Platform | Status |
 |----------|--------|
 | Linux, `/bin/sh` (dash/bash) | Supported |
-| `tar`, `find`, `date` | Required |
-| `sudo` + narrow sudoers | Required for non-root deposit/restore of root-owned archives |
-| macOS / BSD | Not primary; GNU `stat`/`sed -E` assumptions may differ |
+| `python3` (optional) | Used for JSON session parse when present |
+| `sudo` + narrow sudoers | Required for non-root deposit into `/var/grok-cli` |
+| macOS / BSD | Not primary; GNU `date -d` / `stat -c` assumptions may differ |
 
 ## Related Projects
 
-- [folder-backup](https://github.com/cloudgen/folder-backup) — this product
+- [folder-backup](https://github.com/cloudgen/folder-backup) — architecture parent (folder archive backup)
 - [CIAO Defensive Programming](https://github.com/cloudgen/ciao)
 - [CIAO-Lite](https://github.com/cloudgen/ciao-lite)
-- [cli-template](https://github.com/cloudgen/cli-template) — bootstrap parent architecture (Type 0 local-only template)
+- [cli-template](https://github.com/cloudgen/cli-template) — Type 0 local-only template (hop 0)
 
 ## Contributing
 
-Keep changes surgical. Honor **CIAO-Lite Protection Zones** in `src/folder-backup`. Product behavior must stay consistent with live `docs/requirements/requirement-*.md`. Run `sh tests/run.sh` before proposing commits.
+Keep changes surgical. Honor **CIAO-Lite Protection Zones** in `src/grok-cli`. Product behavior must stay consistent with live `docs/requirements/requirement-*.md`. Run `sh tests/run.sh` before proposing commits.
 
 ## License
 
@@ -145,7 +128,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-08-17 — version **1.9.0** (`generate-sudoer-request`; independent generate dest; operator-readable errors; TP-24/25).
-2026-08-17 — version **1.8.2** (submit **update** when `/etc/sudoers.d/folder-backup-<user>` exists; TP-23).
-2026-08-17 — version **1.8.1** (submit inbound fidelity; pretty JSON re-encode; TP-22e/22f; review JR-1..8).
-2026-08-15 — version **1.8.0** (JSON sudoer file = `folder-backup` backup/restore only; TP-22/22b/22c).
+2026-08-23 — version **1.0.0**: specialized from sibling folder-backup; grok session gate; backup `~/.grok/auth.*` to `/var/grok-cli` as root:root; unprivileged `sync-auth`; JSON grant is `grok-cli backup` only (sudoer-adm).

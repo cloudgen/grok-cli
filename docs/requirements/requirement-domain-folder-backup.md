@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-folder-backup.md  
-**Status**: Active (Version 1.6.1)  
+**Status**: superseded (2026-08-22 — replaced by `requirement-domain-grok-cli`)  
 **Area**: domain  
 **Key**: `requirement-domain-folder-backup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)

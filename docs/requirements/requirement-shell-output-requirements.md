@@ -6,11 +6,26 @@
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **all CLI output** of folder-backup: human messages, machine JSON, channel split (stdout vs stderr), and mode behavior (normal / quiet / JSON / debug).
+This requirement is the **project Single Source of Truth** for **all CLI output** of grok-cli: human messages, machine JSON, channel split (stdout vs stderr), and mode behavior (normal / quiet / JSON / debug).
 
 Inherited architecture from bootstrap parent **cli-template** (`out_*` family); retargeted for this product’s identity and domain messages.
 
 ---
+
+### 1.1 Human-facing
+
+All grok-cli messages go through `out_*`. `--json` is machine stdout; errors still on stderr.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Scripts use `--json` | Humans see `[ERROR]` / `[OK]` | Raw `echo` for product messages |
+
+**Includes:** quiet/json/debug. **Excludes:** sudoers body.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Script a version | JSON on stdout | `grok-cli --json version` |
+
 
 ## 2. Core Rules / Requirements (Mandatory)
 
@@ -61,7 +76,7 @@ Rules:
 
 1. Fatal paths use `out_die` / `out_json_error`.  
 2. JSON mode: no colors, banners, or progress mixed into stdout JSON.  
-3. Capture pattern: `folder-backup --json <cmd> 2>err.log`.  
+3. Capture pattern: `grok-cli --json <cmd> 2>err.log`.  
 4. **No secrets** on either channel (tokens, passwords, private keys, full private key material).
 
 ### 2.4 Mode behavior
@@ -77,8 +92,8 @@ Rules:
 
 | Item | Value |
 |------|--------|
-| **Product** | `folder-backup` |
-| **Ship unit** | `src/folder-backup` |
+| **Product** | `grok-cli` |
+| **Ship unit** | `src/grok-cli` |
 | **Human prefixes** | `[INFO]`, `[OK]`, `[WARN]`, `[ERROR]` (or equivalent consistent set) |
 | **Domain messages** | Backup progress/results and sudoers-print status **must** use `out_*` |
 | **Bootstrap inheritance** | Same `out_*` family as cli-template |
@@ -131,7 +146,7 @@ Rules:
 |-----|--------------|
 | `requirement-shell-cli-interface` | Modes and flags |
 | `requirement-shell-interactive-vs-noninteractive` | Prompt vs auto |
-| `requirement-domain-folder-backup` | Domain message payloads |
+| `requirement-domain-grok-cli` | Domain message payloads |
 | `requirement-operator-readable-error` | Operator error **wording** (human-intro style) |
 | `docs/requirements/index.md` | Registry |
 

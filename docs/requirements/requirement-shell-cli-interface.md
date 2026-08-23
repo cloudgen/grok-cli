@@ -1,16 +1,31 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 1.3.1)  
+**Status**: Active (Version 2.1.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for the **POSIX shell CLI interface** of folder-backup: command surface, privilege typing, global flags, dispatcher behavior, help/about contracts, and mode rules.
+This requirement is the **project Single Source of Truth** for the **POSIX shell CLI interface** of grok-cli: command surface, privilege typing, global flags, dispatcher behavior, help/about contracts, and mode rules.
 
-It defines a **Type 0–centric local self-managed shell CLI** plus **domain backup** commands and a **narrow elevated deposit** path. Full domain semantics live in `requirement-domain-folder-backup.md`. Full elevation/sudoers rules live in `requirement-three-layer-privilege-model.md`.
+It defines a **Type 0–centric local self-managed shell CLI** plus **domain grok-auth** commands and a **narrow elevated deposit** path. Full domain semantics live in `requirement-domain-grok-cli.md`. Full elevation/sudoers rules live in `requirement-three-layer-privilege-model.md`. Auth ops live in `requirement-grok-auth-backup.md`.
 
 ---
+
+### 1.1 Human-facing
+
+This file lists the grok-cli commands you can type after install — names the program actually runs, not names that only appear in a plan.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Type `grok-cli help` to see live commands | Domain law owns backup/sync meaning | Online `self-update`; typing a name that was never wired |
+
+**Includes:** dispatch table, flags. **Excludes:** auth.json parse rules.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| See the surface | Empty argv is help | `grok-cli` |
+
 
 ## 2. Core Rules / Requirements (Mandatory)
 
@@ -20,7 +35,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 
 | Category | Privilege | Meaning |
 |----------|-----------|---------|
-| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help` |
+| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu` (`main` alias) |
 | **Type 0 – Domain (user work)** | Invoking user | Archive create, naming, staging, sudoers fragment **print** |
 | **Type 1 – Narrow elevated deposit** | Controlled sudo (allowlisted only) | Copy staged archive into `/var/backup/...` only |
 | **Type 2 – Dedicated system user app ops** | Dedicated app user | **Not in scope** for this product |
@@ -40,7 +55,7 @@ Additional flags **MAY** be added only when documented here (or a superseding re
 
 1. **Single entry:** `app_main` **MUST** parse global flags and route commands.  
 2. **Unknown command:** **MUST** fail loudly with pointer to `help` (via output SSOT).  
-3. **Empty argv:** **Type N → help** (`requirement-shell-cli-zero-arguments.md`).  
+3. **Empty argv:** **Type N → help** (`requirement-shell-cli-zero-arguments.md`). The numbered start list is **not** empty argv — it is command `menu` (alias `main`) on `requirement-shell-cli-default-interaction`.  
 4. **No raw user I/O:** User-facing messages **MUST** go through `out_*`.  
 5. Script end **MUST** call `app_main "$@"` (no basename gate that blocks dispatch).
 
@@ -58,15 +73,15 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ### 2.5 Implementation Notes (this project)
 
-| Item | Value for folder-backup |
+| Item | Value for grok-cli |
 |------|-------------------------|
-| **Product / binary name** | `folder-backup` (`APP_NAME`) |
-| **Primary executable** | `src/folder-backup` (POSIX `/bin/sh`, single-file ship unit) |
+| **Product / binary name** | `grok-cli` (`APP_NAME`) |
+| **Primary executable** | `src/grok-cli` (POSIX `/bin/sh`, single-file ship unit) |
 | **Dispatcher** | `app_main` |
 | **Output SSOT** | `out_text` + wrappers (`out_info`, `out_success`, `out_warn`, `out_error`, `out_die`, `out_plain`, `out_json`, …) |
-| **Version SSOT** | ship unit `VERSION=` in `src/folder-backup` (do not pin a stale number here) |
+| **Version SSOT** | ship unit `VERSION=` in `src/grok-cli` (do not pin a stale number here) |
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
-| **Primary install story** | User bin: `~/.local/bin/folder-backup` |
+| **Primary install story** | User bin: `~/.local/bin/grok-cli` |
 | **Online channel env** | **Not product UX** (absent; inherited from cli-template) |
 | **Type 2 commands** | None |
 | **Dedicated system user** | Not required |
@@ -75,17 +90,23 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Command | Type | Handler family | Required behavior |
 |---------|------|----------------|-------------------|
-| *(no args — empty argv)* | Type 0 | `app_main` → `app_help` | **Type N help** — not install |
+| *(no args — empty argv)* | Type 0 | `app_main` → `app_help` | **Type N help** — not install, not the numbered menu |
 | `install` | Type 0 | `inst_local_install` | Copy running ship unit to privilege-correct bin; idempotent unless `--force` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
-| `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage, backup defaults; **no** channel one-liner |
+| `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage, grok home, session, deposit dir; **no** channel one-liner |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
-| `backup` | Type 0 (+ Type 1 deposit step) | `fb_backup` (domain) | Tar gzip source folder; stage; elevated copy into `/var/backup/${BACKUP_NOTATION}/` |
-| `print-sudoers` | Type 0 | `fb_print_sudoers` (domain) | Emit sudoers fragment for admin to install under `/etc/sudoers.d/` — **does not** write `/etc` itself |
-| `generate-sudoer-request` | Type 0 | `fb_generate_sudoer_request` (domain) | **Independent** generate: write JSON grant to a dest tests/review can read without sudo (compact; verify both verbs; sibling convert when present) — **does not** write `/etc` or inbound |
-| `submit-sudoer-request` | Type 0 | `fb_submit_sudoer_request` (domain) | Detect sudoer-cli + sudoer-adm + public inbound; **update** if this user’s `/etc/sudoers.d` fragment exists else **add**; `--add`/`--update` override — **does not** write `/etc` or `mkdir` inbound |
+| `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
+| `main` | Type 0 | `app_default` (alias) | Same as `menu` |
+| `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in |
+| `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
+| `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo |
+| `print-sudoers` | Type 0 | `gc_print_sudoers` (domain) | Emit sudoers fragment for admin to install under `/etc/sudoers.d/` — **does not** write `/etc` itself |
+| `print-sudoers-install-script` | Type 0 | `gc_print_sudoers_install_script` (domain) | Write admin handoff script (no `/etc` write) |
+| `remove-project-sudoers` | Type 0 | `gc_remove_project_sudoers` (domain) | Delete draft only; never `/etc` |
+| `generate-sudoer-request` | Type 0 | `gc_generate_sudoer_request` (domain) | **Independent** generate: write JSON grant to a dest tests/review can read without sudo (compact; backup verb; sibling convert when present) — **does not** write `/etc` or inbound |
+| `submit-sudoer-request` | Type 0 | `gc_submit_sudoer_request` (domain) | Detect sudoer-cli + sudoer-adm + public inbound; **update** if this user’s `/etc/sudoers.d` fragment exists else **add**; `--add`/`--update` override — **does not** write `/etc` or `mkdir` inbound |
 
 #### Global flags (normative wiring)
 
@@ -100,11 +121,11 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 #### Dispatcher acceptance criteria
 
-1. Unknown token after flag parse → `out_die` with pointer to `folder-backup help`.  
-2. Zero-arg → help (not install, not backup).  
-3. Command routing table in `app_main` **must** include every row above.  
+1. Unknown token after flag parse → `out_die` with pointer to `grok-cli help`.  
+2. Zero-arg → help (not install, not backup, not the numbered menu).  
+3. Command routing table in `app_main` **must** include every **Supported commands** row above.  
 4. Help text **must** stay aligned with that table.  
-5. Domain catalog detail (operands, archive naming, error codes) is owned by `requirement-domain-folder-backup.md` — this file owns the **listed verbs** and routing.
+5. Domain catalog detail is owned by `requirement-domain-grok-cli.md` — this file owns the **listed verbs** and routing. Auth ops detail is `requirement-grok-auth-backup.md`.
 
 #### Explicitly out of scope
 
@@ -158,11 +179,12 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 |----|-----------|
 | AC-1 | All commands in the table are routed and listed in help |
 | AC-2 | Global flags wire QUIET/JSON/DEBUG/FORCE as specified |
-| AC-3 | Empty argv is help (Type N) |
+| AC-3 | Empty argv is help (Type N) — not the numbered menu |
 | AC-4 | No online self-management verbs on the surface |
 | AC-5 | Domain verbs point to domain requirement for deep semantics |
 | AC-6 | `submit-sudoer-request` is Type 0, routed, listed in help; does not write `/etc` or create inbound |
 | AC-7 | `generate-sudoer-request` is Type 0, routed, listed in help; independent of submit; dest is invoking-user readable; does not write `/etc` or inbound |
+| AC-8 | `menu` / `main` routed; match `requirement-shell-cli-default-interaction` |
 
 ---
 
@@ -171,9 +193,10 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | Key | Relationship |
 |-----|--------------|
 | `requirement-shell-cli-zero-arguments` | Empty argv Type N |
+| `requirement-shell-cli-default-interaction` | `menu`/`main` numbered list; not empty argv |
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
 | `requirement-shell-output-requirements` | `out_*` catalog |
-| `requirement-domain-folder-backup` | Domain four pillars |
+| `requirement-domain-grok-cli` | Domain four pillars |
 | `requirement-three-layer-privilege-model` | Elevation model |
 | `docs/requirements/index.md` | Registry |
 
@@ -197,9 +220,11 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | 2026-08-17 | Active 1.2.0 | `--add` / `--update`; default submit action from host `/etc/sudoers.d` probe |
 | 2026-08-17 | Active 1.3.0 | `generate-sudoer-request` Type 0; AC-7 |
 | 2026-08-17 | Active 1.3.1 | Generate dest must be readable for tests/review; independent of submit |
+| 2026-08-23 | Active 2.1.0 | Intended Gap `menu`/`main`; empty argv stays Type N help (not the numbered list) |
+| 2026-08-23 | Active 2.1.0 | `menu`/`main` routed to `app_default` |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-23  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

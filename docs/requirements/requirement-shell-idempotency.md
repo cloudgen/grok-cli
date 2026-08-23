@@ -6,11 +6,26 @@
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **idempotency (re-run safety)** of state-changing operations in the folder-backup POSIX shell CLI.
+This requirement is the **project Single Source of Truth** for **idempotency (re-run safety)** of state-changing operations in the grok-cli POSIX shell CLI.
 
 **Informal formula:** for ensure-style operation *f* and system state *x*, **f(f(x)) ≈ f(x)** for the **desired outcome** (logs and timestamps may differ).
 
 ---
+
+### 1.1 Human-facing
+
+Running install or backup again must be safe: no second binary mess, auth snapshot overwrite is the intended backup.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Re-run `install` / `backup` | Dated tar.gz next-N is retired | Silent archive overwrite of other projects |
+
+**Includes:** re-run safety. **Excludes:** sudoers install.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Push auth again | Same basenames in `/var/grok-cli` are replaced | `grok-cli backup` |
+
 
 ## 2. Core Rules / Requirements (Mandatory)
 
@@ -102,7 +117,7 @@ Archive names use `${SOURCE_FOLDER_NAME}-YYYYMMDD-N.tar.gz`. For the same calend
 | Key | Relationship |
 |-----|--------------|
 | `requirement-shell-local-self-management` | Install/uninstall ensure |
-| `requirement-domain-folder-backup` | Archive numbering |
+| `requirement-domain-grok-cli` | Auth snapshot overwrite |
 | `requirement-shell-cli-interface` | Force flag wiring |
 | `docs/requirements/index.md` | Registry |
 
@@ -113,8 +128,8 @@ Archive names use `${SOURCE_FOLDER_NAME}-YYYYMMDD-N.tar.gz`. For the same calend
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-LC-03,07** | `tests/test_local_lifecycle.sh` | have |
-| **TP-FOLDER-BACKUP-06** | `tests/test_domain_folder_backup.sh` | have |
-| **TP-FOLDER-BACKUP-08** | `tests/test_domain_folder_backup.sh` | skip (non-root CI) |
+| **TP-GROK-CLI-06** | `tests/test_domain_folder_backup.sh` | have |
+| **TP-GROK-CLI-08** | `tests/test_domain_folder_backup.sh` | skip (non-root CI) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`

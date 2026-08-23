@@ -7,11 +7,26 @@
 
 ## 1. Purpose
 
-This requirement is the **product Single Source of Truth** for **operator-facing error wording** on folder-backup.
+This requirement is the **product Single Source of Truth** for **operator-facing error wording** on grok-cli.
 
 Every blocking `[ERROR]` **MUST** be understandable to a person at the prompt: **what happened**, **what it means**, and **what to do next** — the same concreteness as a human-intro page. Channel ownership stays on `requirement-shell-output-requirements`. Fail-fast vs degrade stays on that peer’s `out_die` contract plus product fail-closed rules. This file owns **copy**.
 
 ---
+
+### 1.1 Human-facing
+
+When grok-cli fails, the error must say what happened and what to type next — not only a code.
+
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Read `[ERROR]` and follow the next command | Machine JSON still has a type | Jargon-only fatals (`euid`, sibling re-encode) with no next step |
+
+**Includes:** wording for blocking errors. **Excludes:** JSON schema of sudoer files.
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Hit a blocked submit | The message names the missing grant and `generate-sudoer-request` | `grok-cli generate-sudoer-request` |
+
 
 ## 2. Core Rules / Requirements (Mandatory)
 
@@ -23,7 +38,7 @@ Every fatal `out_die` / blocking `out_error` **MUST** include:
 |------|----------|--------------|
 | **What happened** | yes | One concrete sentence |
 | **What it means** | SHOULD | Restate if the first sentence uses an internal noun |
-| **What to do next** | yes | A `folder-backup` command, `sudo …`, or “ask an admin” |
+| **What to do next** | yes | A `grok-cli` command, `sudo …`, or “ask an admin” |
 | **Do not** | when dangerous | e.g. do not approve a named request file |
 
 JSON `message` **MUST** be that same sentence.
@@ -35,7 +50,7 @@ JSON `message` **MUST** be that same sentence.
 | Token | Replace with |
 |-------|----------------|
 | `inbound grant` | “queued sudo request” / the file name |
-| `backup verb` / `restore verb` | “allows backup” / “allows restore” |
+| `backup verb` | “allows backup” |
 | `sibling re-encode` | “the approval CLI rewrote the request” **after** the operator sentence, or omit |
 | Incident IDs alone | Operator sentence first |
 
@@ -53,10 +68,10 @@ JSON `message` **MUST** be that same sentence.
 
 | Item | Value |
 |------|--------|
-| **Product** | `folder-backup` |
-| **Ship unit** | `src/folder-backup` |
+| **Product** | `grok-cli` |
+| **Ship unit** | `src/grok-cli` |
 | **Printer** | `out_die` / `out_error` |
-| **Worked inbound miss** | `Queued sudo request is incomplete: it allows restore but not backup. Do not approve <id>. … generate-sudoer-request` |
+| **Worked inbound miss** | `Queued sudo request is incomplete: it does not allow backup. Do not approve <id>. … generate-sudoer-request` |
 | **Worked generate `/etc`** | `generate-sudoer-request refuses to write under /etc (Type 0). Use a path under $HOME or /dev/shm.` |
 | **Banned as whole message** | `sibling re-encode?` · `inbound grant lost … verb` |
 | **Class** | software-development — this wording law is required |
@@ -112,7 +127,7 @@ JSON `message` **MUST** be that same sentence.
 | `requirement-sudoer-json-file` | Grant body |
 | `requirement-class-software-dev` | Class residual points here |
 | `docs/requirements/index.md` | Registry |
-| `./src/folder-backup` | Implementation |
+| `./src/grok-cli` | Implementation |
 
 ---
 
@@ -120,9 +135,9 @@ JSON `message` **MUST** be that same sentence.
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-FOLDER-BACKUP-25** | `tests/test_domain_folder_backup.sh` | **have** — inbound-fidelity error is operator-readable (what happened) |
-| **TP-FOLDER-BACKUP-25b** | same | **have** — same error names `generate-sudoer-request` |
-| **TP-FOLDER-BACKUP-25c** | same | **have** — same error does not contain `sibling re-encode` |
+| **TP-GROK-CLI-25** | `tests/test_domain_folder_backup.sh` | **have** — inbound-fidelity error is operator-readable (what happened) |
+| **TP-GROK-CLI-25b** | same | **have** — same error names `generate-sudoer-request` |
+| **TP-GROK-CLI-25c** | same | **have** — same error does not contain `sibling re-encode` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
