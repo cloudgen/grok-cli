@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-script-coding.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.0.1)  
 **Area**: shell  
 **Key**: `requirement-shell-script-coding`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -41,7 +41,7 @@ This file says how grok-cli’s ship unit must be written: one `/bin/sh` file, `
 | Ship unit | `src/grok-cli` |
 | Interpreter | `/bin/sh` |
 | Domain prefix | `gc_` |
-| Version SSOT | `VERSION="1.0.0"` in ship unit |
+| Version SSOT | `VERSION=` hard-assign in `src/grok-cli` (do not pin a stale number here) |
 
 ### 2.2 Why This Requirement Exists (CIAO)
 
@@ -85,6 +85,6 @@ This file says how grok-cli’s ship unit must be written: one `/bin/sh` file, `
 
 ---
 
-**Last Updated**: 2026-08-22  
+**Last Updated**: 2026-08-23  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

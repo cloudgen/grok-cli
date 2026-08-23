@@ -1,35 +1,36 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 1.6.0)  
+**Status**: Active (Version 1.7.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **product Single Source of Truth** for grok-cli’s **default interaction**: a **short numbered main menu** of daily **auth work**, with sudoers grant/draft commands behind one **family** row. grok-cli already has `requirement-shell-cli-zero-arguments` (**case 3**): empty argv stays Type N **help**. The menu **MUST** be the command **`menu`**. **`main` MAY** be accepted as the same handler.
+This requirement is the **product Single Source of Truth** for grok-cli’s **default interaction**: a **short numbered main menu** of daily **auth work**, with sudoers grant/draft commands behind one **family** row. grok-cli has `requirement-shell-cli-zero-arguments` (**case 3**): empty argv is Type N (not install). That REQ **defers TTY empty argv** to this menu. The menu **MUST** also be the command **`menu`**. **`main` MAY** be accepted as the same handler.
 
-On a **real terminal**, `grok-cli menu` (or `main`) **MUST** show the main menu and **MUST ignore `--json`**. Off-TTY it **MUST** print **help**, following `--json` (human help vs JSON help). Command rows **MUST** be `command: what it does` (same meaning as that command’s help one-liner). The family row **MUST NOT** be a live dispatcher command.
+On a **real terminal**, empty argv and `grok-cli menu` (or `main`) **MUST** show the main menu. `menu`/`main` **MUST ignore `--json`**. Off-TTY, empty argv and `menu`/`main` **MUST** print **help**, following `--json` (human help vs JSON help). Command rows **MUST** be `command: what it does` (same meaning as that command’s help one-liner). The family row **MUST NOT** be a live dispatcher command.
 
-Empty-argv type (Type N vs Type O) stays on `requirement-shell-cli-zero-arguments`. Confirm / no-hang stays on `requirement-shell-interactive-vs-noninteractive`. Live command inventory stays dispatcher truth (`requirement-shell-cli-interface`).
+Empty-argv type (Type N vs Type O) and the TTY vs off-TTY split for **no command token** stay on `requirement-shell-cli-zero-arguments`. Confirm / no-hang stays on `requirement-shell-interactive-vs-noninteractive`. Live command inventory stays dispatcher truth (`requirement-shell-cli-interface`).
 
 ### 1.1 Human-facing
 
-Typing only `grok-cli` still prints help. The numbered start list is `grok-cli menu` (or `grok-cli main`). It shows check-session, backup, sync-auth, then **sudoers** for grants and drafts. Install, uninstall, where-is-me, version, and about stay on **help**. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the list appears even if you also passed `--json`. In a script, `menu` prints the help screen; with `--json` it prints JSON help.
+Typing only `grok-cli` at a real terminal shows the numbered start list. In a script it prints help. `grok-cli menu` (or `grok-cli main`) does the same. The list shows check-session, backup, sync-auth, then **sudoers** for grants and drafts. Install, uninstall, where-is-me, version, and about stay on **help**. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`. In a script, `menu` prints the help screen; with `--json` it prints JSON help.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Type `grok-cli menu`, pick a number | CI / pipe gets help from `menu`; `--json` gets JSON help | A menu that hangs a pipeline; `restore` on the list; install/version on the list; `sudoers` as a typed CLI command; a menu when you type only `grok-cli` |
+| Type `grok-cli` or `grok-cli menu`, pick a number | CI / pipe gets help from empty argv and from `menu`; `--json` with no command gets JSON help | A menu that hangs a pipeline; `restore` on the list; install/version on the list; `sudoers` as a typed CLI command |
 
-**Includes:** `menu`/`main` numbered TTY main list; family row **sudoers** + submenu; `command: what it does`; Exit **9**; Back **8** on the submenu; non-interactive help; JSON help off-TTY. **Excludes:** empty argv; `help` as a list row; install / uninstall / where-is-me / version / about on either list; a live `sudoers` dispatcher token; dest yes/no review.
+**Includes:** TTY empty argv numbered list; `menu`/`main` numbered TTY main list; family row **sudoers** + submenu; `command: what it does`; Exit **9**; Back **8** on the submenu; non-interactive help; JSON help off-TTY. **Excludes:** Type O install-ensure; `help` as a list row; install / uninstall / where-is-me / version / about on either list; a live `sudoers` dispatcher token; dest yes/no review.
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Start at a prompt | Daily auth work; **check-session** is **1** | `grok-cli menu` then `1` |
-| Push auth to the store | Second row | `grok-cli menu` then `2` |
-| Open grant/drafts | Family row **4**, then a number | `grok-cli menu` then `4` then `1` |
+| Start at a prompt | Daily auth work; **check-session** is **1** | `grok-cli` then `1` |
+| Push auth to the store | Second row | `grok-cli` then `2` |
+| Open grant/drafts | Family row **4**, then a number | `grok-cli` then `4` then `1` |
 | Leave the grant list | Back to the start list | `8` |
 | Leave the menu | Exit | `9` |
 | Install the program | Not on this list | `grok-cli install` |
+| Run with no args in a script | Help screen, no pick | `grok-cli </dev/null` |
 | Run `menu` in a script | Help screen, no pick | `grok-cli menu </dev/null` |
 
 ---
@@ -38,24 +39,25 @@ Typing only `grok-cli` still prints help. The numbered start list is `grok-cli m
 
 ### 2.1 Claim and case
 
-grok-cli **claims** a default function. **Case 3** applies: `requirement-shell-cli-zero-arguments` exists; product is **not** online-installable. Type O install-ensure does **not** apply. Empty argv **MUST NOT** become this menu.
+grok-cli **claims** a default function. **Case 3** applies: `requirement-shell-cli-zero-arguments` exists; product is **not** online-installable. Type O install-ensure does **not** apply. Empty argv **MUST** follow that zero-argument requirement. That REQ **defers TTY empty argv** to this menu. Off-TTY empty argv **MUST** stay help.
 
-### 2.2 Routed verb `menu` / `main`
+### 2.2 Routed verb `menu` / `main` and TTY empty argv
 
 | Token | Role |
 |-------|------|
-| `menu` | Primary command for this default |
+| empty argv (`$# -eq 0`) | Same handler as `menu` when TTY=1; help when TTY=0 (owned by zero-arguments; implemented here) |
+| `menu` | Primary named command for this default |
 | `main` | Same handler (alias) |
 
-After flag parse, when the command token is `menu` or `main`, grok-cli **MUST** branch (`TTY` measured in the main process, **not** inside helpers):
+After flag parse, when the command token is `menu` or `main`, **or** when argv was empty at `app_main` (zero-arguments routes `COMMAND=menu`), grok-cli **MUST** branch (`TTY` measured in the main process, **not** inside helpers):
 
 | # | Condition | MUST | MUST NOT |
 |---|-----------|------|----------|
-| 1 | Interactive (`TTY=1`) | **Main menu** (§2.3). **Ignore `--json`** even if `JSON=1` | JSON help; hang |
+| 1 | Interactive (`TTY=1`) | **Main menu** (§2.3). For `menu`/`main`, **ignore `--json`** even if `JSON=1` | JSON help; hang |
 | 2 | Not interactive (`TTY=0`) and `JSON=0` | **Human help screen** — `app_help` (not JSON) | Menu; silent return; hang |
 | 3 | Not interactive (`TTY=0`) and `JSON=1` | **JSON help** — `app_help` in JSON mode | Menu; human banners; hang |
 
-`--quiet` without a TTY still takes the **help screen** path (do not swallow `menu` help).
+`--quiet` without a TTY still takes the **help screen** path (do not swallow `menu` help). Flags-only `--json` (not empty argv) stays help — `requirement-shell-cli-zero-arguments`.
 
 ### 2.3 Main menu
 
@@ -106,20 +108,20 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 | **Product** | grok-cli |
 | **Ship unit** | `src/grok-cli` |
 | **Claimed** | yes |
-| **Case** | **3** (zero-argument REQ exists; not online-installable) |
-| **Empty argv** | Type N help — `requirement-shell-cli-zero-arguments` (not this file) |
-| **Verb** | `menu` (alias `main`) |
-| **Handler** | `app_default` (`menu` / `main`); submenu printer/loop under the same `app_default_*` family |
+| **Case** | **3** (zero-argument REQ exists; not online-installable; that REQ defers TTY empty argv here) |
+| **Empty argv** | TTY → this menu; off-TTY → Type N help — `requirement-shell-cli-zero-arguments` |
+| **Verb** | `menu` (alias `main`); empty argv sets `COMMAND=menu` |
+| **Handler** | `app_default` (`menu` / `main` / TTY empty argv); submenu printer/loop under the same `app_default_*` family |
 | **Family row** | `sudoers` — menu-only; **not** dispatched |
 | **Label source** | `reviews/cli-routed-verb-table.md` **human-readable** for command rows; family explain is this file’s table |
-| **Interactive + `--json`** | Ignore json; still the menu |
+| **Interactive + `--json`** | Ignore json on `menu`/`main`; still the menu |
 | **Non-interactive** | `app_help` (human; `--quiet` still prints help) |
-| **Honesty** | **Implemented.** Empty argv still prints help (case 3). Main **N = 4**; submenu **N = 5**; Exit **9**; Back **8**. |
+| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv still prints help. Main **N = 4**; submenu **N = 5**; Exit **9**; Back **8**. |
 
 ### 2.6 Why this requirement exists (CIAO)
 
 - **Intentional**: Daily auth work is the start list; grant/draft commands are one extra pick.  
-- **Caution**: Scripts never hang; `--json` on a real terminal does not hide the list.  
+- **Caution**: Scripts never hang; `--json` on a real terminal does not hide the `menu` list.  
 - **Anti-fragile**: Back returns to the start list; Exit leaves from either screen.  
 - **Over-protect**: `sudoers` is not a live dispatcher token; install / version / about / `help` / `restore` stay off both lists; Exit is **9**, not **5**.
 
@@ -131,7 +133,7 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 - Related rare commands share one family row.  
 - Dispatcher remains routing SSOT (`sudoers` is not added there).  
 - Fail closed off-TTY.  
-- Zero-arguments owns `grok-cli` with no command.
+- Zero-arguments owns Type N vs Type O and the empty-argv TTY split; this file owns the list body.
 
 ---
 
@@ -144,9 +146,10 @@ Future agents **MUST NOT**:
 3. Drop a grouped sudoers verb from the submenu.  
 4. Number main Exit as **5** or submenu Exit as **6** (Exit **MUST** be **9**; Back **MUST** be **8** on the submenu).  
 5. Wire `sudoers` as a live `app_main` command.  
-6. Steal empty argv for this menu.  
-7. Hang off-TTY on `menu` / `main`.  
-8. Invent command-row labels that are not `command: what it does`.
+6. Draw this menu on **off-TTY** empty argv, or hang a pipe on empty argv / `menu` / `main`.  
+7. Steal Type O install-ensure onto empty argv.  
+8. Invent command-row labels that are not `command: what it does`.  
+9. Replace TTY empty argv with the help dump while zero-arguments **1.3.0+** defers that path here.
 
 ---
 
@@ -154,7 +157,7 @@ Future agents **MUST NOT**:
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-CLI-07** | `tests/test_cli.sh` | have (empty argv still help) |
+| **TP-CLI-07** | `tests/test_cli.sh` | have (TTY empty argv = this menu; off-TTY empty argv = help) |
 | **TP-CLI-13** | `tests/test_cli.sh` | have (main list, family row, submenu Back/Exit, off-TTY help) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
@@ -162,6 +165,6 @@ Future agents **MUST NOT**:
 
 ---
 
-**Last Updated**: 2026-08-23 (1.6.0 — daily-work main list; sudoers family + submenu; Exit 9; Back 8)  
+**Last Updated**: 2026-08-23 (1.7.0 — TTY empty argv is this menu; `menu`/`main` remain; Exit 9; Back 8)  
 **Owner**: product  
 **Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

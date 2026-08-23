@@ -2,7 +2,7 @@
 
 Authoritative specialized product law for **grok-cli** lives here.
 
-**Current state (2026-08-23):** Specialized **software-development** product. Left genesis. Bootstrap chain is **cli-template → folder-backup → grok-cli**. Registry is populated — see `index.md` (CLI default-interaction is case 3: `menu`/`main` implemented; empty argv stays Type N help).
+**Current state (2026-08-23):** Specialized **software-development** product. Left genesis. Bootstrap chain is **cli-template → folder-backup → grok-cli**. Registry is populated — see `index.md` (CLI default-interaction is case 3: TTY empty argv and `menu`/`main` show the numbered list; off-TTY empty argv stays Type N help).
 
 ## Product identity (summary)
 

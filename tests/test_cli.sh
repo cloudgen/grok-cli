@@ -2,7 +2,8 @@
 # tests/test_cli.sh — CLI surface (local-only; no network)
 # =============================================================================
 # Primary REQs: requirement-shell-cli-interface, requirement-shell-cli-zero-arguments,
-# requirement-shell-output-requirements, requirement-shell-cli-storage
+# requirement-shell-cli-default-interaction, requirement-shell-output-requirements,
+# requirement-shell-cli-storage
 # TP family: TP-CLI-*
 # =============================================================================
 
@@ -83,12 +84,61 @@ run_test_cli() {
     assert_not_contains "TP-CLI-06 no CHECKSUM" "$_out" "CHECKSUM"
     assert_not_contains "TP-CLI-06 no SCRIPT_URL" "$_out" "SCRIPT_URL"
 
-    # TP-CLI-07 empty argv = Type N help (not install)
+    # TP-CLI-07 empty argv = Type N (not install). Off-TTY: help. TTY: numbered menu.
     _out=$(sh "${SCRIPT}" 2>/dev/null)
     _ec=$?
-    assert_eq "TP-CLI-07 empty argv exit 0" 0 "$_ec"
-    assert_contains "TP-CLI-07 empty argv is help" "$_out" "Usage:"
-    assert_contains "TP-CLI-07 empty argv mentions Type N or help" "$_out" "help"
+    assert_eq "TP-CLI-07 empty argv off-TTY exit 0" 0 "$_ec"
+    assert_contains "TP-CLI-07 empty argv off-TTY is help" "$_out" "Usage:"
+    assert_contains "TP-CLI-07 empty argv off-TTY mentions help" "$_out" "help"
+    assert_not_contains "TP-CLI-07 empty argv off-TTY not numbered list" "$_out" "9. Exit"
+
+    _out=$(sh "${SCRIPT}" --json 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-07 --json no command exit 0" 0 "$_ec"
+    assert_contains "TP-CLI-07 --json no command is JSON help" "$_out" '"type":"success"'
+    assert_not_contains "TP-CLI-07 --json no command not numbered list" "$_out" "9. Exit"
+
+    if command -v python3 >/dev/null 2>&1; then
+        _out=$(PTY_IN="9" python3 - "${SCRIPT}" <<'PY'
+import os, pty, select, sys, time
+script = sys.argv[1]
+payload = (os.environ.get("PTY_IN", "9") + "\n").encode()
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv("/bin/sh", ["sh", script])
+time.sleep(0.2)
+try:
+    os.write(fd, payload)
+except OSError:
+    pass
+out = bytearray()
+end = time.time() + 4
+while time.time() < end:
+    r, _, _ = select.select([fd], [], [], 0.2)
+    if fd in r:
+        try:
+            chunk = os.read(fd, 4096)
+        except OSError:
+            break
+        if not chunk:
+            break
+        out += chunk
+    wpid, _st = os.waitpid(pid, os.WNOHANG)
+    if wpid:
+        break
+try:
+    os.waitpid(pid, 0)
+except ChildProcessError:
+    pass
+sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
+PY
+)
+        assert_contains "TP-CLI-07 TTY empty argv is numbered list" "$_out" "9. Exit"
+        assert_contains "TP-CLI-07 TTY empty argv check-session first" "$_out" "1. check-session:"
+        assert_not_contains "TP-CLI-07 TTY empty argv not help dump" "$_out" "Usage:"
+    else
+        t_skip "TP-CLI-07 TTY empty argv (no python3 for PTY)"
+    fi
 
     # TP-CLI-08 unknown command fail-closed
     _err=$(sh "${SCRIPT}" no-such-command 2>&1 >/dev/null)
@@ -138,7 +188,7 @@ run_test_cli() {
     fi
     ci_cleanup_env
 
-    # TP-CLI-13 menu/main: off-TTY help; empty argv stays help; TTY numbered list
+    # TP-CLI-13 menu/main: off-TTY help; TTY numbered list; empty argv off-TTY still help
     _out=$(sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-13 menu off-TTY exit 0" 0 "$_ec"
@@ -157,8 +207,8 @@ run_test_cli() {
     assert_not_contains "TP-CLI-13 menu --json off-TTY not numbered list" "$_out" "9. Exit"
 
     _out=$(sh "${SCRIPT}" 2>/dev/null)
-    assert_not_contains "TP-CLI-13 empty argv not numbered list" "$_out" "9. Exit"
-    assert_contains "TP-CLI-13 empty argv still help" "$_out" "Usage:"
+    assert_not_contains "TP-CLI-13 empty argv off-TTY not numbered list" "$_out" "9. Exit"
+    assert_contains "TP-CLI-13 empty argv off-TTY still help" "$_out" "Usage:"
 
     _out=$(sh "${SCRIPT}" --quiet menu 2>/dev/null)
     _ec=$?

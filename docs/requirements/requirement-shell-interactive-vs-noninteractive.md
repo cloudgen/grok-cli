@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-interactive-vs-noninteractive.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.0.1)  
 **Area**: shell  
 **Key**: `requirement-shell-interactive-vs-noninteractive`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -12,7 +12,7 @@ This requirement is the **project Single Source of Truth** for how grok-cli beha
 
 ### 1.1 Human-facing
 
-Without a TTY, grok-cli will not wait for yes/no. Use `--force` for uninstall and draft remove. The numbered start list (`grok-cli menu` / `main`, when claimed) also **MUST NOT** appear off-TTY — that is `requirement-shell-cli-default-interaction` (not empty argv).
+Without a TTY, grok-cli will not wait for yes/no. Use `--force` for uninstall and draft remove. The numbered start list (TTY empty argv and `grok-cli menu` / `main`) also **MUST NOT** appear off-TTY — that is `requirement-shell-cli-default-interaction` plus `requirement-shell-cli-zero-arguments`.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
@@ -180,6 +180,6 @@ prompt_ask() {
 
 ---
 
-**Last Updated**: 2026-08-15  
+**Last Updated**: 2026-08-23  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

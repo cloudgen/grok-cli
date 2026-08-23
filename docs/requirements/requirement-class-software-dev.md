@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.2.0 – grok-cli identity retarget)  
+**Status**: Active (Version 1.2.1 – grok-cli identity retarget)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -101,7 +101,7 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
 | **Git surface** | used when product is published |
 | **Ship unit / install** | yes — `src/grok-cli` → `${USER_BIN}/grok-cli` (default `~/.local/bin/grok-cli`); **local-only** install (no online channel) |
-| **Product version SSOT** | `VERSION="1.0.0"` hard-assign in `src/grok-cli` |
+| **Product version SSOT** | `VERSION=` hard-assign in `src/grok-cli` (do not pin a stale number here) |
 | **Bootstrap origin** | sibling product **folder-backup**; chain cli-template → folder-backup → grok-cli (domain retarget) |
 
 **Residual ownership table:**
@@ -114,7 +114,7 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 | Bootstrap lineage / keep-extend | `requirement-bootstrap-chain` | A=cli-template → B + domain extend |
 | Project layout / ship path | `requirement-project-folder` | `src/` + bin targets |
 | Type 0 CLI surface / flags / dispatch | `requirement-shell-cli-interface` | Do not duplicate |
-| Empty argv Type N help | `requirement-shell-cli-zero-arguments` | Local-only |
+| Empty argv Type N (TTY menu; off-TTY help) | `requirement-shell-cli-zero-arguments` | Local-only |
 | Local self-managed lifecycle | `requirement-shell-local-self-management` | install / uninstall / where-is-me |
 | Output SSOT (`out_*`) | `requirement-shell-output-requirements` | Do not duplicate |
 | Operator-readable error wording | `requirement-operator-readable-error` | Human-intro-style `[ERROR]` copy; do not duplicate |
@@ -219,6 +219,6 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 
 ---
 
-**Last Updated**: 2026-08-22  
+**Last Updated**: 2026-08-23  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

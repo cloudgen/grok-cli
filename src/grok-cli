@@ -33,7 +33,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.0.0"
+# VERSION: hard-assign VERSION="1.1.0"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -49,8 +49,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.0.0"
-: "${VERSION:=1.0.0}"
+VERSION="1.1.0"
+: "${VERSION:=1.1.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -3623,9 +3623,9 @@ app_default_sudoers_loop() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Command menu / main. On a real terminal: ignore --json, show the numbered
-# list, run one pick (or open the sudoers submenu). Off-TTY: help (JSON help
-# when --json). Never hang.
+# Command menu / main / TTY empty argv. On a real terminal: ignore --json on
+# menu/main, show the numbered list, run one pick (or open the sudoers submenu).
+# Off-TTY: help (JSON help when --json). Never hang.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -3716,7 +3716,7 @@ app_help() {
     if [ "${JSON}" -eq 1 ]; then
         out_json "success" "Help text available in human-readable mode. Run without --json." \
             "command" "help" \
-            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth. menu/main off-TTY uses this help."
+            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth. Empty argv and menu/main off-TTY use this help."
         return 0
     fi
     if [ "${QUIET}" -eq 1 ]; then
@@ -3738,7 +3738,7 @@ app_help() {
     out_plain "  about                Show diagnostics (incl. sudoers trust tier)"
     out_plain "  help                 Show this help"
     out_plain "  menu                 Show the numbered list of live commands (TTY; help off-TTY)"
-    out_plain "  main                 Same as menu"
+    out_plain "  main                 Same as menu (also empty argv on a TTY)"
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
     out_plain "  check-session        Confirm grok is logged in"
@@ -3792,6 +3792,7 @@ app_help() {
     out_plain "  SUDOERS_D_DIR           host sudoers.d dir (default /etc/sudoers.d; tests)"
     out_empty_line
     out_info "Examples:"
+    out_plain "  ${APP_NAME}                    # numbered list on a TTY; help off-TTY"
     out_plain "  ${APP_NAME} install"
     out_plain "  sudo ${APP_NAME} install          # global (production sudoers trust)"
     out_plain "  ${APP_NAME} print-sudoers --allow-test-local  # → sudoers.fragment-<user>"
@@ -3807,7 +3808,8 @@ app_help() {
     out_plain "  ${APP_NAME} backup"
     out_plain "  ${APP_NAME} sync-auth"
     out_empty_line
-    out_info "Empty argv shows help (Type N — local-only; no curl|sh install-ensure)."
+    out_info "Empty argv on a real terminal shows the numbered list (Type N — local-only; no curl|sh)."
+    out_info "Off-TTY empty argv shows help. Explicit help stays help."
     out_info "backup needs a valid grok login, then passwordless sudo ${APP_NAME} backup (sudoer-adm)."
     out_info "sync-auth never uses sudo. Local install + sudoers is TEST MODE ONLY; prefer global."
 }
@@ -3818,7 +3820,7 @@ app_help() {
 #
 # GENERAL PURPOSE:
 # Single dispatcher for grok-cli (specialized from folder-backup; local Type 0 + grok auth domain).
-# Empty argv = Type N help (not install-ensure).
+# Empty argv = Type N default interaction (TTY menu; off-TTY help). Not install-ensure.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-interface.md
@@ -3851,10 +3853,9 @@ app_main() {
     export EFFECTIVE_STORAGE_DIR STORAGE_DIR
     export TMPDIR="${EFFECTIVE_STORAGE_DIR}"
 
-    # Type N: empty argv → help
+    # Type N: empty argv → default interaction (TTY menu / off-TTY help)
     if [ $# -eq 0 ]; then
-        app_help
-        return 0
+        COMMAND=menu
     fi
 
     _domain_arg=""

@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
 **Updated:** 2026-08-23  
-**Product VERSION:** 1.0.0  
+**Product VERSION:** 1.1.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -13,8 +13,8 @@
 | requirement-sudoer-json-file | architecture | TP-GROK-CLI-22* · 24* | JSON grant is `grok-cli backup` only |
 | requirement-grok-auth-backup | backup | TP-GROK-CLI-03..10, 12 | Session gate; deposit; sync-auth; production dest fail-closed |
 | requirement-shell-cli-interface | shell | TP-CLI-* | Commands, flags, dispatch |
-| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 | Type N help (not the numbered menu) |
-| requirement-shell-cli-default-interaction | shell | TP-CLI-13 | Case 3 `menu`/`main` — daily-work list + sudoers submenu / off-TTY help |
+| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 | Type N: TTY numbered menu; off-TTY help; not install |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 | Case 3 `menu`/`main` + TTY empty argv — daily-work list + sudoers submenu / off-TTY help |
 | requirement-shell-local-self-management | shell | TP-LC-* | install/uninstall/where-is-me; 0755 |
 | requirement-shell-output-requirements | shell | TP-CLI-03,05,08,09 | JSON / quiet / errors |
 | requirement-operator-readable-error | shell | TP-GROK-CLI-25* | Operator-facing `[ERROR]` |

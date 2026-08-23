@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.0.0  
+**Product VERSION:** 1.1.0  
 **Last plan update:** 2026-08-23  
-**Last suite run:** `./tests/run.sh` (1.0.0: PASS=235 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.1.0: PASS=242 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -17,8 +17,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 |------|--------|----------|
 | Syntax `sh -n` | have | TP-CLI-01 |
 | version / help / about human + JSON | have | TP-CLI-02..06 |
-| Type N empty argv = help | have | TP-CLI-07 |
-| Numbered menu verb `menu`/`main` (case 3) | have | TP-CLI-13 |
+| Type N empty argv = TTY menu / off-TTY help | have | TP-CLI-07 |
+| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler) | have | TP-CLI-13 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Storage isolation | have | TP-CLI-12 |
 | Help lists check-session / backup / sync-auth; no restore operand | have | TP-CLI-04 |
@@ -47,13 +47,13 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-04 | help: check-session, backup, sync-auth, sudoers verbs; no restore operand; no online | test_cli | requirement-shell-cli-interface · requirement-domain-grok-cli | **have** |
 | TP-CLI-05 | help JSON short | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-06 | about JSON grok_cli_root + session | test_cli | requirement-shell-cli-storage · requirement-domain-grok-cli | **have** |
-| TP-CLI-07 | empty argv Type N help | test_cli | requirement-shell-cli-zero-arguments | **have** |
+| TP-CLI-07 | empty argv Type N: off-TTY help; `--json` no command JSON help; TTY numbered list | test_cli | requirement-shell-cli-zero-arguments · requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-08 | unknown fail-closed | test_cli | requirement-shell-cli-interface | **have** |
 | TP-CLI-09 | quiet suppresses version | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-10 | online verbs rejected | test_cli | requirement-bootstrap-chain | **have** |
 | TP-CLI-11 | env -u HOME version | test_cli | requirement-shell-script-coding | **have** |
 | TP-CLI-12 | storage isolation | test_cli | requirement-shell-cli-storage | **have** |
-| TP-CLI-13 | `menu`/`main`: TTY daily-work list + sudoers submenu (Back 8 / Exit 9); ignore `--json` on TTY; non-TTY help following `--json`; empty argv stays help; `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
+| TP-CLI-13 | `menu`/`main`: TTY daily-work list + sudoers submenu (Back 8 / Exit 9); ignore `--json` on TTY; non-TTY help following `--json`; empty argv off-TTY still help; `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
 
 ### TP-LC (local lifecycle)
 

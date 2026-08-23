@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-bootstrap-chain.md  
-**Status**: Active (Version 3.0.0)  
+**Status**: Active (Version 3.0.1)  
 **Area**: architecture  
 **Key**: `requirement-bootstrap-chain`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -66,7 +66,7 @@ B **MUST** inherit A’s structural contracts:
 | Integrity companion | **Absent** (A has none) |
 | Online lifecycle | **Absent** (`version-check`, `self-update`, `self-uninstall`, Type O, `SCRIPT_URL` UX) |
 | Local lifecycle | **Keep** local `install` / `uninstall` / `where-is-me` |
-| Empty argv | **Keep** Type N help |
+| Empty argv | **Keep** Type N (not install); TTY numbered menu |
 | Domain | **Add** on B only |
 
 ### 2.4 Keep / extend matrix (normative for this product)
@@ -79,7 +79,7 @@ B **MUST** inherit A’s structural contracts:
 | Storage resolve | **Keep / adapt** | Staging for tar.gz |
 | Idempotency / interactive modes | **Keep / retarget** | Domain confirm paths stay fail-closed |
 | Online channel (`SCRIPT_URL`, `REPO_*` as channel) | **Absent (inherited)** | Not install source; not help/about product UX |
-| Type O empty argv | **Absent (inherited)** | Empty argv = Type N help |
+| Type O empty argv | **Absent (inherited)** | Empty argv = Type N (TTY menu; off-TTY help) |
 | Remote `version-check` / `self-update` / `self-uninstall` | **Absent (inherited)** | Unknown commands |
 | Companion `.sha256` product law | **Absent (inherited)** | No channel integrity package |
 | Local `install` / `uninstall` / `where-is-me` | **Keep** | Local self-managed package |
@@ -91,7 +91,7 @@ B **MUST** inherit A’s structural contracts:
 | Concern | B value |
 |---------|---------|
 | `APP_NAME` | `grok-cli` |
-| `VERSION` | `1.0.0` (product version SSOT in ship unit) |
+| `VERSION` | product version SSOT in ship unit (do not pin a stale number here) |
 | Primary install story | Local copy from running ship unit → `${USER_BIN}` (default `~/.local/bin`) |
 | README one-liner | **No** `curl \| sh` channel claim |
 
@@ -168,7 +168,7 @@ B **MUST** inherit A’s structural contracts:
 | TP family / ID | Suite | Status | Note |
 |----------------|-------|--------|------|
 | **TP-CLI-04,10** | `tests/test_cli.sh` | have | online verbs absent |
-| **TP-CLI-07** | `tests/test_cli.sh` | have | Type N empty argv |
+| **TP-CLI-07** | `tests/test_cli.sh` | have | Type N empty argv (TTY menu; off-TTY help) |
 | **TP-FOLDER-BACKUP-*** | `tests/test_domain_folder_backup.sh` | have | domain extend |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
@@ -180,9 +180,11 @@ B **MUST** inherit A’s structural contracts:
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | Declared A=selfmanaged → B=folder-backup (trim online) |
 | 2026-08-13 | Active 2.0.0 | Re-specialize: A=cli-template → B=folder-backup (domain extend). selfmanaged retired. |
+| 2026-08-22 | Active 3.0.0 | Domain retarget grok-cli |
+| 2026-08-23 | Active 3.0.1 | Empty argv Type N: TTY menu; off-TTY help |
 
 ---
 
-**Last Updated**: 2026-08-13  
+**Last Updated**: 2026-08-23  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

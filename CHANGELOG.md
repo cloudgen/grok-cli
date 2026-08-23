@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-08-23
+
+### Changed
+
+- Empty argv on a real terminal now opens the numbered start list (same handler as `grok-cli menu` / `main`). Off-TTY empty argv still prints help. `--json` with no command still prints JSON help. Local-only Type N is unchanged: empty argv never install-ensures.
+
 ## [1.0.0] - 2026-08-23
 
 ### Added

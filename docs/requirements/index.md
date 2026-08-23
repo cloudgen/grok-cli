@@ -6,22 +6,22 @@
 
 | ID / key | Title | Area | Status | Path | Updated |
 |----------|-------|------|--------|------|---------|
-| requirement-class-software-dev | Software-development class law + residual stack (posix-sh, local-only); residual no dest approver / no dest fence; §1.1 | class | Active (1.2.0) | `requirement-class-software-dev.md` | 2026-08-22 |
-| requirement-bootstrap-chain | Bootstrap chain cli-template → folder-backup → grok-cli (domain retarget) | architecture | Active (3.0.0) | `requirement-bootstrap-chain.md` | 2026-08-22 |
+| requirement-class-software-dev | Software-development class law + residual stack (posix-sh, local-only); residual no dest approver / no dest fence; §1.1 | class | Active (1.2.1) | `requirement-class-software-dev.md` | 2026-08-23 |
+| requirement-bootstrap-chain | Bootstrap chain cli-template → folder-backup → grok-cli (domain retarget) | architecture | Active (3.0.1) | `requirement-bootstrap-chain.md` | 2026-08-23 |
 | requirement-project-folder | Project layout (`src/`), install bins, `/var/grok-cli` deposit | architecture | Active (1.1.0) | `requirement-project-folder.md` | 2026-08-22 |
 | requirement-three-layer-privilege-model | Type 0 + narrow Type 1 `grok-cli backup`; sudoers emit + install-script; per-user fragments; submit workflow; grant is backup only | architecture | Active (2.0.0) | `requirement-three-layer-privilege-model.md` | 2026-08-22 |
 | requirement-sudoer-json-file | JSON sudoer file SSOT: `{{PRJ_NAME}}` only; args `["backup"]` only; independent generate dest readable | architecture | Active (2.0.0) | `requirement-sudoer-json-file.md` | 2026-08-22 |
 | requirement-grok-auth-backup | **Auth ops SSOT**: session gate + deposit `auth.*` to `/var/grok-cli` (root:root 0644) + unprivileged `sync-auth` | backup | Active (1.0.0) | `requirement-grok-auth-backup.md` | 2026-08-22 |
-| requirement-shell-cli-interface | Shell CLI interface (commands, flags, dispatch, modes); generate-sudoer-request; check-session / backup / sync-auth; intended Gap `menu`/`main` | shell | Active (2.1.0) | `requirement-shell-cli-interface.md` | 2026-08-23 |
-| requirement-shell-cli-zero-arguments | Empty argv Type N help (local-only); menu is verb `menu`/`main`, not empty argv | shell | Active (1.2.0) | `requirement-shell-cli-zero-arguments.md` | 2026-08-23 |
-| requirement-shell-cli-default-interaction | Case 3: numbered `menu`/`main` (check-session/backup/sync-auth + sudoers family; Exit 9; Back 8); empty argv stays help; **Implemented** | shell | Active (1.6.0) | `requirement-shell-cli-default-interaction.md` | 2026-08-23 |
+| requirement-shell-cli-interface | Shell CLI interface (commands, flags, dispatch, modes); generate-sudoer-request; check-session / backup / sync-auth; empty argv → `app_default` | shell | Active (2.2.0) | `requirement-shell-cli-interface.md` | 2026-08-23 |
+| requirement-shell-cli-zero-arguments | Empty argv Type N (local-only): TTY numbered menu; off-TTY help; not install | shell | Active (1.3.0) | `requirement-shell-cli-zero-arguments.md` | 2026-08-23 |
+| requirement-shell-cli-default-interaction | Case 3: TTY empty argv + `menu`/`main` numbered list (check-session/backup/sync-auth + sudoers family; Exit 9; Back 8); **Implemented** | shell | Active (1.7.0) | `requirement-shell-cli-default-interaction.md` | 2026-08-23 |
 | requirement-shell-local-self-management | Local install / uninstall / where-is-me; **mode 0755** multi-user | shell | Active (1.2.0) | `requirement-shell-local-self-management.md` | 2026-08-09 |
 | requirement-shell-output-requirements | Central `out_*` output SSOT | shell | Active | `requirement-shell-output-requirements.md` | 2026-08-03 |
 | requirement-operator-readable-error | Operator-facing error **wording** (human-intro style: what happened / next step) | shell | Active (1.0.0) | `requirement-operator-readable-error.md` | 2026-08-17 |
 | requirement-shell-modular-function-design | Single-file modular prefixes (`out_`/`inst_`/`app_`/`gc_`) | shell | Active (1.1.0) | `requirement-shell-modular-function-design.md` | 2026-08-22 |
-| requirement-shell-script-coding | POSIX sh coding style (`set -u`, `out_*`, `gc_*`, fail-closed elev) | shell | Active (1.0.0) | `requirement-shell-script-coding.md` | 2026-08-22 |
+| requirement-shell-script-coding | POSIX sh coding style (`set -u`, `out_*`, `gc_*`, fail-closed elev) | shell | Active (1.0.1) | `requirement-shell-script-coding.md` | 2026-08-23 |
 | requirement-shell-idempotency | Re-run safety; backup overwrite of same auth.* basenames | shell | Active | `requirement-shell-idempotency.md` | 2026-08-03 |
-| requirement-shell-interactive-vs-noninteractive | Interactive vs non-interactive / confirm policy | shell | Active | `requirement-shell-interactive-vs-noninteractive.md` | 2026-08-03 |
+| requirement-shell-interactive-vs-noninteractive | Interactive vs non-interactive / confirm policy | shell | Active (1.0.1) | `requirement-shell-interactive-vs-noninteractive.md` | 2026-08-23 |
 | requirement-shell-cli-storage | Scratch/cache resolve + staging root | shell | Active | `requirement-shell-cli-storage.md` | 2026-08-03 |
 | requirement-domain-grok-cli | Domain **surface** SSOT (four pillars); ops defer to grok-auth-backup | domain | Active (1.0.0) | `requirement-domain-grok-cli.md` | 2026-08-22 |
 | requirement-domain-folder-backup | Retired folder-archive domain surface | domain | superseded | `requirement-domain-folder-backup.md` | 2026-08-22 |

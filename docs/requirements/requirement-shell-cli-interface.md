@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.1.0)  
+**Status**: Active (Version 2.2.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -24,7 +24,7 @@ This file lists the grok-cli commands you can type after install — names the p
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| See the surface | Empty argv is help | `grok-cli` |
+| Start at a prompt | Numbered list on a real terminal; help in a script | `grok-cli` |
 
 
 ## 2. Core Rules / Requirements (Mandatory)
@@ -55,7 +55,7 @@ Additional flags **MAY** be added only when documented here (or a superseding re
 
 1. **Single entry:** `app_main` **MUST** parse global flags and route commands.  
 2. **Unknown command:** **MUST** fail loudly with pointer to `help` (via output SSOT).  
-3. **Empty argv:** **Type N → help** (`requirement-shell-cli-zero-arguments.md`). The numbered start list is **not** empty argv — it is command `menu` (alias `main`) on `requirement-shell-cli-default-interaction`.  
+3. **Empty argv:** **Type N** (`requirement-shell-cli-zero-arguments.md`): TTY → numbered start list (same handler as `menu` / `main`); off-TTY → help. **MUST NOT** install. Flags-only (`--json` with no command) stay help.  
 4. **No raw user I/O:** User-facing messages **MUST** go through `out_*`.  
 5. Script end **MUST** call `app_main "$@"` (no basename gate that blocks dispatch).
 
@@ -90,7 +90,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Command | Type | Handler family | Required behavior |
 |---------|------|----------------|-------------------|
-| *(no args — empty argv)* | Type 0 | `app_main` → `app_help` | **Type N help** — not install, not the numbered menu |
+| *(no args — empty argv)* | Type 0 | `app_main` → `app_default` | **Type N**: TTY numbered menu; off-TTY help; **MUST NOT** install |
 | `install` | Type 0 | `inst_local_install` | Copy running ship unit to privilege-correct bin; idempotent unless `--force` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
@@ -162,7 +162,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
 1. Add online lifecycle commands without an explicit product-mode change and registry update.  
-2. Change empty argv away from Type N help while install mode remains local-only.  
+2. Change empty argv to install-ensure while install mode remains local-only, or hang off-TTY empty argv on the numbered menu.  
 3. List commands in help that are not routed (or route commands not listed).  
 4. Bypass `out_*` for product user messages.  
 5. Run the entire CLI as root by default instead of narrow deposit elevation.  
@@ -179,7 +179,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 |----|-----------|
 | AC-1 | All commands in the table are routed and listed in help |
 | AC-2 | Global flags wire QUIET/JSON/DEBUG/FORCE as specified |
-| AC-3 | Empty argv is help (Type N) — not the numbered menu |
+| AC-3 | Empty argv is Type N: TTY numbered menu; off-TTY help; never install |
 | AC-4 | No online self-management verbs on the surface |
 | AC-5 | Domain verbs point to domain requirement for deep semantics |
 | AC-6 | `submit-sudoer-request` is Type 0, routed, listed in help; does not write `/etc` or create inbound |
@@ -192,8 +192,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-shell-cli-zero-arguments` | Empty argv Type N |
-| `requirement-shell-cli-default-interaction` | `menu`/`main` numbered list; not empty argv |
+| `requirement-shell-cli-zero-arguments` | Empty argv Type N (TTY menu; off-TTY help) |
+| `requirement-shell-cli-default-interaction` | Numbered list body; TTY empty argv and `menu`/`main` |
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
 | `requirement-shell-output-requirements` | `out_*` catalog |
 | `requirement-domain-grok-cli` | Domain four pillars |
@@ -206,7 +206,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-CLI-01..12** | `tests/test_cli.sh` | have |
+| **TP-CLI-01..13** | `tests/test_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -222,6 +222,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | 2026-08-17 | Active 1.3.1 | Generate dest must be readable for tests/review; independent of submit |
 | 2026-08-23 | Active 2.1.0 | Intended Gap `menu`/`main`; empty argv stays Type N help (not the numbered list) |
 | 2026-08-23 | Active 2.1.0 | `menu`/`main` routed to `app_default` |
+| 2026-08-23 | Active 2.2.0 | Empty argv routes to `app_default` (TTY menu; off-TTY help) |
 
 ---
 
