@@ -2,7 +2,7 @@
 
 **Product:** grok-cli (POSIX `/bin/sh` local self-managed CLI — grok auth backup to `/var/grok-cli` with narrow sudo deposit + unprivileged sync-auth)  
 **Workspace state:** Specialized product law (left genesis); **software-development** class; bootstrap **cli-template → folder-backup → grok-cli** (domain retarget; online install **intentionally absent**).  
-**Updated:** 2026-08-23 (18 Active + 4 superseded)
+**Updated:** 2026-08-25 (19 Active + 4 superseded)
 
 | ID / key | Title | Area | Status | Path | Updated |
 |----------|-------|------|--------|------|---------|
@@ -12,6 +12,7 @@
 | requirement-three-layer-privilege-model | Type 0 + narrow Type 1 `grok-cli backup`; sudoers emit + install-script; per-user fragments; submit workflow; grant is backup only | architecture | Active (2.0.0) | `requirement-three-layer-privilege-model.md` | 2026-08-22 |
 | requirement-sudoer-json-file | JSON sudoer file SSOT: `{{PRJ_NAME}}` only; args `["backup"]` only; independent generate dest readable | architecture | Active (2.0.0) | `requirement-sudoer-json-file.md` | 2026-08-22 |
 | requirement-grok-auth-backup | **Auth ops SSOT**: session gate + deposit `auth.*` to `/var/grok-cli` (root:root 0644) + unprivileged `sync-auth` | backup | Active (1.0.0) | `requirement-grok-auth-backup.md` | 2026-08-22 |
+| requirement-grok-setup | Type 0 `setup`: curl xAI `https://x.ai/cli/install.sh` and run it so peer `grok` is on PATH (not grok-cli’s own install) | domain | Active (1.0.0) | `requirement-grok-setup.md` | 2026-08-25 |
 | requirement-shell-cli-interface | Shell CLI interface (commands, flags, dispatch, modes); generate-sudoer-request; check-session / backup / sync-auth; empty argv → `app_default` | shell | Active (2.2.0) | `requirement-shell-cli-interface.md` | 2026-08-23 |
 | requirement-shell-cli-zero-arguments | Empty argv Type N (local-only): TTY numbered menu; off-TTY help; not install | shell | Active (1.3.0) | `requirement-shell-cli-zero-arguments.md` | 2026-08-23 |
 | requirement-shell-cli-default-interaction | Case 3: TTY empty argv + `menu`/`main` numbered list (check-session/backup/sync-auth + sudoers family; Exit 9; Back 8); **Implemented** | shell | Active (1.7.0) | `requirement-shell-cli-default-interaction.md` | 2026-08-23 |

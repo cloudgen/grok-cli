@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-grok-cli.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0)  
 **Area**: domain  
 **Key**: `requirement-domain-grok-cli`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -16,11 +16,11 @@ This file is the sole Active **`requirement-domain-*`** (four pillars). It super
 
 ### 1.1 Human-facing
 
-This file lists the grok-cli commands a login types after install: check that grok is signed in, push `~/.grok/auth.*` into `/var/grok-cli`, or copy those files back into `~/.grok` without sudo.
+This file lists the grok-cli commands a login types after install: place the xAI `grok` program (`setup`), check that grok is signed in, push `~/.grok/auth.*` into `/var/grok-cli`, or copy those files back into `~/.grok` without sudo.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Run `check-session`, `backup`, `sync-auth`, and the sudoer generate/submit verbs | sudoer-adm approves the JSON grant so `sudo grok-cli backup` is passwordless | Folder tar.gz backup; writing `/etc` yourself; typing `restore` (retired — the program must say unknown) |
+| Run `setup`, `check-session`, `backup`, `sync-auth`, and the sudoer generate/submit verbs | sudoer-adm approves the JSON grant so `sudo grok-cli backup` is passwordless | Folder tar.gz backup; writing `/etc` yourself; typing `restore` (retired — the program must say unknown); using `setup` to install grok-cli |
 
 **Includes:** verb catalog, help rows, about fields, pointers to ops and privilege law.  
 **Excludes:** JWT/token parsing rules, chown/chmod numbers, sudoers schema (peer files).
@@ -32,6 +32,7 @@ This file lists the grok-cli commands a login types after install: check that gr
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
+| Place grok | grok-cli curls xAI’s installer so `grok` is on PATH | `grok-cli setup` |
 | Confirm login | grok-cli reads `~/.grok/auth.json` and fails closed if it is missing or expired | `grok-cli check-session` |
 | Push shared auth | After a valid session, grok-cli copies `auth.*` into `/var/grok-cli` as root | `grok-cli backup` |
 | Pull shared auth | A normal login copies from `/var/grok-cli` into `~/.grok` with no sudo | `grok-cli sync-auth` |
@@ -44,6 +45,7 @@ This file lists the grok-cli commands a login types after install: check that gr
 
 | Command | Operands / flags | Handler prefix | Behavior summary | Behavior SSOT |
 |---------|------------------|----------------|------------------|---------------|
+| `setup` | `--force` | `gc_*` | Curl xAI grok installer; skip if `grok` already on PATH | **`requirement-grok-setup`** |
 | `check-session` | none | `gc_*` | Confirm grok is logged in | **`requirement-grok-auth-backup`** |
 | `backup` | none | `gc_*` | Check session, then elevated deposit of `auth.*` into `/var/grok-cli` | **`requirement-grok-auth-backup`** |
 | `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo** | **`requirement-grok-auth-backup`** |
@@ -60,6 +62,7 @@ This file lists the grok-cli commands a login types after install: check that gr
 
 | Feature area | Domain role | Full law |
 |--------------|-------------|----------|
+| Peer grok install | Expose `setup` (vendor curl; not grok-cli install) | `requirement-grok-setup` |
 | Grok session gate | Expose `check-session`; backup MUST call the same gate | `requirement-grok-auth-backup` |
 | Auth deposit | Expose `backup` | `requirement-grok-auth-backup` |
 | Unprivileged sync | Expose `sync-auth` | `requirement-grok-auth-backup` |
@@ -111,6 +114,7 @@ leolio ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
 
 | Help row | Text intent |
 |----------|-------------|
+| `setup` | Install grok from x.ai (`curl` vendor installer); skip if already present |
 | `check-session` | Confirm grok is logged in |
 | `backup` | Check session, push `~/.grok/auth.*` to `/var/grok-cli` (passwordless `sudo grok-cli backup` after sudoer-adm) |
 | `sync-auth` | Copy `/var/grok-cli/auth.*` into `~/.grok` with no sudo |
@@ -125,6 +129,7 @@ Examples in help **MUST** include:
 
 ```text
 grok-cli install
+grok-cli setup
 grok-cli check-session
 grok-cli generate-sudoer-request
 grok-cli submit-sudoer-request
@@ -138,6 +143,7 @@ grok-cli sync-auth
 
 | Field / line | Content |
 |--------------|---------|
+| Grok peer | path of `grok` or `not_found` (`setup` places it) |
 | Grok home | effective grok auth directory |
 | Session | `valid` / `invalid` / `missing` |
 | Deposit directory | effective `GROK_CLI_ROOT` (default `/var/grok-cli`) |
@@ -187,7 +193,7 @@ grok-cli sync-auth
 
 1. Duplicate full session/deposit/chmod/sync law here once `requirement-grok-auth-backup` is Active.  
 2. Reintroduce folder tar.gz `restore` as a domain verb.  
-3. Add online install or remote upload as silent domain behavior without new requirements.  
+3. Add online install of **grok-cli** or remote upload as silent domain behavior without new requirements. `setup` installing **peer `grok`** is owned by `requirement-grok-setup` — **MUST NOT** set grok-cli `SCRIPT_URL`.  
 4. Put domain law into bootstrap origin folder-backup or cli-template.  
 5. Create a second Active `requirement-domain-*` without superseding this one.  
 6. Let Type 0 `mkdir` `/var/sudoer-cli/sudoer-request`.
@@ -200,7 +206,7 @@ grok-cli sync-auth
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | `help` lists check-session, backup, sync-auth and sudoer verbs |
+| AC-1 | `help` lists setup, check-session, backup, sync-auth and sudoer verbs |
 | AC-2 | `about --json` reports grok_cli_root, deposit_dir, session |
 | AC-3 | Dispatcher routes those verbs; `restore` is unknown |
 | AC-4 | JSON grant sample in this file names backup only |
@@ -214,6 +220,7 @@ grok-cli sync-auth
 |----------|------|
 | `docs/requirements/index.md` | Registry SSOT |
 | `docs/requirements/requirement-grok-auth-backup.md` | Ops SSOT |
+| `docs/requirements/requirement-grok-setup.md` | `setup` / peer grok installer |
 | `docs/requirements/requirement-three-layer-privilege-model.md` | Privilege workflow |
 | `docs/requirements/requirement-sudoer-json-file.md` | JSON grant body |
 | `docs/requirements/requirement-shell-cli-interface.md` | Dual mention of verbs |
@@ -226,6 +233,7 @@ grok-cli sync-auth
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-22 | Active (1.0.0) | Specialized from folder-backup domain; grok auth surface |
+| 2026-08-25 | Active (1.1.0) | `setup` peer grok installer (xAI curl) |
 
 ---
 
@@ -235,11 +243,12 @@ grok-cli sync-auth
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-04**, **TP-CLI-06** | `tests/test_cli.sh` | have |
+| **TP-VCLI-01**–**09** | `tests/test_grok_setup.sh` | have |
 | **TP-GROK-CLI-01**, **01b**, **02**, **11**, **14**, **15**, **15b**, **19**–**25** | `tests/test_domain_grok_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-08-22  
+**Last Updated**: 2026-08-25  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

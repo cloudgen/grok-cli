@@ -39,6 +39,7 @@ run_test_cli() {
     _ec=$?
     assert_eq "TP-CLI-04 help exit 0" 0 "$_ec"
     assert_contains "TP-CLI-04 help install" "$_out" "install"
+    assert_contains "TP-CLI-04 help setup" "$_out" "setup"
     assert_contains "TP-CLI-04 help menu" "$_out" "menu"
     assert_contains "TP-CLI-04 help uninstall" "$_out" "uninstall"
     assert_contains "TP-CLI-04 help where-is-me" "$_out" "where-is-me"
@@ -256,6 +257,7 @@ PY
         assert_contains "TP-CLI-13 TTY menu family sudoers" "$_out" "4. sudoers:"
         assert_contains "TP-CLI-13 TTY menu Exit 9" "$_out" "9. Exit"
         assert_not_contains "TP-CLI-13 TTY menu no install row" "$_out" "1. Install"
+        assert_not_contains "TP-CLI-13 TTY menu no setup row" "$_out" "setup:"
         assert_not_contains "TP-CLI-13 TTY menu no help verb row" "$_out" "help: Show this help"
         assert_not_contains "TP-CLI-13 TTY main hides generate row" "$_out" "1. generate-sudoer-request:"
         _out=$(PTY_IN="99" python3 - "${SCRIPT}" --json menu <<'PY'

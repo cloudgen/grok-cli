@@ -26,6 +26,7 @@
 # - requirement-shell-output-requirements.md
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
+# - requirement-grok-setup.md        (setup: curl xAI grok installer for peer grok)
 # - requirement-domain-grok-cli.md   (domain surface four pillars)
 # Plus CIAO Protection Zones and "DO NOT MODIFY" rules.
 #
@@ -33,7 +34,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.1.0"
+# VERSION: hard-assign VERSION="1.2.0"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -47,10 +48,10 @@ APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
 : "${APP_DESC:=Local grok auth backup to /var/grok-cli and unprivileged sync-auth}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.1.0"
-: "${VERSION:=1.1.0}"
+VERSION="1.2.0"
+: "${VERSION:=1.2.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -101,6 +102,10 @@ fi
 
 # Domain / grok auth deposit SSOT
 : "${GROK_CLI_ROOT:=/var/grok-cli}"
+# Peer grok (xAI) installer — setup verb. Not grok-cli's own install channel.
+: "${GROK_VENDOR_INSTALL_URL:=https://x.ai/cli/install.sh}"
+: "${GROK_PEER_NAME:=grok}"
+# GROK_BIN optional absolute override for the peer executable.
 # GROK_HOME is resolved at call time (SUDO_USER-aware). Tests may export it.
 # Optional sudoer-cli compose (Type 0 submit into approval inbound)
 : "${SUDOER_CLI:=}"
@@ -1486,6 +1491,122 @@ gc_resolve_grok_home() {
         return 0
     fi
     printf '%s' "$(gc_invoking_home)/.grok"
+}
+
+# =============================================================================
+# gc_resolve_grok_peer() - path of peer grok CLI (class B)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Locate the xAI grok binary: GROK_BIN override, else command -v grok.
+# Empty string means not found. Does not mean grok-cli is installed.
+#
+# PRINTF EXCEPTION (class B): path data for $(…) capture only.
+#
+# ALIGNMENT:
+# - requirement-grok-setup.md
+#
+# Last updated: 2026-08-25
+# =============================================================================
+gc_resolve_grok_peer() {
+    : "${GROK_PEER_NAME:=grok}"
+    if [ -n "${GROK_BIN:-}" ] && [ -x "${GROK_BIN}" ]; then
+        printf '%s' "${GROK_BIN}"
+        return 0
+    fi
+    _p=$(command -v "${GROK_PEER_NAME}" 2>/dev/null || true)
+    if [ -n "${_p}" ] && [ -x "${_p}" ]; then
+        printf '%s' "${_p}"
+        return 0
+    fi
+    printf ''
+}
+
+# =============================================================================
+# gc_setup() - Type 0: curl xAI grok installer (peer CLI)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Fetch https://x.ai/cli/install.sh (or GROK_VENDOR_INSTALL_URL) into a temp
+# file and run it with bash so peer grok is on PATH. Skip if grok is already
+# present unless --force. MUST NOT install grok-cli.
+#
+# ALIGNMENT:
+# - requirement-grok-setup.md
+# - requirement-shell-cli-interface.md
+# - requirement-operator-readable-error.md
+#
+# Last updated: 2026-08-25
+# =============================================================================
+gc_setup() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${FORCE:=0}"
+    : "${GROK_VENDOR_INSTALL_URL:=https://x.ai/cli/install.sh}"
+    : "${GROK_PEER_NAME:=grok}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+    : "${EFFECTIVE_STORAGE_DIR:=${TMPDIR:-/tmp}}"
+
+    _peer=$(gc_resolve_grok_peer)
+    if [ -n "${_peer}" ] && [ "${FORCE}" -ne 1 ]; then
+        out_success "grok is already installed at ${_peer}."
+        out_info "Next: grok login, then ${APP_NAME} check-session."
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "setup" "grok is already installed at ${_peer}." \
+                "app" "${APP_NAME}" \
+                "status" "already_installed" \
+                "peer" "${GROK_PEER_NAME}" \
+                "peer_path" "${_peer}" \
+                "vendor_url" "${GROK_VENDOR_INSTALL_URL}"
+        fi
+        return 0
+    fi
+
+    if ! command -v curl >/dev/null 2>&1; then
+        out_die "curl is not on PATH, so ${APP_NAME} cannot download the grok installer. Next: install curl, then ${APP_NAME} setup."
+    fi
+    if ! command -v bash >/dev/null 2>&1; then
+        out_die "bash is not on PATH. The xAI grok installer needs bash. Next: install bash, then ${APP_NAME} setup."
+    fi
+
+    _tmp=$(mktemp "${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.setup.XXXXXX" 2>/dev/null || mktemp)
+    if [ -z "${_tmp}" ] || [ ! -f "${_tmp}" ]; then
+        out_die "Could not create a temp file for the grok installer. Next: check disk space under ${EFFECTIVE_STORAGE_DIR}, then ${APP_NAME} setup."
+    fi
+    out_info "Downloading the xAI grok installer from ${GROK_VENDOR_INSTALL_URL}"
+    if ! curl -fsSL "${GROK_VENDOR_INSTALL_URL}" -o "${_tmp}"; then
+        rm -f "${_tmp}"
+        out_die "Download of the grok installer failed (${GROK_VENDOR_INSTALL_URL}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
+    fi
+    if [ ! -s "${_tmp}" ]; then
+        rm -f "${_tmp}"
+        out_die "The grok installer file is empty (${GROK_VENDOR_INSTALL_URL}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
+    fi
+    out_info "Running the xAI grok installer (does not install ${APP_NAME})"
+    bash "${_tmp}"
+    _rc=$?
+    rm -f "${_tmp}"
+    if [ "${_rc}" -ne 0 ]; then
+        out_die "The xAI grok installer exited ${_rc}. This did not install ${APP_NAME}. Next: check the installer output, then ${APP_NAME} setup."
+    fi
+
+    PATH="${USER_BIN}:${PATH}"
+    export PATH
+    _peer=$(gc_resolve_grok_peer)
+    if [ -z "${_peer}" ]; then
+        out_die "The installer finished but grok is not on PATH. Next: add ${USER_BIN} to PATH, then grok login, then ${APP_NAME} check-session."
+    fi
+    out_success "grok is installed at ${_peer}."
+    out_info "Next: grok login, then ${APP_NAME} check-session."
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "setup" "grok is installed at ${_peer}." \
+            "app" "${APP_NAME}" \
+            "status" "installed" \
+            "peer" "${GROK_PEER_NAME}" \
+            "peer_path" "${_peer}" \
+            "vendor_url" "${GROK_VENDOR_INSTALL_URL}"
+    fi
+    return 0
 }
 
 # =============================================================================
@@ -3253,9 +3374,10 @@ app_version() {
 # ALIGNMENT:
 # - requirement-shell-cli-interface.md
 # - requirement-domain-grok-cli.md (about domain fields)
+# - requirement-grok-setup.md (grok_peer)
 # - requirement-shell-cli-storage.md
 #
-# Last reviewed: 2026-08-03
+# Last updated: 2026-08-25
 # =============================================================================
 app_about() {
     : "${JSON:=0}"
@@ -3331,6 +3453,9 @@ app_about() {
         _host_sudoers_path="${_hsp}"
     fi
 
+    _grok_peer_json=$(gc_resolve_grok_peer)
+    [ -n "${_grok_peer_json}" ] || _grok_peer_json="not_found"
+
     if [ "${JSON}" -eq 1 ]; then
         out_json "about" "" \
             "app" "${APP_NAME}" \
@@ -3358,7 +3483,8 @@ app_about() {
             "sudoer_inbound" "${_sudoer_inbound}" \
             "sudoer_inbound_writable" "${_sudoer_inbound_writable}" \
             "host_sudoers_present" "${_host_sudoers_present}" \
-            "host_sudoers_path" "${_host_sudoers_path}"
+            "host_sudoers_path" "${_host_sudoers_path}" \
+            "grok_peer" "${_grok_peer_json}"
         return 0
     fi
 
@@ -3402,6 +3528,12 @@ app_about() {
     out_info "Storage (effective): ${EFFECTIVE_STORAGE_DIR}"
     out_info "Storage (fallback):  ${STORAGE_DIR}"
     out_empty_line
+    _grok_peer=$(gc_resolve_grok_peer)
+    if [ -n "${_grok_peer}" ]; then
+        out_info "Grok CLI (xAI):    ${_grok_peer}"
+    else
+        out_info "Grok CLI (xAI):    not found — ${APP_NAME} setup installs it"
+    fi
     out_info "Grok home:         $(gc_resolve_grok_home)"
     out_info "Session:           $(gc_session_status_word 2>/dev/null || echo missing)"
     out_info "Deposit directory: ${GROK_CLI_ROOT}"
@@ -3706,11 +3838,11 @@ app_default() {
 # app_help() - Usage (local Type 0 + domain)
 # =============================================================================
 #
-# Last updated: 2026-08-23
+# Last updated: 2026-08-25
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Local grok auth backup to /var/grok-cli and unprivileged sync-auth}}"
-    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
@@ -3741,6 +3873,7 @@ app_help() {
     out_plain "  main                 Same as menu (also empty argv on a TTY)"
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
+    out_plain "  setup                Install grok from x.ai (curl vendor installer; skip if present)"
     out_plain "  check-session        Confirm grok is logged in"
     out_plain "  backup               Push ~/.grok/auth.* to ${GROK_CLI_ROOT}/"
     out_plain "                       (checks session first; sudo -n ${GLOBAL_BIN}/${APP_NAME} backup after sudoer-adm grant;"
@@ -3783,6 +3916,8 @@ app_help() {
     out_info "Environment:"
     out_plain "  GROK_HOME            grok auth dir (default ~/.grok of invoking login)"
     out_plain "  GROK_CLI_ROOT        durable store (default /var/grok-cli)"
+    out_plain "  GROK_VENDOR_INSTALL_URL  xAI grok installer (default https://x.ai/cli/install.sh)"
+    out_plain "  GROK_BIN             override path to peer grok"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers / generate / submit"
     out_plain "  SUDOER_CLI              override path to sudoer-cli"
@@ -3794,6 +3929,7 @@ app_help() {
     out_info "Examples:"
     out_plain "  ${APP_NAME}                    # numbered list on a TTY; help off-TTY"
     out_plain "  ${APP_NAME} install"
+    out_plain "  ${APP_NAME} setup                 # install grok from x.ai (not ${APP_NAME})"
     out_plain "  sudo ${APP_NAME} install          # global (production sudoers trust)"
     out_plain "  ${APP_NAME} print-sudoers --allow-test-local  # → sudoers.fragment-<user>"
     out_plain "  ${APP_NAME} print-sudoers-install-script   # → /dev/shm/…-sudoers-admin.sh"
@@ -3826,10 +3962,11 @@ app_help() {
 # - requirement-shell-cli-interface.md
 # - requirement-shell-cli-zero-arguments.md
 # - requirement-shell-cli-default-interaction.md
+# - requirement-grok-setup.md
 #
 # !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
 #
-# Last updated: 2026-08-23
+# Last updated: 2026-08-25
 # =============================================================================
 app_main() {
     : "${COMMAND:=help}"
@@ -3888,7 +4025,7 @@ app_main() {
                 SUBMIT_ACTION_EXPLICIT=1
                 export SUBMIT_ACTION SUBMIT_ACTION_EXPLICIT
                 ;;
-            version|about|help|menu|main|install|uninstall|where-is-me|check-session|backup|sync-auth|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
+            version|about|help|menu|main|install|uninstall|where-is-me|setup|check-session|backup|sync-auth|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
                 COMMAND="$1"
                 ;;
             *)
@@ -3920,6 +4057,7 @@ app_main() {
         install)      inst_local_install ;;
         uninstall)    inst_local_uninstall ;;
         where-is-me)  app_where_is_me ;;
+        setup)        gc_setup ;;
         check-session) gc_check_session ;;
         backup)       gc_backup ;;
         sync-auth)    gc_sync_auth ;;

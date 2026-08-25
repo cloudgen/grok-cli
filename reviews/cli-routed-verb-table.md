@@ -4,9 +4,9 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 
 **Ship unit:** `src/grok-cli`  
 **Dispatcher:** `app_main`  
-**Scan date:** 2026-08-23  
-**Mode:** incremental (handler rows copied; **human-readable** filled from `app_help`)  
-**Copied:** 16 live + 1 not-yet-wired · **Re-checked:** `menu`/`main` now routed (`app_default`)  
+**Scan date:** 2026-08-25  
+**Mode:** incremental (new dispatcher token `setup`)  
+**Copied:** 16 live + 1 not-yet-wired · **Re-checked:** `setup` (`gc_setup`)  
 **Inventory:** dispatcher `case "${COMMAND}"` — not `app_help` for routing; help one-liners copied into **human-readable**
 
 ## Live commands
@@ -21,6 +21,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | main | `app_default` | you (Type 0) | 2026-08-23 | `main: Same as menu` |
 | menu | `app_default` | you (Type 0) | 2026-08-23 | `menu: Show the numbered list of live commands` |
 | install | `inst_local_install` | you (Type 0) | 2026-08-09 | `install: Install grok-cli (root→global, user→~/.local/bin)` |
+| setup | `gc_setup` | you (Type 0) | 2026-08-25 | `setup: Install grok from x.ai (curl vendor installer; skip if present)` |
 | print-sudoers | `gc_print_sudoers` | you (Type 0) | 2026-08-14 | `print-sudoers: Emit sudoers draft` |
 | print-sudoers-install-script | `gc_print_sudoers_install_script` | you (Type 0) | 2026-08-09 | `print-sudoers-install-script: Write admin install script` |
 | remove-project-sudoers | `gc_remove_project_sudoers` | you (Type 0) | 2026-08-09 | `remove-project-sudoers: Remove sudoers draft only` |
@@ -40,5 +41,5 @@ A TTY main menu **MUST** print daily-work **human-readable** lines as a **number
 
 ---
 
-**Last Updated:** 2026-08-23 (daily-work main list + sudoers family submenu)  
+**Last Updated:** 2026-08-25 (`setup` live)  
 **Alignment:** term `cli-routed-verb-table` · **`SK-CLI-ROUTED-VERB-TABLE`** · **`SK-CLI-DEFAULT-INTERACTION`**

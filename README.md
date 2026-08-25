@@ -1,6 +1,6 @@
 # grok-cli - Grok auth backup to /var/grok-cli and unprivileged sync-auth
 
-![Version](https://img.shields.io/badge/Version-1.1.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.2.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -14,6 +14,7 @@
 ## Features
 
 - **Local self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
+- **Peer grok install**: `setup` — `curl -fsSL https://x.ai/cli/install.sh` then run it so the xAI `grok` CLI is on PATH (does **not** install grok-cli; skip if `grok` is already present)
 - **Session gate**: `check-session` — confirm grok is logged in (`~/.grok/auth.json`)
 - **Backup**: `backup` → check session → elevated deposit of `auth.*` into `/var/grok-cli` → `chown root:root` → `chmod 0644`
 - **sync-auth**: copy `/var/grok-cli/auth.*` into `~/.grok` as the invoking login (mode `0600` on `auth.json`; **no sudo**)
@@ -72,6 +73,7 @@ grok-cli menu            # same numbered list as empty argv on a TTY
 grok-cli about
 grok-cli --json about
 
+grok-cli setup                 # install grok from x.ai (not grok-cli)
 grok-cli check-session
 grok-cli backup
 grok-cli sync-auth
@@ -88,6 +90,8 @@ grok-cli uninstall --force
 |----------|------|
 | `GROK_HOME` | Grok auth directory (default `~/.grok` of the invoking login) |
 | `GROK_CLI_ROOT` | Durable store (default `/var/grok-cli`) |
+| `GROK_VENDOR_INSTALL_URL` | xAI grok installer URL (default `https://x.ai/cli/install.sh`) |
+| `GROK_BIN` | Override path to peer `grok` |
 | `ALLOW_TEST_LOCAL_SUDOERS` | `1` = allow test-mode sudoers emit without `--allow-test-local` |
 | `SUDOER_CLI` | Override path to `sudoer-cli` |
 | `SUDOER_ADM_USER` | Approver login to detect (default `sudoer-adm`) |
@@ -95,7 +99,9 @@ grok-cli uninstall --force
 ## Examples
 
 ```sh
-# Confirm grok is logged in, then push auth.* into the shared store
+# Place xAI grok (skip if already on PATH), sign in, then push auth.*
+grok-cli setup
+grok login
 grok-cli check-session
 grok-cli backup
 

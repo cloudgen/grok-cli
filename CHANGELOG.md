@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-08-25
+
+### Added
+
+- **`setup`**: download xAI’s grok installer (`https://x.ai/cli/install.sh`) and run it so the peer `grok` CLI is on PATH. Idempotent if `grok` is already present; `--force` fetches again. Does not install grok-cli and does not add a grok-cli online-install channel. Core tests use a fake `curl` (no public network).
+
 ## [1.1.0] - 2026-08-23
 
 ### Changed

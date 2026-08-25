@@ -31,6 +31,8 @@ export APP_NAME
 . "${TESTS_ROOT}/test_local_lifecycle.sh"
 # shellcheck source=test_domain_grok_cli.sh
 . "${TESTS_ROOT}/test_domain_grok_cli.sh"
+# shellcheck source=test_grok_setup.sh
+. "${TESTS_ROOT}/test_grok_setup.sh"
 
 PASS=0
 FAIL=0
@@ -55,6 +57,7 @@ fi
 run_test_cli
 run_test_local_lifecycle
 run_test_domain_grok_cli
+run_test_grok_setup
 
 printf '\n== summary ==\n'
 printf 'PASS=%s FAIL=%s SKIP=%s\n' "${PASS}" "${FAIL}" "${SKIP}"

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.2.0)  
+**Status**: Active (Version 2.3.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -8,7 +8,7 @@
 
 This requirement is the **project Single Source of Truth** for the **POSIX shell CLI interface** of grok-cli: command surface, privilege typing, global flags, dispatcher behavior, help/about contracts, and mode rules.
 
-It defines a **Type 0–centric local self-managed shell CLI** plus **domain grok-auth** commands and a **narrow elevated deposit** path. Full domain semantics live in `requirement-domain-grok-cli.md`. Full elevation/sudoers rules live in `requirement-three-layer-privilege-model.md`. Auth ops live in `requirement-grok-auth-backup.md`.
+It defines a **Type 0–centric local self-managed shell CLI** plus **domain grok-auth** commands, **`setup`** (peer `grok` via xAI installer), and a **narrow elevated deposit** path. Full domain semantics live in `requirement-domain-grok-cli.md`. Full elevation/sudoers rules live in `requirement-three-layer-privilege-model.md`. Auth ops live in `requirement-grok-auth-backup.md`. Peer grok install lives in `requirement-grok-setup.md`.
 
 ---
 
@@ -36,7 +36,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 | Category | Privilege | Meaning |
 |----------|-----------|---------|
 | **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu` (`main` alias) |
-| **Type 0 – Domain (user work)** | Invoking user | Archive create, naming, staging, sudoers fragment **print** |
+| **Type 0 – Domain (user work)** | Invoking user | `setup` (peer grok installer), session/sync, sudoers fragment **print** |
 | **Type 1 – Narrow elevated deposit** | Controlled sudo (allowlisted only) | Copy staged archive into `/var/backup/...` only |
 | **Type 2 – Dedicated system user app ops** | Dedicated app user | **Not in scope** for this product |
 
@@ -99,6 +99,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
 | `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
 | `main` | Type 0 | `app_default` (alias) | Same as `menu` |
+| `setup` | Type 0 | `gc_setup` (domain) | Fetch xAI grok installer and run it so peer `grok` is on PATH; skip if already present unless `--force`. **MUST NOT** install grok-cli |
 | `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in |
 | `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
 | `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo |
@@ -122,10 +123,10 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 #### Dispatcher acceptance criteria
 
 1. Unknown token after flag parse → `out_die` with pointer to `grok-cli help`.  
-2. Zero-arg → help (not install, not backup, not the numbered menu).  
+2. Zero-arg → Type N: TTY numbered menu; off-TTY help (never install, never `setup`).  
 3. Command routing table in `app_main` **must** include every **Supported commands** row above.  
 4. Help text **must** stay aligned with that table.  
-5. Domain catalog detail is owned by `requirement-domain-grok-cli.md` — this file owns the **listed verbs** and routing. Auth ops detail is `requirement-grok-auth-backup.md`.
+5. Domain catalog detail is owned by `requirement-domain-grok-cli.md` — this file owns the **listed verbs** and routing. Auth ops detail is `requirement-grok-auth-backup.md`. Peer grok install is `requirement-grok-setup.md`.
 
 #### Explicitly out of scope
 
@@ -197,6 +198,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
 | `requirement-shell-output-requirements` | `out_*` catalog |
 | `requirement-domain-grok-cli` | Domain four pillars |
+| `requirement-grok-setup` | Dual mention of `setup` |
 | `requirement-three-layer-privilege-model` | Elevation model |
 | `docs/requirements/index.md` | Registry |
 
@@ -207,6 +209,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have |
+| **TP-VCLI-01..09** | `tests/test_grok_setup.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -221,11 +224,11 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | 2026-08-17 | Active 1.3.0 | `generate-sudoer-request` Type 0; AC-7 |
 | 2026-08-17 | Active 1.3.1 | Generate dest must be readable for tests/review; independent of submit |
 | 2026-08-23 | Active 2.1.0 | Intended Gap `menu`/`main`; empty argv stays Type N help (not the numbered list) |
-| 2026-08-23 | Active 2.1.0 | `menu`/`main` routed to `app_default` |
-| 2026-08-23 | Active 2.2.0 | Empty argv routes to `app_default` (TTY menu; off-TTY help) |
+| 2026-08-23 | Active 2.2.0 | `menu`/`main` routed to `app_default`; TTY empty argv numbered list |
+| 2026-08-25 | Active 2.3.0 | `setup` Type 0 — curl xAI grok installer (peer CLI; not grok-cli install) |
 
 ---
 
-**Last Updated**: 2026-08-23  
+**Last Updated**: 2026-08-25  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.1.0  
-**Last plan update:** 2026-08-23  
-**Last suite run:** `./tests/run.sh` (1.1.0: PASS=242 FAIL=0 SKIP=0)
+**Product VERSION:** 1.2.0  
+**Last plan update:** 2026-08-25  
+**Last suite run:** `./tests/run.sh` (1.2.0: PASS=266 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -21,7 +21,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler) | have | TP-CLI-13 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Storage isolation | have | TP-CLI-12 |
-| Help lists check-session / backup / sync-auth; no restore operand | have | TP-CLI-04 |
+| Help lists setup / check-session / backup / sync-auth; no restore operand | have | TP-CLI-04 |
+| `setup` vendor grok installer (fake curl) | have | TP-VCLI-01..09 |
 | Local install / idempotent / uninstall / mode 0755 | have | TP-LC-01..10 |
 | Session gate | have | TP-GROK-CLI-03..06 |
 | Backup to writable GROK_CLI_ROOT + overwrite | have | TP-GROK-CLI-07/08 |
@@ -44,7 +45,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-01 | `sh -n` ship unit | `tests/test_cli.sh` | requirement-shell-cli-interface · requirement-shell-script-coding | **have** |
 | TP-CLI-02 | version human | test_cli | requirement-shell-cli-interface | **have** |
 | TP-CLI-03 | version JSON | test_cli | requirement-shell-output-requirements | **have** |
-| TP-CLI-04 | help: check-session, backup, sync-auth, sudoers verbs; no restore operand; no online | test_cli | requirement-shell-cli-interface · requirement-domain-grok-cli | **have** |
+| TP-CLI-04 | help: setup, check-session, backup, sync-auth, sudoers verbs; no restore operand; no grok-cli online channel | test_cli | requirement-shell-cli-interface · requirement-domain-grok-cli · requirement-grok-setup | **have** |
 | TP-CLI-05 | help JSON short | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-06 | about JSON grok_cli_root + session | test_cli | requirement-shell-cli-storage · requirement-domain-grok-cli | **have** |
 | TP-CLI-07 | empty argv Type N: off-TTY help; `--json` no command JSON help; TTY numbered list | test_cli | requirement-shell-cli-zero-arguments · requirement-shell-cli-default-interaction | **have** |
@@ -69,6 +70,21 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LC-08 | about shows installed | test_local_lifecycle | local self-management | **have** |
 | TP-LC-09 | installed mode is `0755` | test_local_lifecycle | local self-management | **have** |
 | TP-LC-10 | reinstall heals `0711` → `0755` | test_local_lifecycle | local self-management | **have** |
+
+### TP-VCLI (vendor peer grok installer)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-VCLI-01 | `setup` is routed | `tests/test_grok_setup.sh` | requirement-grok-setup · requirement-shell-cli-interface | **have** |
+| TP-VCLI-02 | help lists setup; no self-update / SCRIPT_URL | test_grok_setup | requirement-grok-setup · requirement-domain-grok-cli | **have** |
+| TP-VCLI-03 | TTY menu excludes setup | test_cli (TP-CLI-13) | requirement-shell-cli-default-interaction | **have** |
+| TP-VCLI-04 | grok already on PATH → no-op, no curl | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-05 | `--force` fetches vendor URL | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-06 | curl fail → operator-readable Next | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-07 | missing curl → fail closed | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-08 | fake installer places `grok`, not grok-cli | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-09 | JSON `status` installed / already_installed | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-10 | live x.ai fetch | — | requirement-grok-setup | **optional** |
 
 ### TP-GROK-CLI (domain + privilege + auth ops)
 

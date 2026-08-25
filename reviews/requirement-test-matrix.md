@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-08-23  
-**Product VERSION:** 1.1.0  
+**Updated:** 2026-08-25  
+**Product VERSION:** 1.2.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -12,7 +12,8 @@
 | requirement-three-layer-privilege-model | architecture | TP-GROK-CLI-01, 01b, 02, 12, 14, 15, 15b, 19, 20, 21, 21b, 22e, 23, 23b, 23c, 24* | Trust tiers; submit; independent generate; inbound; host-probe add/update |
 | requirement-sudoer-json-file | architecture | TP-GROK-CLI-22* · 24* | JSON grant is `grok-cli backup` only |
 | requirement-grok-auth-backup | backup | TP-GROK-CLI-03..10, 12 | Session gate; deposit; sync-auth; production dest fail-closed |
-| requirement-shell-cli-interface | shell | TP-CLI-* | Commands, flags, dispatch |
+| requirement-grok-setup | domain | TP-VCLI-01..09 · TP-CLI-04 · TP-CLI-13 | Peer grok installer; menu excludes setup |
+| requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 | Commands, flags, dispatch; `setup` |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 | Type N: TTY numbered menu; off-TTY help; not install |
 | requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 | Case 3 `menu`/`main` + TTY empty argv — daily-work list + sudoers submenu / off-TTY help |
 | requirement-shell-local-self-management | shell | TP-LC-* | install/uninstall/where-is-me; 0755 |
@@ -23,7 +24,7 @@
 | requirement-shell-idempotency | shell | TP-LC-03,07 · TP-GROK-CLI-08 | Re-install; auth overwrite |
 | requirement-shell-interactive-vs-noninteractive | shell | TP-LC-05 · TP-GROK-CLI-15 · 15b | Confirm fail-closed |
 | requirement-shell-cli-storage | shell | TP-CLI-12 | Isolation |
-| requirement-domain-grok-cli | domain | TP-GROK-CLI-01,02,11,14,15,19,20,21*,23*,24* · TP-CLI-04,06 | Surface verbs/help/about |
+| requirement-domain-grok-cli | domain | TP-GROK-CLI-01,02,11,14,15,19,20,21*,23*,24* · TP-CLI-04,06 · TP-VCLI-02 | Surface verbs/help/about including `setup` |
 | requirement-domain-folder-backup | superseded | n/a | Retired |
 | requirement-folder-archive-backup* | superseded | n/a | Retired (TP-GROK-CLI-11 proves restore unknown) |
 

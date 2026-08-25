@@ -146,6 +146,7 @@ grok-cli sync-auth
 | `docs/requirements/requirement-three-layer-privilege-model.md` | Elev workflow |
 | `docs/requirements/requirement-sudoer-json-file.md` | Grant body |
 | `docs/requirements/requirement-shell-cli-interface.md` | Dual mention |
+| `docs/requirements/requirement-grok-setup.md` | Peer `grok` installer (`setup`) before login |
 | `./src/grok-cli` | Implementation |
 
 ---

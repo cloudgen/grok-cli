@@ -19,6 +19,7 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 | `test_cli.sh` | CLI surface, Type N empty argv (TTY menu / off-TTY help), offline online-reject | **TP-CLI-*** |
 | `test_local_lifecycle.sh` | install / uninstall / where-is-me | **TP-LC-*** |
 | `test_domain_grok_cli.sh` | session gate + backup/sync-auth + sudoers print + JSON grant + submit inbound | **TP-GROK-CLI-*** |
+| `test_grok_setup.sh` | `setup` curls vendor grok installer (fake curl; no public net) | **TP-VCLI-*** |
 
 ## Isolation
 

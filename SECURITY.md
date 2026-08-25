@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.1.0 (current) | Yes |
+| 1.2.0 (current) | Yes |
+| 1.1.0 | Yes |
 | 1.0.0 | Yes |
 
 ## Reporting a Vulnerability
@@ -35,6 +36,7 @@ This section is **design posture**, not a third-party certification claim.
 ## Scope notes
 
 - Elevation is limited to allowlisted `grok-cli backup` under product law.  
+- **`setup`** fetches xAI’s published installer (`https://x.ai/cli/install.sh`) as the invoking login (no sudo). It does **not** install grok-cli and does **not** grant extra sudoers. Treat the vendor script as third-party code.  
 - Operators must admin-install sudoers fragments after review (`visudo -c`, mode `0440`) **or** have sudoer-adm approve the JSON request.  
 - **Install trust tiers for elevation:**
   - **Production:** global managed binary (`/usr/local/bin/grok-cli`, typically root-owned). Prefer `sudo grok-cli install` before durable sudoers.  
