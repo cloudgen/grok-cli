@@ -102,6 +102,9 @@ ci_isolated_env() {
     # Local-only product: ensure no channel env is required
     unset SCRIPT_URL 2>/dev/null || true
     unset CHECKSUM 2>/dev/null || true
+    # Peer grok probe searches GROK_HOME/bin; do not leak the host session.
+    unset GROK_HOME 2>/dev/null || true
+    unset GROK_BIN 2>/dev/null || true
 }
 
 ci_cleanup_env() {

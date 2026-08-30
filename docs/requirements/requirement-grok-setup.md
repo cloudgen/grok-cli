@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-grok-setup.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0)  
 **Area**: domain  
 **Key**: `requirement-grok-setup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **operations Single Source of Truth** for grok-cli **`setup`**: a Type 0 command that **downloads xAI’s published grok installer** and runs it so the **peer `grok` CLI** is on PATH. Operators can then `grok login` and use `grok-cli check-session` / `backup`.
+This requirement is the **operations Single Source of Truth** for grok-cli **`setup`**: a Type 0 command that **downloads xAI’s published grok installer** and runs it so the **peer `grok` CLI** is installed (vendor default `~/.grok/bin`). Operators can then `grok login` and use `grok-cli check-session` / `backup`. A PATH line written to `~/.bashrc` does **not** apply to the current session; that is not an install failure.
 
 This does **not** install grok-cli itself (that remains local `install`). This does **not** add an online-install channel for grok-cli (`SCRIPT_URL` stays empty).
 
@@ -55,7 +55,7 @@ Jargon: this is ordinary-user work, not a root host bootstrap and not grok-cli�
 ### 2.2 Peer probe
 
 6. Peer name **MUST** be `grok` (override `GROK_BIN` = absolute executable).  
-7. Probe: `GROK_BIN` when set and executable, else `command -v grok`.  
+7. Probe: `GROK_BIN` when set and executable, else `command -v grok`, else `$(GROK_HOME)/bin/grok`, else `${USER_BIN}/grok`. Disk search is required because the vendor installer writes PATH into `~/.bashrc`; that does not apply to the current session.  
 8. Probe **MUST NOT** mean “grok-cli is installed.”
 
 ### 2.3 Idempotent skip
@@ -70,7 +70,7 @@ Jargon: this is ordinary-user work, not a root host bootstrap and not grok-cli�
 13. **MUST** `curl -fsSL` that URL into a temp file under product storage, then run with **`bash`**.  
 14. Curl non-zero or empty file → fail closed **before** exec.  
 15. Missing `curl` or `bash` → fail closed.  
-16. After a successful run, prepend `USER_BIN` to PATH and re-probe. Still missing → fail closed (PATH hint).  
+16. After a successful run, re-probe using rule 7 (PATH **and** well-known dirs). Binary present on disk → exit 0. If this session cannot `command -v grok`, that is expected: a PATH line in `~/.bashrc` does not apply until a new session. **MUST** say so as INFO (open a new terminal, then `grok login`). **MUST NOT** print `[ERROR]` for that stale-PATH case. **MUST NOT** tell the operator to add `${USER_BIN}` (`~/.local/bin`) when the vendor placed grok under `~/.grok/bin`. Binary absent on disk → fail closed (installer-output next step).  
 17. **MUST NOT** copy `src/grok-cli` or write `grok-cli` as the peer binary.
 
 ### 2.5 Errors
@@ -82,7 +82,8 @@ Blocking copy **MUST** say what happened and **`Next:`**.
 | No curl | install curl, then `grok-cli setup` |
 | No bash | install bash, then `grok-cli setup` |
 | Download failed | check network to x.ai, then `grok-cli setup` |
-| Installer ran, `grok` missing | add `~/.local/bin` to PATH, then `grok login` |
+| Installer ran, `grok` missing on disk | check the installer output, then `grok-cli setup` |
+| Installer ran, `grok` on disk, this session PATH stale | not an error: open a new terminal, then `grok login` |
 
 JSON `message` **MUST** match the human sentence.
 
@@ -138,7 +139,9 @@ grok-cli setup --json
 5. Put setup on the TTY main menu.  
 6. Require public network for Core tests.  
 7. Print tokens.  
-8. Freeze a session Unix login or `/home/<login>/…` in this file.
+8. Freeze a session Unix login or `/home/<login>/…` in this file.  
+9. Print `[ERROR]` when grok is on disk but this session has not yet read a PATH line from `~/.bashrc`.  
+10. Tell the operator to add `~/.local/bin` to PATH when the vendor placed grok under `~/.grok/bin`.
 
 **Violating this rule is a critical setup / install-class regression.**
 
@@ -155,6 +158,7 @@ grok-cli setup --json
 | AC-5 | Successful fake installer places `grok`, not grok-cli |
 | AC-6 | TTY menu has no setup row |
 | AC-7 | grok-cli remains local-only (`SCRIPT_URL` empty) |
+| AC-8 | Vendor dir install with stale session PATH is exit 0, not `[ERROR]` |
 
 ---
 
@@ -176,6 +180,7 @@ grok-cli setup --json
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-25 | Active (1.0.0) | `setup` curls xAI grok installer |
+| 2026-08-30 | Active (1.1.0) | Stale session PATH after vendor `.bashrc` update is INFO, not ERROR; probe `~/.grok/bin` |
 
 ---
 
@@ -183,13 +188,13 @@ grok-cli setup --json
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-VCLI-01**–**09** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01**–**09**, **11**, **12** | `tests/test_grok_setup.sh` | have |
 | **TP-CLI-04** (help lists setup) | `tests/test_cli.sh` | have |
 | **TP-CLI-13** (menu excludes setup) | `tests/test_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-08-25  
+**Last Updated**: 2026-08-30  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

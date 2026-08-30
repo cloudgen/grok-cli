@@ -51,12 +51,18 @@ fi
 if [ "${CURL_FAIL:-0}" = "1" ]; then
     exit 22
 fi
-body='#!/bin/sh
-: "${USER_BIN:=${HOME}/.local/bin}"
-mkdir -p "${USER_BIN}"
-printf "%s\n" "#!/bin/sh" "echo grok-stub" > "${USER_BIN}/grok"
-chmod +x "${USER_BIN}/grok"
+if [ "${CURL_NOOP:-0}" = "1" ]; then
+    body='#!/bin/sh
+exit 0
 '
+else
+    body='#!/bin/sh
+: "${CURL_PEER_DIR:=${USER_BIN:-${HOME}/.local/bin}}"
+mkdir -p "${CURL_PEER_DIR}"
+printf "%s\n" "#!/bin/sh" "echo grok-stub" > "${CURL_PEER_DIR}/grok"
+chmod +x "${CURL_PEER_DIR}/grok"
+'
+fi
 if [ -n "${out}" ]; then
     printf '%s\n' "${body}" > "${out}"
 else
@@ -177,5 +183,49 @@ run_test_grok_setup() {
     assert_file_missing "TP-VCLI-08 did not write grok-cli as peer" "${CI_USER_BIN}/grok-cli"
     assert_contains "TP-VCLI-09 JSON installed" "${_out}" '"status":"installed"'
     assert_contains "TP-VCLI-09 JSON peer grok" "${_out}" '"peer":"grok"'
+    ci_cleanup_env
+
+    # TP-VCLI-11 vendor dir (~/.grok/bin), not on this session PATH: success, not ERROR
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    _vendor_bin="${CI_HOME}/.grok/bin"
+    _all=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_PEER_DIR="${_vendor_bin}" \
+            PATH="${CI_HOME}/fakecurl:${_tb}" \
+            sh "${SCRIPT}" setup 2>&1
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-11 vendor-dir setup exit 0" 0 "${_ec}"
+    assert_file_exists "TP-VCLI-11 peer grok at vendor dir" "${_vendor_bin}/grok"
+    assert_contains "TP-VCLI-11 success names install path" "${_all}" "installed at ${_vendor_bin}/grok"
+    assert_contains "TP-VCLI-11 explains stale PATH" "${_all}" "does not apply until a new session"
+    assert_contains "TP-VCLI-11 next is new terminal" "${_all}" "open a new terminal"
+    assert_not_contains "TP-VCLI-11 not an ERROR" "${_all}" "[ERROR]"
+    assert_not_contains "TP-VCLI-11 does not send operator to USER_BIN" "${_all}" "add ${CI_USER_BIN} to PATH"
+    _j=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
+            PATH="${CI_HOME}/fakecurl:${_tb}" \
+            sh "${SCRIPT}" --json setup 2>/dev/null
+    )
+    assert_contains "TP-VCLI-11 JSON already_installed after disk probe" "${_j}" '"status":"already_installed"'
+    assert_contains "TP-VCLI-11 JSON on_path false" "${_j}" '"on_path":"false"'
+    ci_cleanup_env
+
+    # TP-VCLI-12 installer ran, grok missing on disk: fail closed, no PATH-hint lie
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    _err=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_NOOP=1 \
+            PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+            sh "${SCRIPT}" setup 2>&1 >/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-12 missing grok exit 1" 1 "${_ec}"
+    assert_contains "TP-VCLI-12 error happened" "${_err}" "was not found"
+    assert_contains "TP-VCLI-12 Next step" "${_err}" "Next:"
+    assert_contains "TP-VCLI-12 Next is setup" "${_err}" "setup"
+    assert_not_contains "TP-VCLI-12 does not say add USER_BIN" "${_err}" "add ${CI_USER_BIN} to PATH"
     ci_cleanup_env
 }

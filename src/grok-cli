@@ -34,7 +34,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.2.0"
+# VERSION: hard-assign VERSION="1.2.1"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -50,8 +50,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.2.0"
-: "${VERSION:=1.2.0}"
+VERSION="1.2.1"
+: "${VERSION:=1.2.1}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -1498,18 +1498,22 @@ gc_resolve_grok_home() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Locate the xAI grok binary: GROK_BIN override, else command -v grok.
-# Empty string means not found. Does not mean grok-cli is installed.
+# Locate the xAI grok binary: GROK_BIN override, else command -v grok, else
+# the vendor dir (~/.grok/bin) and USER_BIN. Disk search is required because
+# the vendor installer writes PATH into ~/.bashrc; that does not apply to the
+# current session. Empty string means not found. Does not mean grok-cli is
+# installed.
 #
 # PRINTF EXCEPTION (class B): path data for $(…) capture only.
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
 #
-# Last updated: 2026-08-25
+# Last updated: 2026-08-30
 # =============================================================================
 gc_resolve_grok_peer() {
     : "${GROK_PEER_NAME:=grok}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
     if [ -n "${GROK_BIN:-}" ] && [ -x "${GROK_BIN}" ]; then
         printf '%s' "${GROK_BIN}"
         return 0
@@ -1519,7 +1523,68 @@ gc_resolve_grok_peer() {
         printf '%s' "${_p}"
         return 0
     fi
+    _vendor_bin="$(gc_resolve_grok_home)/bin/${GROK_PEER_NAME}"
+    if [ -x "${_vendor_bin}" ]; then
+        printf '%s' "${_vendor_bin}"
+        return 0
+    fi
+    if [ -x "${USER_BIN}/${GROK_PEER_NAME}" ]; then
+        printf '%s' "${USER_BIN}/${GROK_PEER_NAME}"
+        return 0
+    fi
     printf ''
+}
+
+# =============================================================================
+# gc_peer_on_current_path() - 0 if this shell can command -v grok
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Distinguishes "grok exists on disk" from "this session's PATH already
+# includes it". Vendor PATH edits in ~/.bashrc do not take effect until a
+# new session.
+#
+# ALIGNMENT:
+# - requirement-grok-setup.md
+#
+# Last updated: 2026-08-30
+# =============================================================================
+gc_peer_on_current_path() {
+    : "${GROK_PEER_NAME:=grok}"
+    _p=$(command -v "${GROK_PEER_NAME}" 2>/dev/null || true)
+    if [ -n "${_p}" ] && [ -x "${_p}" ]; then
+        return 0
+    fi
+    return 1
+}
+
+# =============================================================================
+# gc_setup_print_next() - Next: after setup found a peer binary
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Tell the operator the next command. If grok is on disk but this shell
+# cannot see it, that is expected (rc PATH is not live yet) — INFO, not ERROR.
+#
+# ALIGNMENT:
+# - requirement-grok-setup.md
+# - requirement-operator-readable-error.md
+#
+# Last updated: 2026-08-30
+# =============================================================================
+gc_setup_print_next() {
+    : "${APP_NAME:=grok-cli}"
+    _peer="${1:-}"
+    if [ -z "${_peer}" ]; then
+        return 1
+    fi
+    if gc_peer_on_current_path; then
+        out_info "Next: grok login, then ${APP_NAME} check-session."
+        return 0
+    fi
+    _peer_dir=$(dirname "${_peer}")
+    out_info "This shell does not have ${_peer_dir} on PATH yet. A PATH line in ~/.bashrc does not apply until a new session."
+    out_info "Next: open a new terminal, then grok login, then ${APP_NAME} check-session."
 }
 
 # =============================================================================
@@ -1528,15 +1593,17 @@ gc_resolve_grok_peer() {
 #
 # GENERAL PURPOSE:
 # Fetch https://x.ai/cli/install.sh (or GROK_VENDOR_INSTALL_URL) into a temp
-# file and run it with bash so peer grok is on PATH. Skip if grok is already
-# present unless --force. MUST NOT install grok-cli.
+# file and run it with bash so peer grok is installed. Skip if grok is already
+# present unless --force. After a successful vendor run, grok on disk is
+# success even when this session's PATH is stale (vendor writes PATH into
+# ~/.bashrc). MUST NOT install grok-cli.
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
 # - requirement-shell-cli-interface.md
 # - requirement-operator-readable-error.md
 #
-# Last updated: 2026-08-25
+# Last updated: 2026-08-30
 # =============================================================================
 gc_setup() {
     : "${APP_NAME:=grok-cli}"
@@ -1550,13 +1617,16 @@ gc_setup() {
     _peer=$(gc_resolve_grok_peer)
     if [ -n "${_peer}" ] && [ "${FORCE}" -ne 1 ]; then
         out_success "grok is already installed at ${_peer}."
-        out_info "Next: grok login, then ${APP_NAME} check-session."
+        gc_setup_print_next "${_peer}"
         if [ "${JSON}" -eq 1 ]; then
+            _on_path="false"
+            gc_peer_on_current_path && _on_path="true"
             out_json "setup" "grok is already installed at ${_peer}." \
                 "app" "${APP_NAME}" \
                 "status" "already_installed" \
                 "peer" "${GROK_PEER_NAME}" \
                 "peer_path" "${_peer}" \
+                "on_path" "${_on_path}" \
                 "vendor_url" "${GROK_VENDOR_INSTALL_URL}"
         fi
         return 0
@@ -1590,20 +1660,22 @@ gc_setup() {
         out_die "The xAI grok installer exited ${_rc}. This did not install ${APP_NAME}. Next: check the installer output, then ${APP_NAME} setup."
     fi
 
-    PATH="${USER_BIN}:${PATH}"
-    export PATH
     _peer=$(gc_resolve_grok_peer)
     if [ -z "${_peer}" ]; then
-        out_die "The installer finished but grok is not on PATH. Next: add ${USER_BIN} to PATH, then grok login, then ${APP_NAME} check-session."
+        _vendor_dir="$(gc_resolve_grok_home)/bin"
+        out_die "The installer finished but grok was not found under ${_vendor_dir} or ${USER_BIN}. Next: check the installer output, then ${APP_NAME} setup."
     fi
     out_success "grok is installed at ${_peer}."
-    out_info "Next: grok login, then ${APP_NAME} check-session."
+    gc_setup_print_next "${_peer}"
     if [ "${JSON}" -eq 1 ]; then
+        _on_path="false"
+        gc_peer_on_current_path && _on_path="true"
         out_json "setup" "grok is installed at ${_peer}." \
             "app" "${APP_NAME}" \
             "status" "installed" \
             "peer" "${GROK_PEER_NAME}" \
             "peer_path" "${_peer}" \
+            "on_path" "${_on_path}" \
             "vendor_url" "${GROK_VENDOR_INSTALL_URL}"
     fi
     return 0

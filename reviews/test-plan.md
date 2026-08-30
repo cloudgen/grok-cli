@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.2.0  
-**Last plan update:** 2026-08-25  
-**Last suite run:** `./tests/run.sh` (1.2.0: PASS=266 FAIL=0 SKIP=0)
+**Product VERSION:** 1.2.1  
+**Last plan update:** 2026-08-30  
+**Last suite run:** `./tests/run.sh` (1.2.1: PASS=280 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -22,7 +22,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Storage isolation | have | TP-CLI-12 |
 | Help lists setup / check-session / backup / sync-auth; no restore operand | have | TP-CLI-04 |
-| `setup` vendor grok installer (fake curl) | have | TP-VCLI-01..09 |
+| `setup` vendor grok installer (fake curl) | have | TP-VCLI-01..09 · 11 · 12 |
 | Local install / idempotent / uninstall / mode 0755 | have | TP-LC-01..10 |
 | Session gate | have | TP-GROK-CLI-03..06 |
 | Backup to writable GROK_CLI_ROOT + overwrite | have | TP-GROK-CLI-07/08 |
@@ -85,6 +85,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-VCLI-08 | fake installer places `grok`, not grok-cli | test_grok_setup | requirement-grok-setup | **have** |
 | TP-VCLI-09 | JSON `status` installed / already_installed | test_grok_setup | requirement-grok-setup | **have** |
 | TP-VCLI-10 | live x.ai fetch | — | requirement-grok-setup | **optional** |
+| TP-VCLI-11 | vendor `~/.grok/bin` + stale session PATH → exit 0, not `[ERROR]` | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-12 | installer ran, grok missing on disk → fail closed, no USER_BIN PATH hint | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
 
 ### TP-GROK-CLI (domain + privilege + auth ops)
 

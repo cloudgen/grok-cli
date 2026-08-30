@@ -99,7 +99,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
 | `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
 | `main` | Type 0 | `app_default` (alias) | Same as `menu` |
-| `setup` | Type 0 | `gc_setup` (domain) | Fetch xAI grok installer and run it so peer `grok` is on PATH; skip if already present unless `--force`. **MUST NOT** install grok-cli |
+| `setup` | Type 0 | `gc_setup` (domain) | Fetch xAI grok installer and run it so peer `grok` is installed; skip if already present unless `--force`. Stale session PATH is not an error. **MUST NOT** install grok-cli |
 | `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in |
 | `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
 | `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo |
@@ -209,7 +209,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have |
-| **TP-VCLI-01..09** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01..09**, **11**, **12** | `tests/test_grok_setup.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`

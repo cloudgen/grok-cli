@@ -1,6 +1,6 @@
 # grok-cli - Grok auth backup to /var/grok-cli and unprivileged sync-auth
 
-![Version](https://img.shields.io/badge/Version-1.2.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.2.1-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -14,7 +14,7 @@
 ## Features
 
 - **Local self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
-- **Peer grok install**: `setup` — `curl -fsSL https://x.ai/cli/install.sh` then run it so the xAI `grok` CLI is on PATH (does **not** install grok-cli; skip if `grok` is already present)
+- **Peer grok install**: `setup` — `curl -fsSL https://x.ai/cli/install.sh` then run it so the xAI `grok` CLI is installed under `~/.grok/bin` (does **not** install grok-cli; skip if `grok` is already present). A PATH line in `~/.bashrc` does not apply to the current session.
 - **Session gate**: `check-session` — confirm grok is logged in (`~/.grok/auth.json`)
 - **Backup**: `backup` → check session → elevated deposit of `auth.*` into `/var/grok-cli` → `chown root:root` → `chmod 0644`
 - **sync-auth**: copy `/var/grok-cli/auth.*` into `~/.grok` as the invoking login (mode `0600` on `auth.json`; **no sudo**)
@@ -99,8 +99,9 @@ grok-cli uninstall --force
 ## Examples
 
 ```sh
-# Place xAI grok (skip if already on PATH), sign in, then push auth.*
+# Place xAI grok (skip if already installed), sign in, then push auth.*
 grok-cli setup
+# open a new terminal if grok is not on this session PATH yet
 grok login
 grok-cli check-session
 grok-cli backup

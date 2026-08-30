@@ -32,7 +32,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Place grok | grok-cli curls xAI’s installer so `grok` is on PATH | `grok-cli setup` |
+| Place grok | grok-cli curls xAI’s installer so `grok` is installed | `grok-cli setup` |
 | Confirm login | grok-cli reads `~/.grok/auth.json` and fails closed if it is missing or expired | `grok-cli check-session` |
 | Push shared auth | After a valid session, grok-cli copies `auth.*` into `/var/grok-cli` as root | `grok-cli backup` |
 | Pull shared auth | A normal login copies from `/var/grok-cli` into `~/.grok` with no sudo | `grok-cli sync-auth` |
@@ -45,7 +45,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 
 | Command | Operands / flags | Handler prefix | Behavior summary | Behavior SSOT |
 |---------|------------------|----------------|------------------|---------------|
-| `setup` | `--force` | `gc_*` | Curl xAI grok installer; skip if `grok` already on PATH | **`requirement-grok-setup`** |
+| `setup` | `--force` | `gc_*` | Curl xAI grok installer; skip if `grok` already present | **`requirement-grok-setup`** |
 | `check-session` | none | `gc_*` | Confirm grok is logged in | **`requirement-grok-auth-backup`** |
 | `backup` | none | `gc_*` | Check session, then elevated deposit of `auth.*` into `/var/grok-cli` | **`requirement-grok-auth-backup`** |
 | `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo** | **`requirement-grok-auth-backup`** |
@@ -243,7 +243,7 @@ grok-cli sync-auth
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-04**, **TP-CLI-06** | `tests/test_cli.sh` | have |
-| **TP-VCLI-01**–**09** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01**–**09**, **11**, **12** | `tests/test_grok_setup.sh` | have |
 | **TP-GROK-CLI-01**, **01b**, **02**, **11**, **14**, **15**, **15b**, **19**–**25** | `tests/test_domain_grok_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
