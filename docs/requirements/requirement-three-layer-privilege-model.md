@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-three-layer-privilege-model.md  
-**Status**: Active (Version 2.0.0)  
+**Status**: Active (Version 2.0.1)  
 **Area**: architecture  
 **Key**: `requirement-three-layer-privilege-model`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -328,7 +328,7 @@ When an agent **creates or materially revises** a sudoers draft (beyond re-runni
 | Invocation | `sudo -n` after passwordless fragment; non-interactive without ticket **fails closed** |
 | Scope | Deposit only — not package install, not shell |
 | Destination create | Deposit dir `/var/grok-cli` **SHOULD** exist (admin or project command after elev) |
-| Staging | Per-user storage under `/dev/shm/grok-cli-<user>` (preferred), else `/tmp/...`, else cache fallback — Type 1 internals, **not** fragment operands |
+| Staging | Preferred cache `/dev/shm/cache/cache-grok-cli`, else `/tmp/cache/cache-grok-cli`, else XDG `cache-grok-cli` — Type 1 internals, **not** fragment operands |
 
 ### 2.5 Implementation Notes (this project)
 
@@ -536,9 +536,10 @@ esac
 | 2026-08-17 | Active 1.8.1 | §2.3.4 / §2.3.4a example is `grok-cli` backup only (OS-tool illustration withdrawn); TP-23c |
 | 2026-08-17 | Active 1.9.0 | `generate-sudoer-request` §2.3.3d; submit compact handoff; AC-23; TP-24; INC-20260817-002 |
 | 2026-08-17 | Active 1.10.0 | §2.3.2a independent generate (any sudoer generate = Type 0 subcommand → readable dest); AC-24; TP-24d |
+| 2026-08-30 | Active 2.0.1 | Staging preferred cache `/dev/shm/cache/cache-${APP_NAME}` |
 
 ---
 
-**Last Updated**: 2026-08-17 (1.10.0 independent generate dest)  
+**Last Updated**: 2026-08-30 (2.0.1 preferred cache path)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; mold `template-three-layer-privilege-model.md` (**`LM-THREE-LAYER-PRIVILEGE-MODEL`**); **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

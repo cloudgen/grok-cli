@@ -20,7 +20,7 @@ Durable failure modes. **Always re-check on product review.**
 | L-PUSH-VAULT-01 | Bare `git push` uses wrong active SSH vault when default face ≠ repository-user | Pre-git report + `GIT_SSH_COMMAND -i` / activate matching vault (SK-COMMIT-CHECK §3.3); incident 20260810-001 | open watch |
 | L-OVERWRITE-01 | Accidental skip of auth snapshot overwrite (backup must replace same basenames) | TP-GROK-CLI-08 | open watch |
 | L-SETU-01 | `set -u` crash with unset HOME | TP-CLI-11 | open watch |
-| L-STOR-01 | Shared world-writable storage / stage roots not matching sudoers wildcards | util_resolve_storage; per-user stage; TP-CLI-12 · TP-GROK-CLI-02 | open watch |
+| L-STOR-01 | Shared world-writable storage / stage roots not matching sudoers wildcards; shm cache looking like a ram-drive project folder | util_resolve_storage; preferred `/dev/shm/cache/cache-${APP_NAME}`; TP-CLI-12 · TP-GROK-CLI-02 | open watch |
 | L-INBOUND-01 | Submit probes only home `sudoer-approving` (or Type 0 `mkdir` inbound) | Public inbound first (`/var/sudoer-cli/sudoer-request`); no mkdir; TP-GROK-CLI-21/21b | open watch |
 | L-SUDOERS-06 | `[OK] submit` inbound drops `backup` while purpose still names the grant | Inbound is sibling **re-encode**; count `commands[].args` before approve; INC-20260817-001 | open watch |
 | L-OUTPUT-01 | Submit fail-closed `[ERROR]` uses inbound/verb/sibling-re-encode jargon; operator cannot act | Fatal submit errors must name the missing grant, do-not-approve request id, and next command (`generate-sudoer-request`); **requirement-operator-readable-error**; TP-25*; incomplete inbound JSON is **not** a standing expected class (owner); INC-20260817-002 | open watch |

@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
 **Updated:** 2026-08-30  
-**Product VERSION:** 1.2.1  
+**Product VERSION:** 1.3.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -23,7 +23,7 @@
 | requirement-shell-script-coding | shell | TP-CLI-01, TP-CLI-11 | posix-sh `set -u` |
 | requirement-shell-idempotency | shell | TP-LC-03,07 · TP-GROK-CLI-08 | Re-install; auth overwrite |
 | requirement-shell-interactive-vs-noninteractive | shell | TP-LC-05 · TP-GROK-CLI-15 · 15b | Confirm fail-closed |
-| requirement-shell-cli-storage | shell | TP-CLI-12 | Isolation |
+| requirement-shell-cli-storage | shell | TP-CLI-**06**, **12** | Cache `/dev/shm/cache/cache-${APP_NAME}` + persistence `${HOME}/.local/${APP_NAME}`; about Cache folder + Persistence storage |
 | requirement-domain-grok-cli | domain | TP-GROK-CLI-01,02,11,14,15,19,20,21*,23*,24* · TP-CLI-04,06 · TP-VCLI-02 | Surface verbs/help/about including `setup` |
 | requirement-domain-folder-backup | superseded | n/a | Retired |
 | requirement-folder-archive-backup* | superseded | n/a | Retired (TP-GROK-CLI-11 proves restore unknown) |

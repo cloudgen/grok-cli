@@ -69,12 +69,21 @@ run_test_cli() {
     assert_eq "TP-CLI-05 help --json exit 0" 0 "$?"
     assert_contains "TP-CLI-05 help json success" "$_out" '"type":"success"'
 
-    # TP-CLI-06 about json domain + storage, no channel
+    # TP-CLI-06 about json domain + cache folders, no channel
     _out=$(sh "${SCRIPT}" --json about 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-06 about --json exit 0" 0 "$_ec"
     assert_contains "TP-CLI-06 type about" "$_out" '"type":"about"'
+    assert_contains "TP-CLI-06 cache_preferred" "$_out" '"cache_preferred"'
+    assert_contains "TP-CLI-06 cache_fallback" "$_out" '"cache_fallback"'
+    assert_contains "TP-CLI-06 persistence_storage" "$_out" '"persistence_storage"'
     assert_contains "TP-CLI-06 effective_storage" "$_out" '"effective_storage"'
+    _hum=$(sh "${SCRIPT}" about 2>/dev/null)
+    assert_contains "TP-CLI-06 human Cache folder preferred" "$_hum" "Cache folder (preferred)"
+    assert_contains "TP-CLI-06 human Cache folder fallback" "$_hum" "Cache folder (fallback)"
+    assert_contains "TP-CLI-06 human Persistence storage" "$_hum" "Persistence storage"
+    assert_not_contains "TP-CLI-06 no Storage (effective) label" "$_hum" "Storage (effective)"
+    assert_not_contains "TP-CLI-06 no Storage (fallback) label" "$_hum" "Storage (fallback)"
     assert_contains "TP-CLI-06 grok_cli_root" "$_out" '"grok_cli_root"'
     assert_contains "TP-CLI-06 deposit_dir" "$_out" '"deposit_dir"'
     assert_contains "TP-CLI-06 session" "$_out" '"session"'
@@ -177,16 +186,38 @@ PY
     assert_eq "TP-CLI-11 env -u HOME version exit 0" 0 "$_ec"
     assert_contains "TP-CLI-11 env -u HOME version text" "$_out" "${PRODUCT_VERSION}"
 
-    # TP-CLI-12 storage isolation under temp HOME
+    # TP-CLI-12 cache isolation under temp HOME
     ci_isolated_env
     _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" --json about 2>/dev/null)
-    assert_contains "TP-CLI-12 isolated about has app in storage" "$_out" "${APP_NAME}"
+    assert_contains "TP-CLI-12 isolated about has app in cache" "$_out" "${APP_NAME}"
+    _pref=$(printf '%s' "$_out" | sed -n 's/.*"cache_preferred":"\([^"]*\)".*/\1/p' | head -n1)
+    assert_eq "TP-CLI-12 cache_preferred path" "/dev/shm/cache/cache-${APP_NAME}" "$_pref"
+    _fb=$(printf '%s' "$_out" | sed -n 's/.*"cache_fallback":"\([^"]*\)".*/\1/p' | head -n1)
+    case "${_fb}" in
+        */cache-${APP_NAME}) t_pass "TP-CLI-12 cache_fallback ends cache-${APP_NAME}" ;;
+        *) t_fail "TP-CLI-12 cache_fallback unexpected: '${_fb:-empty}'" ;;
+    esac
     _eff=$(printf '%s' "$_out" | sed -n 's/.*"effective_storage":"\([^"]*\)".*/\1/p' | head -n1)
     if [ -n "$_eff" ] && [ -d "$_eff" ]; then
-        t_pass "TP-CLI-12 effective_storage directory exists"
+        t_pass "TP-CLI-12 effective cache directory exists"
     else
-        t_fail "TP-CLI-12 effective_storage missing: '${_eff:-empty}'"
+        t_fail "TP-CLI-12 effective cache missing: '${_eff:-empty}'"
     fi
+    case "${_eff}" in
+        */${APP_NAME}-*) t_fail "TP-CLI-12 effective cache must not be APP-USERNAME ram-drive shape: '${_eff}'" ;;
+        *) t_pass "TP-CLI-12 effective cache is not APP-USERNAME ram-drive shape" ;;
+    esac
+    _persist=$(printf '%s' "$_out" | sed -n 's/.*"persistence_storage":"\([^"]*\)".*/\1/p' | head -n1)
+    assert_eq "TP-CLI-12 persistence_storage path" "${CI_HOME}/.local/${APP_NAME}" "$_persist"
+    if [ -n "$_persist" ] && [ -d "$_persist" ]; then
+        t_pass "TP-CLI-12 persistence storage directory exists"
+    else
+        t_fail "TP-CLI-12 persistence storage missing: '${_persist:-empty}'"
+    fi
+    case "${_persist}" in
+        */.local/bin|*/.local/bin/) t_fail "TP-CLI-12 persistence must not be USER_BIN: '${_persist}'" ;;
+        *) t_pass "TP-CLI-12 persistence is not the install bin directory" ;;
+    esac
     ci_cleanup_env
 
     # TP-CLI-13 menu/main: off-TTY help; TTY numbered list; empty argv off-TTY still help

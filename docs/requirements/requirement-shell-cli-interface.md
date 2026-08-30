@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.3.0)  
+**Status**: Active (Version 2.3.2)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -95,7 +95,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
-| `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage, grok home, session, deposit dir; **no** channel one-liner |
+| `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY; **Cache folder (preferred)** `/dev/shm/cache/cache-${APP_NAME}` and **Cache folder (fallback)**; **Persistence storage** `${HOME}/.local/${APP_NAME}`; grok home, session, deposit dir; **no** channel one-liner |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
 | `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
 | `main` | Type 0 | `app_default` (alias) | Same as `menu` |
@@ -226,9 +226,11 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | 2026-08-23 | Active 2.1.0 | Intended Gap `menu`/`main`; empty argv stays Type N help (not the numbered list) |
 | 2026-08-23 | Active 2.2.0 | `menu`/`main` routed to `app_default`; TTY empty argv numbered list |
 | 2026-08-25 | Active 2.3.0 | `setup` Type 0 — curl xAI grok installer (peer CLI; not grok-cli install) |
+| 2026-08-30 | Active 2.3.1 | About **Cache folder (preferred)/(fallback)** |
+| 2026-08-30 | Active 2.3.2 | About **Persistence storage** `${HOME}/.local/${APP_NAME}` |
 
 ---
 
-**Last Updated**: 2026-08-25  
+**Last Updated**: 2026-08-30  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

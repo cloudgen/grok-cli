@@ -1,60 +1,106 @@
 **file**: docs/requirements/requirement-shell-cli-storage.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.2.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-storage`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **shell CLI storage resolution** of grok-cli: volatile scratch and app-scoped cache path selection, per-user isolation, central resolver ownership, `app_main` wire, and about diagnostics.
+This requirement is the **project Single Source of Truth** for **shell CLI storage** of grok-cli. **Storage** means **two** classes:
 
-Used heavily for **tar.gz staging** before elevated deposit into `/var/backup/...`.
+| Class | Role | Survives reboot |
+|-------|------|-----------------|
+| **Cache folder** | Volatile scratch / temps / staging | No (shm/tmp) or maybe (XDG fallback) |
+| **Persistence storage** | Type 0 durable per-user app data | Yes (under this login’s `$HOME`) |
+
+It owns path **shapes**, central resolvers, `app_main` wire, and about diagnostics for both classes.
+
+Used for **volatile temps** (mktemp, grant convert scratch) and **tar.gz staging** before elevated deposit into `/var/grok-cli`. Persistence is **not** that deposit.
+
+The preferred cache is **not** a ram-drive **project** tree (`/dev/shm/<project>`). It lives under `/dev/shm/cache/` so `about` and the filesystem do not look like a grok-cli workspace.
 
 ---
 
 ### 1.1 Human-facing
 
-Scratch files go under a per-user storage dir, not a shared world-writable dump.
+Scratch goes in a cache folder. Durable Type 0 app data goes under this login’s persistence storage. `/var/grok-cli` is the shared deposit, not your personal store.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Let the CLI pick cache/scratch | `/var/grok-cli` is the durable store, not scratch | Putting tokens in `/tmp` with a guessed name |
+| Let the CLI pick cache + persistence | `/var/grok-cli` is the Type 1 deposit | Putting tokens in `/tmp` with a guessed name; treating `~/.local/bin` as data |
 
-**Includes:** resolver, about field. **Excludes:** deposit chown.
+**Includes:** cache resolver, persistence resolver, about fields. **Excludes:** deposit chown; install binary placement.
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Inspect scratch | about shows effective storage | `grok-cli --json about` |
+| Inspect storage | about shows Cache folder (preferred)/(fallback) **and** Persistence storage | `grok-cli about` / `grok-cli --json about` |
 
 
 ## 2. Core Rules / Requirements (Mandatory)
 
-### 2.1 Single resolver SSOT
+### 2.1 Two storage classes (mandatory split)
 
-1. **MUST** keep **one** authoritative storage-resolve helper: **`util_resolve_storage`**.  
+| Class | Path shape | Helper |
+|-------|------------|--------|
+| Cache folder (preferred) | `/dev/shm/cache/cache-${APP_NAME}` | `util_preferred_cache_dir` |
+| Cache folder (tmp) | `/tmp/cache/cache-${APP_NAME}` | live resolve only |
+| Cache folder (fallback) | `${XDG_CACHE_HOME:-${HOME}/.cache}/cache-${APP_NAME}` | `util_fallback_cache_dir` |
+| Persistence storage | `${HOME}/.local/${APP_NAME}` | `util_persistent_storage_dir` |
+
+Live chosen **cache** root: `util_resolve_storage` (stdout).  
+Live **persistence** root: `util_resolve_persistent_storage` (stdout; create-before-return).
+
+**MUST NOT** mix these with:
+
+| Forbidden as this product’s storage | Why |
+|-------------------------------------|-----|
+| `${HOME}/.local/bin` / `USER_BIN` | Install binary dir |
+| `/var/grok-cli` / `GROK_CLI_ROOT` | Type 1 durable deposit (privilege law) |
+| `/dev/shm/${APP_NAME}` or `/dev/shm/${APP_NAME}-${USERNAME}` | Looks like a ram-drive project folder |
+| `${HOME}/.local/share/${APP_NAME}` | Not this product’s persistence shape |
+
+Config drafts stay under `${HOME}/.config/${APP_NAME}/` (sudoers fragment / JSON grant). That is **config**, not cache and not persistence.
+
+### 2.2 Single cache resolver SSOT
+
+1. **MUST** keep **one** authoritative cache-resolve helper: **`util_resolve_storage`**.  
 2. New code that needs a product scratch/cache **root** **MUST** call `util_resolve_storage` (or `mktemp` under a path it returned).  
 3. Resolver **MUST** print the chosen directory path on **stdout** for `$(util_resolve_storage)` capture.  
-4. User-visible failure about storage **MUST** use Output SSOT.
+4. User-visible failure about cache **MUST** use Output SSOT.
 
-### 2.2 Live resolve priority
+Preferred and fallback **path shapes** **MUST** be `util_preferred_cache_dir` and `util_fallback_cache_dir` (or the same literals those helpers print).
 
-First match that is available and writable:
+### 2.3 Live cache resolve priority
+
+First match that can be created **and** is writable:
 
 | Order | Condition | Path shape |
 |-------|-----------|------------|
-| 1 | `/dev/shm` exists and is writable | `/dev/shm/${APP_NAME}-${USERNAME}` |
-| 2 | `/tmp` is writable | `/tmp/${APP_NAME}-${USERNAME}` |
-| 3 | Fallback | `STORAGE_DIR` (`${XDG_CACHE_HOME:-${HOME}/.cache}/${APP_NAME}-${USERNAME}`, env-overridable) |
+| 1 (preferred) | `/dev/shm` exists and is writable | `/dev/shm/cache/cache-${APP_NAME}` |
+| 2 | `/tmp` is writable | `/tmp/cache/cache-${APP_NAME}` |
+| 3 (fallback) | User cache | `STORAGE_DIR` (`${XDG_CACHE_HOME:-${HOME}/.cache}/cache-${APP_NAME}`, env-overridable) |
 
-**Create before return:** for the **chosen** tier, the resolver **MUST** `mkdir -p` the root, then print the path. If create fails → **MUST** fail closed. **MUST NOT** return a path without creating it.
+**Parent:** for shm/tmp tiers the resolver **MUST** create `/dev/shm/cache` or `/tmp/cache` (prefer mode **1777** when creating) so other logins can add sibling `cache-<app>` directories.
 
-### 2.3 Isolation
+**Create before return:** for the **chosen** leaf, the resolver **MUST** `mkdir -p` it, confirm it is **writable**, then print the path. If create/write fails → try the next tier. If none work → **MUST** fail closed. **MUST NOT** return a path without creating it.
 
-1. Paths **MUST** include **`${APP_NAME}`** and **`${USERNAME}`**.  
-2. **MUST NOT** use a single shared world-writable directory for all users.  
-3. Live product **MUST** export `TMPDIR=${EFFECTIVE_STORAGE_DIR}` so `mktemp` inherits the isolated root.  
-4. New scratch files **MUST** be created via **`util_mktemp`** (or `mktemp` under a path `util_resolve_storage` returned).  
-5. **MUST NOT** use predictable `$$` names (forbidden: `/tmp/${APP_NAME}.$$`, `${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$`).
+**MUST NOT** use these as cache:
+
+| Forbidden cache path | Why |
+|----------------------|-----|
+| `/dev/shm/${APP_NAME}` | Looks like a ram-drive project folder |
+| `/dev/shm/${APP_NAME}-${USERNAME}` | Same confusion; username in the shm leaf is withdrawn |
+| `/dev/shm` or `/tmp` as a dump | No app-named cache leaf |
+| Persistence storage | Durable data is not scratch |
+
+### 2.4 Cache isolation
+
+1. Cache leaves **MUST** include **`cache-${APP_NAME}`** (app identity).  
+2. Preferred shm path **MUST NOT** include `${USERNAME}` (that made the dest look like a ram-drive login folder). Isolation is: sticky `…/cache/` parent + this login’s leaf (if another owner holds the leaf, fall through) + fallback under this login’s `$HOME`.  
+3. **MUST NOT** use a single shared world-writable directory for all apps.  
+4. Live product **MUST** export `TMPDIR=${EFFECTIVE_STORAGE_DIR}` so `mktemp` inherits the isolated **cache** root.  
+5. New scratch files **MUST** be created via **`util_mktemp`** (or `mktemp` under a path `util_resolve_storage` returned).  
+6. **MUST NOT** use predictable `$$` names (forbidden: `/tmp/${APP_NAME}.$$`, `${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$`).
 
 **Complete `util_mktemp` sample:**
 
@@ -83,34 +129,48 @@ tmp="/tmp/${APP_NAME}.$$"
 tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 ```
 
-### 2.4 Wire and diagnostics
+### 2.5 Persistence storage
+
+1. Persistence **MUST** be **`${HOME}/.local/${APP_NAME}`** (this login’s home + app name).  
+2. Helper **`util_persistent_storage_dir`** **MUST** print that path. **`util_resolve_persistent_storage`** **MUST** `mkdir -p` it, confirm it is writable, then print it (fail closed).  
+3. **MUST NOT** use `${HOME}/.local/bin` as persistence (that is `USER_BIN`).  
+4. **MUST NOT** use `/var/grok-cli` as Type 0 persistence.  
+5. **MUST NOT** store scratch/temps in persistence when a cache root is available.  
+6. Persistence **MUST** be under the invoking login’s `$HOME` (per-user). **MUST** include `${APP_NAME}`.
+
+### 2.6 Wire and diagnostics
 
 | Surface | Requirement |
 |---------|-------------|
-| `app_main` | Resolve once early: `EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)`; export `EFFECTIVE_STORAGE_DIR`, `STORAGE_DIR`, `TMPDIR` |
-| `app_about` | Include effective storage fields (human + JSON) |
-| Domain `backup` | Stage archives under effective storage; clean up on exit |
+| `app_main` | Resolve once early: `EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)`; `PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)`; export `EFFECTIVE_STORAGE_DIR`, `STORAGE_DIR`, `PERSISTENT_STORAGE_DIR`, `TMPDIR` (`TMPDIR` = cache root) |
+| `app_about` human | **MUST** print **`Cache folder (preferred):`** then `/dev/shm/cache/cache-${APP_NAME}`; **MUST** print **`Cache folder (fallback):`** then the XDG `cache-${APP_NAME}` path; **MUST** print **`Persistence storage:`** then `${HOME}/.local/${APP_NAME}`. **MUST NOT** label cache lines **Storage (effective)** or **Storage (fallback)** |
+| `app_about` JSON | **MUST** include `cache_preferred`, `cache_fallback`, `persistence_storage`, and the live chosen cache root as `effective_storage` (plus `storage_dir` = cache fallback). **MUST NOT** include `CHECKSUM` |
+| Domain `backup` | Stage archives under effective **cache**; clean up on exit |
 
-### 2.5 Staging rules for backups
+### 2.7 Staging rules for backups
 
 1. Create archives in a stage directory under `EFFECTIVE_STORAGE_DIR` (e.g. `.../stage/`).  
 2. Use restrictive modes appropriate for user data (prefer not world-readable when content may be sensitive).  
 3. **MUST** remove staging artifacts via `trap` on success and failure after deposit attempt completes (or fails closed with path logged).  
-4. Durable deposit path `/var/backup/...` is **not** the storage resolver’s job (privilege + domain law).
+4. Durable deposit path `/var/grok-cli` is **not** the cache or persistence resolver’s job (privilege + domain law).
 
-### 2.6 Implementation Notes (this project)
+### 2.8 Implementation Notes (this project)
 
 | Item | Live value |
 |------|------------|
 | **Product / binary** | `grok-cli` |
-| **Resolver** | `util_resolve_storage` in `src/grok-cli` |
-| **Call sites** | `app_main`, `app_about`, domain staging |
-| **Not used for** | Durable `/var/backup` deposit root |
+| **Cache resolver** | `util_resolve_storage` in `src/grok-cli` |
+| **Preferred cache** | `/dev/shm/cache/cache-grok-cli` |
+| **Fallback cache** | `${XDG_CACHE_HOME}/cache-grok-cli` |
+| **Persistence** | `${HOME}/.local/grok-cli` |
+| **Persistence resolver** | `util_resolve_persistent_storage` |
+| **Call sites** | `app_main`, `app_about`, domain staging (cache) |
+| **Not used for** | Durable `/var/grok-cli` deposit; install `~/.local/bin`; ram-drive project dests |
 
-### 2.7 Why This Requirement Exists (CIAO)
+### 2.9 Why This Requirement Exists (CIAO)
 
-- **Caution:** Multi-user isolation.  
-- **Intentional:** One resolver.  
+- **Caution:** Multi-user isolation without looking like a project tree on tmpfs; durable Type 0 data is not mixed with bins or Type 1 deposit.  
+- **Intentional:** Storage = cache folder **and** persistence storage; about says both.  
 - **Anti-fragile:** Missing `/dev/shm` still works.  
 - **Principle 11 – Temps:** Cleanup, not museum copies of staging.
 
@@ -118,9 +178,11 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
-- Volatile first, user cache last for scratch.  
+- Volatile cache first, user cache last for scratch.  
+- Persistence is under `$HOME/.local/${APP_NAME}`, not under `bin` or `/var`.  
 - Isolation before convenience.  
-- Create fail-closed in the resolver.
+- Create fail-closed in the resolvers.  
+- Cache path family is distinct from ram-drive **project** folders.
 
 ---
 
@@ -128,15 +190,18 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
-1. Remove `${APP_NAME}` / `${USERNAME}` isolation.  
-2. Replace the fallback chain with a shared world-writable dump.  
-3. Scatter hard-coded `/tmp/grok-cli` roots outside the resolver.  
-4. Leave the resolver dead with no call sites while claiming storage is product law.  
-5. Echo a tier path without creating it.  
-6. Stage durable deposits only in world-writable shared paths by design.  
-7. Use predictable `$$` scratch names instead of `util_mktemp` / `mktemp` XXXXXX.
+1. Restore `/dev/shm/${APP_NAME}` or `/dev/shm/${APP_NAME}-${USERNAME}` as the preferred cache.  
+2. Label about cache lines **Storage (effective)** / **Storage (fallback)** instead of **Cache folder (preferred)** / **Cache folder (fallback)**.  
+3. Drop persistence storage from this requirement or from `about`.  
+4. Use `${HOME}/.local/bin` or `/var/grok-cli` as Type 0 persistence.  
+5. Replace the cache fallback chain with a shared world-writable dump.  
+6. Scatter hard-coded `/tmp/grok-cli` roots outside the cache resolver.  
+7. Leave the resolvers dead with no call sites while claiming storage is product law.  
+8. Echo a tier path without creating it.  
+9. Stage durable deposits only in world-writable shared paths by design.  
+10. Use predictable `$$` scratch names instead of `util_mktemp` / `mktemp` XXXXXX.
 
-**Violating this rule is a critical storage isolation regression.**
+**Violating this rule is a critical cache isolation / honesty regression.**
 
 ---
 
@@ -144,11 +209,13 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | Exactly one authoritative resolver creates and returns the root |
-| AC-2 | Priority matches §2.2 |
-| AC-3 | `app_main` sets `EFFECTIVE_STORAGE_DIR` / `TMPDIR` early |
-| AC-4 | Backup staging uses the resolver root and cleans up |
+| AC-1 | Exactly one authoritative cache resolver creates and returns the cache root |
+| AC-2 | Preferred cache leaf is `/dev/shm/cache/cache-${APP_NAME}` when shm is usable |
+| AC-3 | `app_main` sets `EFFECTIVE_STORAGE_DIR` / `TMPDIR` / `PERSISTENT_STORAGE_DIR` early |
+| AC-4 | `about` human uses Cache folder (preferred)/(fallback) and Persistence storage; JSON has `cache_preferred` / `cache_fallback` / `persistence_storage` |
 | AC-5 | Scratch files use `util_mktemp` / `mktemp` XXXXXX; no `$$` names |
+| AC-6 | Live cache path is not `/dev/shm/${APP_NAME}-${USERNAME}` |
+| AC-7 | Persistence path is `${HOME}/.local/${APP_NAME}` and the directory exists after resolve |
 
 ---
 
@@ -156,12 +223,23 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-project-folder` | Path classes |
+| `requirement-project-folder` | Path classes; install bin vs persistence vs deposit |
 | `requirement-domain-grok-cli` | Staging use |
 | `requirement-shell-cli-interface` | About fields |
+| `requirement-shell-local-self-management` | `USER_BIN` is not persistence |
 | `docs/requirements/index.md` | Registry |
 
 ---
+
+## Design-time verification
+
+| TP family / ID | Suite | Status |
+|----------------|-------|--------|
+| **TP-CLI-06** | `tests/test_cli.sh` | **have** — about JSON cache + persistence fields + human labels |
+| **TP-CLI-12** | same | **have** — preferred cache `/dev/shm/cache/cache-${APP_NAME}`; persistence `${HOME}/.local/${APP_NAME}`; live dirs exist; cache not APP-USERNAME shape |
+
+**Matrix:** `reviews/requirement-test-matrix.md`  
+**Map:** `reviews/test-plan.md`
 
 ## 7. Status history
 
@@ -169,9 +247,11 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 |------|--------|------|
 | 2026-08-03 | Active | Storage resolve for folder-backup staging |
 | 2026-08-15 | Active | `util_mktemp` sample; forbid `$$` scratch names |
+| 2026-08-30 | Active 1.1.0 | Preferred `/dev/shm/cache/cache-${APP_NAME}`; about Cache folder labels |
+| 2026-08-30 | Active 1.2.0 | Storage = cache folder **and** persistence `${HOME}/.local/${APP_NAME}` |
 
 ---
 
-**Last Updated**: 2026-08-15  
+**Last Updated**: 2026-08-30  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

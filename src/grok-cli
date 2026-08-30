@@ -34,7 +34,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.2.1"
+# VERSION: hard-assign VERSION="1.3.0"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -50,8 +50,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.2.1"
-: "${VERSION:=1.2.1}"
+VERSION="1.3.0"
+: "${VERSION:=1.3.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -848,79 +848,121 @@ util_backup() {
 }
 
 # =============================================================================
-# util_resolve_storage() - Storage resolver
+# Cache folder paths (preferred / fallback) — not ram-drive project trees
+# =============================================================================
+#
+# Preferred: /dev/shm/cache/cache-${APP_NAME}
+# Fallback:  ${XDG_CACHE_HOME}/cache-${APP_NAME}
+# MUST NOT use /dev/shm/${APP_NAME} or /dev/shm/${APP_NAME}-${USERNAME}
+# (those look like ram-drive project folders).
+#
+# ALIGNMENT: requirement-shell-cli-storage.md
+# =============================================================================
+util_preferred_cache_dir() {
+    : "${APP_NAME:=app}"
+    printf '%s' "/dev/shm/cache/cache-${APP_NAME}"
+}
+
+util_fallback_cache_dir() {
+    : "${APP_NAME:=app}"
+    : "${HOME:=/tmp}"
+    : "${XDG_CACHE_HOME:=${HOME}/.cache}"
+    printf '%s' "${XDG_CACHE_HOME}/cache-${APP_NAME}"
+}
+
+# Persistence storage (Type 0 durable per-user data).
+# Path: ${HOME}/.local/${APP_NAME}
+# MUST NOT be ${HOME}/.local/bin (install), /var/grok-cli (Type 1 deposit),
+# or a ram-drive cache leaf.
+util_persistent_storage_dir() {
+    : "${APP_NAME:=app}"
+    : "${HOME:=/tmp}"
+    printf '%s' "${HOME}/.local/${APP_NAME}"
+}
+
+# Create persistence storage before echo (fail-closed). Class B stdout.
+util_resolve_persistent_storage() {
+    : "${APP_NAME:=app}"
+    : "${HOME:=/tmp}"
+    _persist=$(util_persistent_storage_dir)
+    case "${_persist}" in
+        */.local/bin|*/.local/bin/)
+            out_die "Persistence storage must not be the install bin directory ${_persist}"
+            ;;
+    esac
+    if ! mkdir -p "${_persist}" 2>/dev/null || [ ! -w "${_persist}" ]; then
+        out_die "Cannot create persistence storage ${_persist}"
+    fi
+    echo "${_persist}"
+    unset _persist
+    return 0
+}
+
+# =============================================================================
+# util_resolve_storage() - Cache folder resolver
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Returns the best available volatile storage directory for prompt files.
-# Prefers /dev/shm (fastest, in-memory) → /tmp → fallback to XDG_CACHE_HOME.
-# All paths include ${USERNAME} to isolate per-user storage.
+# Returns the best available volatile cache directory for scratch files.
+# Prefers /dev/shm/cache/cache-${APP_NAME} → /tmp/cache/cache-${APP_NAME} →
+# ${XDG_CACHE_HOME}/cache-${APP_NAME}.
 #
-# Safe Variable Defaults
+# Isolation: app-named leaf under a sticky /dev/shm/cache (or /tmp/cache)
+# parent so other logins can create sibling cache-<app> dirs. If this login
+# cannot write the leaf (another owner), fall through. XDG fallback is
+# already under this login's home. MUST NOT restore
+# /dev/shm/${APP_NAME}-${USERNAME} as the preferred cache.
 #
-# CIAO PRINCIPLES APPLIED:
-# - Caution: Must work correctly when the same computer is used by multiple
-#   different users (normal user, sudo, root, shared servers, containers).
-# - Intentionality: Never allow one user's files to be readable/writable by
-#   another user. Every directory creation must be ownership-aware.
-# - Anti-fragile: Survive permission conflicts and multi-user environments.
-#
-# CRITICAL WARNING - MULTI-USER PROBLEM AI FREQUENTLY OVERLOOKS:
-# Many good applications on a computer are run by different users over time
-# (e.g. normal user → sudo → another login account). 
-#
-# AI assistants often simply "add mkdir -p" when solving a storage task without
-# considering ownership and cross-user write privilege. This approach is
-# untested and problematic — it can create directories owned by one user that
-# another user cannot read/write, or allow unintended access between users.
-#
-# That is why we intentionally isolate folders per user (${APP_NAME}-${USERNAME})
-# and why any change to this function must preserve strict per-user isolation.
-# Rewriting this with a generic shared folder is forbidden and has caused
-# permission bugs in the past.
-#
-# !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
-# Designed to be reusable in other projects.
+# Create chosen root before echo. Fail closed if none can be created.
 #
 # ECHO EXCEPTION (class B – function return-via-stdout):
-# echo of storage paths is a data return for $(util_resolve_storage) capture,
+# echo of cache paths is a data return for $(util_resolve_storage) capture,
 # not a product user message. Failures use out_die.
 # See requirement-shell-output-requirements.md §2.1.1.
 #
 # Lessons Learned (CIAO Reflection):
 # 2026-07-13: STORAGE_DIR was bare/unset on third fallback (INC-20260713-001 P1).
-# 2026-07-14: Third fallback uses XDG_CACHE_HOME / HOME/.cache / /tmp with
-#             per-user ${APP_NAME}-${USERNAME} isolation under set -u.
-# 2026-07-16: Create chosen tier root before echo (fail-closed) for all tiers;
-#             wire from app_main (EFFECTIVE_STORAGE_DIR + TMPDIR). SM-STOR-01.
+# 2026-07-16: Create chosen tier root before echo (fail-closed) for all tiers.
+# 2026-08-30: Preferred cache is /dev/shm/cache/cache-${APP_NAME}; about
+#             labels are Cache folder (preferred)/(fallback).
 #
-# Last reviewed: 2026-07-16
+# Last reviewed: 2026-08-30
 # SSOT: requirement-shell-cli-storage.md
 # =============================================================================
 util_resolve_storage() {
-    # --- Safe Variable Defaults ----
-    # Defensive defaults - never assume globals are set
     : "${USERNAME:=unknown}"
     : "${APP_NAME:=app}"
     : "${HOME:=/tmp}"
     : "${XDG_CACHE_HOME:=${HOME}/.cache}"
+    : "${STORAGE_DIR:=${XDG_CACHE_HOME}/cache-${APP_NAME}}"
 
-    # Pick first available tier, then create root (all tiers fail-closed)
     _storage_candidate=""
     if [ -d "/dev/shm" ] && [ -w "/dev/shm" ]; then
-        _storage_candidate="/dev/shm/${APP_NAME}-${USERNAME}"
-    elif [ -w "/tmp" ]; then
-        _storage_candidate="/tmp/${APP_NAME}-${USERNAME}"
-    else
-        : "${STORAGE_DIR:=${XDG_CACHE_HOME}/${APP_NAME}-${USERNAME}}"
-        _storage_candidate="${STORAGE_DIR}"
+        mkdir -m 1777 -p /dev/shm/cache 2>/dev/null || mkdir -p /dev/shm/cache 2>/dev/null || true
+        if [ -d /dev/shm/cache ]; then
+            _pref="/dev/shm/cache/cache-${APP_NAME}"
+            if mkdir -p "${_pref}" 2>/dev/null && [ -w "${_pref}" ]; then
+                _storage_candidate="${_pref}"
+            fi
+        fi
     fi
-
-    if ! mkdir -p "${_storage_candidate}" 2>/dev/null; then
-        out_die "Cannot create storage directory ${_storage_candidate}"
+    if [ -z "${_storage_candidate}" ] && [ -w "/tmp" ]; then
+        mkdir -m 1777 -p /tmp/cache 2>/dev/null || mkdir -p /tmp/cache 2>/dev/null || true
+        if [ -d /tmp/cache ]; then
+            _tmpc="/tmp/cache/cache-${APP_NAME}"
+            if mkdir -p "${_tmpc}" 2>/dev/null && [ -w "${_tmpc}" ]; then
+                _storage_candidate="${_tmpc}"
+            fi
+        fi
+    fi
+    if [ -z "${_storage_candidate}" ]; then
+        _storage_candidate="${STORAGE_DIR}"
+        if ! mkdir -p "${_storage_candidate}" 2>/dev/null || [ ! -w "${_storage_candidate}" ]; then
+            out_die "Cannot create cache folder ${_storage_candidate}"
+        fi
     fi
     echo "${_storage_candidate}"
-    unset _storage_candidate
+    unset _storage_candidate _pref _tmpc
     return 0
 }
 
@@ -3449,7 +3491,7 @@ app_version() {
 # - requirement-grok-setup.md (grok_peer)
 # - requirement-shell-cli-storage.md
 #
-# Last updated: 2026-08-25
+# Last updated: 2026-08-30
 # =============================================================================
 app_about() {
     : "${JSON:=0}"
@@ -3469,7 +3511,12 @@ app_about() {
     if [ -z "${EFFECTIVE_STORAGE_DIR:-}" ]; then
         EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
     fi
-    : "${STORAGE_DIR:=${XDG_CACHE_HOME}/${APP_NAME}-${USERNAME}}"
+    _cache_preferred=$(util_preferred_cache_dir)
+    _cache_fallback=$(util_fallback_cache_dir)
+    : "${STORAGE_DIR:=${_cache_fallback}}"
+    if [ -z "${PERSISTENT_STORAGE_DIR:-}" ]; then
+        PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)
+    fi
 
     _installed="false"
     inst_is_installed && _installed="true"
@@ -3542,6 +3589,9 @@ app_about() {
             "shell" "${_shell}" \
             "interactive" "${_interactive}" \
             "user" "${_user}" \
+            "cache_preferred" "${_cache_preferred}" \
+            "cache_fallback" "${_cache_fallback}" \
+            "persistence_storage" "${PERSISTENT_STORAGE_DIR}" \
             "effective_storage" "${EFFECTIVE_STORAGE_DIR}" \
             "storage_dir" "${STORAGE_DIR}" \
             "grok_home" "$(gc_resolve_grok_home)" \
@@ -3597,8 +3647,9 @@ app_about() {
         out_info "TTY / Interactive: no"
     fi
     out_empty_line
-    out_info "Storage (effective): ${EFFECTIVE_STORAGE_DIR}"
-    out_info "Storage (fallback):  ${STORAGE_DIR}"
+    out_info "Cache folder (preferred): ${_cache_preferred}"
+    out_info "Cache folder (fallback):  ${_cache_fallback}"
+    out_info "Persistence storage:      ${PERSISTENT_STORAGE_DIR}"
     out_empty_line
     _grok_peer=$(gc_resolve_grok_peer)
     if [ -n "${_grok_peer}" ]; then
@@ -4056,10 +4107,11 @@ app_main() {
     : "${HOME:=/tmp}"
     : "${XDG_CACHE_HOME:=${HOME}/.cache}"
     : "${APP_NAME:=grok-cli}"
-    : "${STORAGE_DIR:=${XDG_CACHE_HOME}/${APP_NAME}-${USERNAME}}"
+    : "${STORAGE_DIR:=${XDG_CACHE_HOME}/cache-${APP_NAME}}"
 
     EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
-    export EFFECTIVE_STORAGE_DIR STORAGE_DIR
+    PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)
+    export EFFECTIVE_STORAGE_DIR STORAGE_DIR PERSISTENT_STORAGE_DIR
     export TMPDIR="${EFFECTIVE_STORAGE_DIR}"
 
     # Type N: empty argv → default interaction (TTY menu / off-TTY help)

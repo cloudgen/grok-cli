@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-08-30
+
+### Added
+
+- **Persistence storage.** Storage law covers two classes: **cache folder** (`/dev/shm/cache/cache-grok-cli` preferred, XDG `cache-grok-cli` fallback) and **persistence storage** `${HOME}/.local/grok-cli`. `about` prints **Persistence storage**; JSON adds `persistence_storage`. Not `~/.local/bin` (install) and not `/var/grok-cli` (Type 1 deposit). Law: `requirement-shell-cli-storage` **1.2.0**. Suite **TP-CLI-06 / 12**.
+
+## [1.2.2] - 2026-08-30
+
+### Changed
+
+- **Cache folder labels and preferred path.** `about` prints **Cache folder (preferred)** and **Cache folder (fallback)** (not Storage (effective)/(fallback)). Preferred leaf is `/dev/shm/cache/cache-grok-cli` so it is not confused with a ram-drive project tree. Fallback is `${XDG_CACHE_HOME}/cache-grok-cli`. JSON adds `cache_preferred` / `cache_fallback`. Law: `requirement-shell-cli-storage` **1.1.0**. Suite **TP-CLI-06 / 12**.
+
 ## [1.2.1] - 2026-08-30
 
 ### Fixed
