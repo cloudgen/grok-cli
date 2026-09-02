@@ -1,20 +1,21 @@
 # grok-cli - Grok auth backup to /var/grok-cli and unprivileged sync-auth
 
-![Version](https://img.shields.io/badge/Version-1.5.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.7.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
 
-**grok-cli** checks that grok is logged in with a valid session, then copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` so other logins can read them. A normal login installs the program locally, writes a grant file you can read, and submits it. Only an approved passwordless `sudo grok-cli backup` (JSON request approved by **sudoer-adm**) can push and chmod that store. Without sudo, any login can `sync-auth` from `/var/grok-cli` into their own `~/.grok`. There is no online `curl|sh` install.
+**grok-cli** checks that grok is logged in with a valid session, then copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` so other logins can read them. A normal login installs the program locally, writes a grant file you can read, and submits it. Only an approved passwordless `sudo grok-cli backup` (JSON request approved by **sudoer-adm**) can push and chmod that store. Without sudo, any login can `sync-auth` from `/var/grok-cli` into their own `~/.grok`. Install with a one-liner (`curl|sh`) or from a checkout.
 
 | You (your own login) | Admin / already root | Not this |
 |----------------------|----------------------|----------|
-| Install to `~/.local/bin`, generate and submit a grant, run `check-session` / `backup` / `sync-auth` / `add-crontab` once the grant exists | Install into `/usr/local/bin` and install the sudoers fragment | No download-and-run install channel; a normal login does not write `/etc`; `sync-auth` never uses sudo |
+| Install to `~/.local/bin`, generate and submit a grant, run `check-session` / `backup` / `sync-auth` / `add-crontab` once the grant exists | Install into `/usr/local/bin` and install the sudoers fragment | A normal login does not write `/etc`; `sync-auth` never uses sudo |
 
 ## Features
 
 - **Local self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
-- **Peer grok install**: `setup` — `curl -fsSL https://x.ai/cli/install.sh` then run it so the xAI `grok` CLI is installed under `~/.grok/bin` (does **not** install grok-cli; skip if `grok` is already present). A PATH line in `~/.bashrc` does not apply to the current session.
+- **Online self-management**: `curl|sh` channel, `version-check`, `self-update`, `self-uninstall`
+- **Peer grok install**: `setup` — detect platform, fetch xAI’s channel version pointer and the matching `grok` binary, place it under `~/.grok/bin` (does **not** install grok-cli; does **not** run `install.sh`; skip if `grok` is already present). A PATH line in `~/.bashrc` does not apply to the current session.
 - **Session gate**: `check-session` — confirm grok is logged in (`~/.grok/auth.json`)
 - **Backup**: `backup` → check session → elevated deposit of `auth.*` into `/var/grok-cli` → `chown root:root` → `chmod 0644`
 - **sync-auth**: copy `/var/grok-cli/auth.*` into `~/.grok` as the invoking login (mode `0600` on `auth.json`; **no sudo**)
@@ -27,7 +28,21 @@
 
 ## Quick Installation
 
-**Local (your own login, no root needed):**
+**Online (recommended):**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli | sh
+```
+
+**Global (root):**
+
+```sh
+sudo curl -fsSL https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli | sudo sh
+```
+
+Companion digest (fetched automatically): `https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli.sha256`
+
+**From a checkout (offline copy, no network):**
 
 ```sh
 # From this repository checkout
@@ -61,19 +76,30 @@ grok-cli submit-sudoer-request
 
 **Security note:** Local `~/.local/bin` install is **not** production-secure for host elevation — the user can change the binary. Prefer global install for any host that keeps `/etc/sudoers.d/grok-cli-<user>`. See [`SECURITY.md`](./SECURITY.md).
 
-This product is **local-only** for its install *channel* (no default `SCRIPT_URL` online install).
+This product is **dual-mode**: primary install is the curl one-liner; `sh src/grok-cli install` copies the running checkout.
 
 **Source repository:** [cloudgen/grok-cli](https://github.com/cloudgen/grok-cli)  
-Config identity: `REPO_USER=cloudgen`, `REPO_NAME=grok-cli` (override with env if needed; does not enable online install while `SCRIPT_URL` is empty).
+Config identity: `REPO_USER=cloudgen`, `REPO_NAME=grok-cli`. Default channel: `SCRIPT_URL=https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli`.
+
+## Starting grok-cli
+
+| How you run it | What you get |
+|----------------|--------------|
+| `grok-cli` at a real terminal | Numbered start list (`check-session` is **1**; **9** leaves). Same as `grok-cli menu`. |
+| `curl -fsSL … \| sh` or `grok-cli` in a script (no args) | Install-ensure: places `~/.local/bin/grok-cli` or reports already installed. **Not** help. **Not** the menu. |
+| `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help |
+| `grok-cli menu` in a script | Help (the list is TTY-only) |
 
 ## Usage
 
 ```sh
-grok-cli                 # numbered list on a real terminal; help in a script
+grok-cli                 # numbered list on a real terminal; install-ensure in a script / pipe
 grok-cli help
 grok-cli menu            # same numbered list as empty argv on a TTY
 grok-cli about
 grok-cli --json about
+grok-cli version-check
+grok-cli self-update
 
 grok-cli setup                 # install grok from x.ai (not grok-cli)
 grok-cli check-session
@@ -86,15 +112,18 @@ grok-cli print-sudoers
 grok-cli generate-sudoer-request
 grok-cli submit-sudoer-request
 grok-cli uninstall --force
+grok-cli self-uninstall --force
 ```
 
 **Environment (selected):**
 
 | Variable | Role |
 |----------|------|
+| `SCRIPT_URL` | grok-cli install channel (default github raw `src/grok-cli`) |
 | `GROK_HOME` | Grok auth directory (default `~/.grok` of the invoking login) |
 | `GROK_CLI_ROOT` | Durable store (default `/var/grok-cli`) |
-| `GROK_VENDOR_INSTALL_URL` | xAI grok installer URL (default `https://x.ai/cli/install.sh`) |
+| `GROK_VENDOR_BASE_URL` | xAI grok channel/artifact base (default `https://x.ai/cli`) |
+| `GROK_CHANNEL` | grok channel (`stable` / `alpha` / `enterprise`; default `stable`) |
 | `GROK_BIN` | Override path to peer `grok` |
 | `ALLOW_TEST_LOCAL_SUDOERS` | `1` = allow test-mode sudoers emit without `--allow-test-local` |
 | `SUDOER_CLI` | Override path to `sudoer-cli` |
@@ -131,10 +160,11 @@ grok-cli add-crontab
 
 ## Related Projects
 
+- [selfmanaged](https://github.com/cloudgen/selfmanaged) — online `curl\|sh` package specialized onto grok-cli
 - [folder-backup](https://github.com/cloudgen/folder-backup) — architecture parent (folder archive backup)
 - [CIAO Defensive Programming](https://github.com/cloudgen/ciao)
 - [CIAO-Lite](https://github.com/cloudgen/ciao-lite)
-- [cli-template](https://github.com/cloudgen/cli-template) — Type 0 local-only template (hop 0)
+- [cli-template](https://github.com/cloudgen/cli-template) — Type 0 template (hop 0)
 
 ## Contributing
 
@@ -146,6 +176,8 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-02 — version **1.7.0**: online `curl|sh` install; off-TTY empty argv is ensure, TTY empty argv stays the menu.  
+2026-09-02 — version **1.6.0**: `setup` installs peer `grok` by the studied xAI channel + artifact procedure (does not run `install.sh`).  
 2026-09-02 — version **1.5.0**: `sync-auth-from-remote` pulls `/var/grok-cli/auth.*` from another host via scp.  
 2026-09-02 — version **1.4.0**: `add-crontab` installs this login’s backup/sync-auth crontab jobs after **this** login’s sudoers grant exists.  
 2026-08-30 — version **1.3.0**: storage = cache folder **and** persistence `${HOME}/.local/grok-cli`; `about` prints both.  

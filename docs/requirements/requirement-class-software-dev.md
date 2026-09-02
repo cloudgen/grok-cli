@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.2.1 – grok-cli identity retarget)  
+**Status**: Active (Version 1.3.0 – dual-mode channel + selfmanaged hop)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -16,7 +16,7 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Read this file to learn the project class and leftover stack (language, tools, “no dest approver”) | Peer requirements own backup ops, install, sudoers grant body, and CLI verbs | A dest approval machine, a second class file, or online-install law |
+| Read this file to learn the project class and leftover stack (language, tools, “no dest approver”) | Peer requirements own backup ops, install, sudoers grant body, CLI verbs, and online channel | A dest approval machine or a second class file |
 
 **Includes:** class membership, residual stack, honest “none” for dest approver and dest fences.  
 **Excludes:** inventing an approver account; inventing dest fence rows; duplicating peer backup/install tables.
@@ -37,7 +37,7 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 3. **MUST NOT** register an Active `requirement-class-server-maintenance.md` while class is software-development.  
 4. **MUST** retain portable harness knowledge; specialized product knowledge lives in this and peer `requirement-*.md` files.  
 5. **MUST** apply software-development SSOT/gate posture when claimed (identity, ship unit, precommit when git is used — as applicable).  
-5a. When git is used on a **multi-vault host**, **MUST** treat forge push identity as **product repository-user SSOT** (Config `REPO_USER` / project-repository owner), not ambient default SSH face: agents **MUST** run precommit / SSH-profile gates (pre-git report; vault bind via activate or one-shot identity for push). Host vault basenames are **not** product law — portable process lives in harness skills (`skill-commit-check`, `skill-ssh-user-profile`).  
+5a. When git is used on a **multi-vault host**, **MUST** treat forge push identity as **product repository-user SSOT** (Config `REPO_USER` / project-repository owner), not ambient default SSH face: agents **MUST** run precommit / SSH-profile gates (pre-git report; vault bind via activate or one-shot identity for push). Host vault basenames are **not** product law.  
 6. **MUST NOT** invent hollow product docs solely to look specialized; collect real values or defer explicitly.
 
 ### 2.1 Residual collection principle (SSOT hygiene)
@@ -100,7 +100,7 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 | **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh` + `tar` + `gzip`/`tar -z` + `mktemp` exist) |
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
 | **Git surface** | used when product is published |
-| **Ship unit / install** | yes — `src/grok-cli` → `${USER_BIN}/grok-cli` (default `~/.local/bin/grok-cli`); **local-only** install (no online channel) |
+| **Ship unit / install** | yes — `src/grok-cli` → `${USER_BIN}/grok-cli`; **dual-mode** (channel `curl\|sh` primary; checkout `install` secondary) |
 | **Product version SSOT** | `VERSION=` hard-assign in `src/grok-cli` (do not pin a stale number here) |
 | **Bootstrap origin** | sibling product **folder-backup**; chain cli-template → folder-backup → grok-cli (domain retarget) |
 
@@ -114,8 +114,9 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 | Bootstrap lineage / keep-extend | `requirement-bootstrap-chain` | A=cli-template → B + domain extend |
 | Project layout / ship path | `requirement-project-folder` | `src/` + bin targets |
 | Type 0 CLI surface / flags / dispatch | `requirement-shell-cli-interface` | Do not duplicate |
-| Empty argv Type N (TTY menu; off-TTY help) | `requirement-shell-cli-zero-arguments` | Local-only |
-| Local self-managed lifecycle | `requirement-shell-local-self-management` | install / uninstall / where-is-me |
+| Empty argv TTY menu / off-TTY Type O | `requirement-shell-cli-zero-arguments` | Dual-mode |
+| Local self-managed lifecycle | `requirement-shell-local-self-management` | checkout install / uninstall / where-is-me |
+| Online channel + checksum + remote lifecycle | `requirement-shell-online-install` · `requirement-shell-automatic-checksum` · `requirement-shell-self-management` | Specialized from selfmanaged |
 | Output SSOT (`out_*`) | `requirement-shell-output-requirements` | Do not duplicate |
 | Operator-readable error wording | `requirement-operator-readable-error` | Human-intro-style `[ERROR]` copy; do not duplicate |
 | Scratch/cache storage resolve | `requirement-shell-cli-storage` | Do not duplicate |
@@ -129,7 +130,7 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 | Domain surface (verbs, help, about) | `requirement-domain-grok-cli` | Four pillars only; ops pointer |
 | Actor / role / subject / approver | **this file** (residual) | **considered — no dest approver and no approval subject**. This product has no dest approval machine. **MUST NOT** invent an approver. |
 | Dest fence conditions | **this file** (residual) | **considered — no dest fence conditions**. No dest Fence table. **MUST NOT** invent a dest fence. |
-| Online install / remote self-management / companion checksum | **intentionally absent** | Absent on A; remain absent on B |
+| Online install / remote self-management / companion checksum | peer REQs (Active 2026-09-02) | User-ordered specialize from selfmanaged |
 
 ---
 
@@ -137,7 +138,7 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 
 - **CIAO Principle 2 – Intentional**: Class and stack choices are explicit, not assumed from folder names.  
 - **CIAO Principle 5 – SSOT**: Residual stack facts have one home until specialized requirements take ownership.  
-- **CIAO Principle 1 – Caution**: Toolchain policies are declared; agents do not invent compilers or online install.  
+- **CIAO Principle 1 – Caution**: Toolchain policies are declared; agents do not invent compilers.  
 - **CIAO Principle 21 – Dual Policies**: Portable core; filled Implementation Notes.  
 - **CIAO Principle 4 (O) + Principle 20**: Protection Rule against dual stack SSOTs and wrong-class pollution.
 
@@ -161,7 +162,7 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 3. Hard-code secrets, personal owner identity, or production host FQDNs into core rules as universal law.  
 4. Duplicate full peer requirement bodies into this residual section.  
 5. Leave Implementation Notes as hollow stubs when Status claims Active.  
-6. Reintroduce Active **online-install** / remote **self-update** / **self-uninstall** / channel **checksum** law without explicit user order (product is **local-only** by design).  
+6. Drop Active online-install / self-update / self-uninstall / checksum law without updating this residual and the dual-mode matrix.  
 7. Treat this file as server-maintenance allowlist law, or register an Active server-maintenance class file in parallel.  
 8. Invent a second primary language SSOT that contradicts peer modular/CLI requirements.
 
@@ -178,8 +179,8 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 | AC-3 | Residual ownership table honest: no silent dual SSOT with peer REQs |
 | AC-4 | Core rules remain free of frozen secret/host hardcodes |
 | AC-5 | No class file conflict with `requirement-class-server-maintenance` |
-| AC-6 | Ship unit identity (posix-sh single-file, local install) consistent with peer shell REQs |
-| AC-7 | Online install package **absent** from Active registry by design |
+| AC-6 | Ship unit identity (posix-sh single-file, dual-mode install) consistent with peer shell REQs |
+| AC-7 | Online install package **Active**; residual points to peer REQs (do not duplicate channel tables here) |
 
 ---
 
@@ -190,8 +191,11 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 | `requirement-bootstrap-chain` | Lineage A=cli-template → B=grok-cli (domain retarget) |
 | `requirement-project-folder` | Layout and install locations |
 | `requirement-shell-cli-interface` | Command surface, flags, dispatch |
-| `requirement-shell-cli-zero-arguments` | Type N empty argv |
-| `requirement-shell-local-self-management` | Local install lifecycle |
+| `requirement-shell-cli-zero-arguments` | TTY menu; off-TTY Type O |
+| `requirement-shell-local-self-management` | Checkout install lifecycle |
+| `requirement-shell-online-install` | Channel `SCRIPT_URL` + dual-mode |
+| `requirement-shell-self-management` | `version-check` / `self-update` / `self-uninstall` |
+| `requirement-shell-automatic-checksum` | Companion `${SCRIPT_URL}.sha256` |
 | `requirement-shell-output-requirements` | `out_*` SSOT |
 | `requirement-operator-readable-error` | Operator error wording |
 | `requirement-shell-cli-storage` | Scratch/cache resolve |
@@ -216,9 +220,10 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 | 2026-08-15 | Active | Residual: JSON sudoer file → `requirement-sudoer-json-file` |
 | 2026-08-19 | Active (1.1.0) | Residual: **considered — no dest approver and no approval subject**; **considered — no dest fence conditions**. §1.1 Human-facing. Version SSOT note 1.9.0. |
 | 2026-08-22 | Active (1.2.0) | Identity retarget to grok-cli; ops residual → grok-auth-backup; domain → grok-cli. Version SSOT 1.0.0. |
+| 2026-09-02 | Active (1.3.0) | Dual-mode install; online package residual points to peer REQs |
 
 ---
 
-**Last Updated**: 2026-08-23  
+**Last Updated**: 2026-09-02  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

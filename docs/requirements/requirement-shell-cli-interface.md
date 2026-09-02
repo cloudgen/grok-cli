@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.5.0)  
+**Status**: Active (Version 2.7.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -8,7 +8,7 @@
 
 This requirement is the **project Single Source of Truth** for the **POSIX shell CLI interface** of grok-cli: command surface, privilege typing, global flags, dispatcher behavior, help/about contracts, and mode rules.
 
-It defines a **Type 0–centric local self-managed shell CLI** plus **domain grok-auth** commands, **`setup`** (peer `grok` via xAI installer), and a **narrow elevated deposit** path. Full domain semantics live in `requirement-domain-grok-cli.md`. Full elevation/sudoers rules live in `requirement-three-layer-privilege-model.md`. Auth ops live in `requirement-grok-auth-backup.md`. Peer grok install lives in `requirement-grok-setup.md`.
+It defines a **Type 0 shell CLI** with **dual-mode install** (channel `curl|sh` plus checkout `install`), **domain grok-auth** commands, **`setup`** (peer `grok` via the studied xAI procedure, not `install.sh`), and a **narrow elevated deposit** path. Empty argv: TTY menu; off-TTY Type O ensure. Full domain semantics live in `requirement-domain-grok-cli.md`. Peer grok install lives in `requirement-grok-setup.md`. Channel place lives in `requirement-shell-online-install.md`.
 
 ---
 
@@ -18,13 +18,13 @@ This file lists the grok-cli commands you can type after install — names the p
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Type `grok-cli help` to see live commands | Domain law owns backup/sync meaning | Online `self-update`; typing a name that was never wired |
+| Type `grok-cli help` to see live commands | Domain law owns backup/sync meaning | Typing a name that was never wired |
 
 **Includes:** dispatch table, flags. **Excludes:** auth.json parse rules.
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Start at a prompt | Numbered list on a real terminal; help in a script | `grok-cli` |
+| Start at a prompt | Numbered list on a real terminal; install-ensure in a script / pipe | `grok-cli` |
 
 
 ## 2. Core Rules / Requirements (Mandatory)
@@ -35,8 +35,8 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 
 | Category | Privilege | Meaning |
 |----------|-----------|---------|
-| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu` (`main` alias) |
-| **Type 0 – Domain (user work)** | Invoking user | `setup` (peer grok installer), session/sync, sudoers fragment **print** |
+| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu` (`main` alias), `version-check`, `self-update`, `self-uninstall` |
+| **Type 0 – Domain (user work)** | Invoking user | `setup` (peer grok channel + artifact), session/sync, sudoers fragment **print** |
 | **Type 1 – Narrow elevated deposit** | Controlled sudo (allowlisted only) | Copy staged archive into `/var/backup/...` only |
 | **Type 2 – Dedicated system user app ops** | Dedicated app user | **Not in scope** for this product |
 
@@ -55,7 +55,7 @@ Additional flags **MAY** be added only when documented here (or a superseding re
 
 1. **Single entry:** `app_main` **MUST** parse global flags and route commands.  
 2. **Unknown command:** **MUST** fail loudly with pointer to `help` (via output SSOT).  
-3. **Empty argv:** **Type N** (`requirement-shell-cli-zero-arguments.md`): TTY → numbered start list (same handler as `menu` / `main`); off-TTY → help. **MUST NOT** install. Flags-only (`--json` with no command) stay help.  
+3. **Empty argv:** `requirement-shell-cli-zero-arguments.md`: TTY → numbered start list (same handler as `menu` / `main`); off-TTY → Type O install-ensure (**MUST NOT** help). Flags-only (`--json` with no command) stay help.  
 4. **No raw user I/O:** User-facing messages **MUST** go through `out_*`.  
 5. Script end **MUST** call `app_main "$@"` (no basename gate that blocks dispatch).
 
@@ -82,7 +82,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **Version SSOT** | ship unit `VERSION=` in `src/grok-cli` (do not pin a stale number here) |
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
 | **Primary install story** | User bin: `~/.local/bin/grok-cli` |
-| **Online channel env** | **Not product UX** (absent; inherited from cli-template) |
+| **Online channel env** | `SCRIPT_URL` default `https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli` |
 | **Type 2 commands** | None |
 | **Dedicated system user** | Not required |
 
@@ -90,16 +90,19 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Command | Type | Handler family | Required behavior |
 |---------|------|----------------|-------------------|
-| *(no args — empty argv)* | Type 0 | `app_main` → `app_default` | **Type N**: TTY numbered menu; off-TTY help; **MUST NOT** install |
-| `install` | Type 0 | `inst_local_install` | Copy running ship unit to privilege-correct bin; idempotent unless `--force` |
+| *(no args — empty argv)* | Type 0 | TTY → `app_default`; off-TTY → `inst_channel_ensure` | TTY numbered menu; off-TTY Type O ensure (**MUST NOT** help) |
+| `install` | Type 0 | `inst_local_install` | Checkout copy of the running ship unit; idempotent unless `--force` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
+| `version-check` | Type 0 | `ver_check` | Compare local vs remote VERSION on `SCRIPT_URL` |
+| `self-update` | Type 0 | `inst_self_update` | Re-download from `SCRIPT_URL` when remote is newer (or `--force`) |
+| `self-uninstall` | Type 0 | `inst_self_uninstall` | Remove managed binary (channel name; same dest as `uninstall`) |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
 | `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY; **Cache folder (preferred)** `/dev/shm/cache/cache-${APP_NAME}` and **Cache folder (fallback)**; **Persistence storage** `${HOME}/.local/${APP_NAME}`; grok home, session, deposit dir; **no** channel one-liner |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
 | `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
 | `main` | Type 0 | `app_default` (alias) | Same as `menu` |
-| `setup` | Type 0 | `gc_setup` (domain) | Fetch xAI grok installer and run it so peer `grok` is installed; skip if already present unless `--force`. Stale session PATH is not an error. **MUST NOT** install grok-cli |
+| `setup` | Type 0 | `gc_setup` (domain) | Perform the studied xAI grok procedure (platform, channel pointer, artifact, `~/.grok` place) so peer `grok` is installed; **MUST NOT** fetch or exec `install.sh`; skip if already present unless `--force`. Stale session PATH is not an error. **MUST NOT** install grok-cli |
 | `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in |
 | `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
 | `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo |
@@ -125,14 +128,14 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 #### Dispatcher acceptance criteria
 
 1. Unknown token after flag parse → `out_die` with pointer to `grok-cli help`.  
-2. Zero-arg → Type N: TTY numbered menu; off-TTY help (never install, never `setup`).  
+2. Zero-arg → TTY numbered menu; off-TTY Type O ensure (never help, never `setup`).  
 3. Command routing table in `app_main` **must** include every **Supported commands** row above.  
 4. Help text **must** stay aligned with that table.  
 5. Domain catalog detail is owned by `requirement-domain-grok-cli.md` — this file owns the **listed verbs** and routing. Auth ops detail is `requirement-grok-auth-backup.md`. Peer grok install is `requirement-grok-setup.md`.
 
 #### Explicitly out of scope
 
-- Online: `version-check`, `self-update`, `self-uninstall`, channel `install` via URL  
+- Type O-P payload installer  
 - Type 1 host bootstrap beyond **narrow deposit** and **sudoers fragment generation**  
 - Creating the sibling inbound (`sudo sudoer-cli setup` is not this CLI)  
 - Type 2 app runtime under a dedicated system user  
@@ -164,8 +167,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
-1. Add online lifecycle commands without an explicit product-mode change and registry update.  
-2. Change empty argv to install-ensure while install mode remains local-only, or hang off-TTY empty argv on the numbered menu.  
+1. Drop channel lifecycle commands without updating this file and the dual-mode matrix.  
+2. Route off-TTY empty argv to help, or hang off-TTY empty argv on the numbered menu.  
 3. List commands in help that are not routed (or route commands not listed).  
 4. Bypass `out_*` for product user messages.  
 5. Run the entire CLI as root by default instead of narrow deposit elevation.  
@@ -182,14 +185,15 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 |----|-----------|
 | AC-1 | All commands in the table are routed and listed in help |
 | AC-2 | Global flags wire QUIET/JSON/DEBUG/FORCE as specified |
-| AC-3 | Empty argv is Type N: TTY numbered menu; off-TTY help; never install |
-| AC-4 | No online self-management verbs on the surface |
+| AC-3 | Empty argv: TTY numbered menu; off-TTY Type O ensure; never help on the pipe |
+| AC-4 | `version-check` / `self-update` / `self-uninstall` routed and listed |
 | AC-5 | Domain verbs point to domain requirement for deep semantics |
 | AC-6 | `submit-sudoer-request` is Type 0, routed, listed in help; does not write `/etc` or create inbound |
 | AC-7 | `generate-sudoer-request` is Type 0, routed, listed in help; independent of submit; dest is invoking-user readable; does not write `/etc` or inbound |
 | AC-8 | `menu` / `main` routed; match `requirement-shell-cli-default-interaction` |
 | AC-9 | `add-crontab` is Type 0, routed, listed in help; does not write `/etc`; dual mention `requirement-grok-crontab` |
 | AC-10 | `sync-auth-from-remote` is Type 0, routed, listed in help; dual mention `requirement-grok-auth-backup` |
+| AC-11 | `setup` is Type 0, routed, listed in help; dual mention `requirement-grok-setup`; **MUST NOT** fetch or exec `install.sh` |
 
 ---
 
@@ -197,7 +201,9 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-shell-cli-zero-arguments` | Empty argv Type N (TTY menu; off-TTY help) |
+| `requirement-shell-cli-zero-arguments` | Empty argv: TTY menu; off-TTY Type O ensure |
+| `requirement-shell-online-install` | Dual mention of channel pipe / `SCRIPT_URL` |
+| `requirement-shell-self-management` | Dual mention of `version-check` / `self-update` / `self-uninstall` |
 | `requirement-shell-cli-default-interaction` | Numbered list body; TTY empty argv and `menu`/`main` |
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
 | `requirement-shell-output-requirements` | `out_*` catalog |
@@ -214,7 +220,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have |
-| **TP-VCLI-01..09**, **11**, **12** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01..09**, **11**–**14** | `tests/test_grok_setup.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -235,6 +241,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | 2026-08-30 | Active 2.3.2 | About **Persistence storage** `${HOME}/.local/${APP_NAME}` |
 | 2026-09-02 | Active 2.4.0 | `add-crontab` Type 0 — per-login backup/sync-auth crontab jobs |
 | 2026-09-02 | Active 2.5.0 | `sync-auth-from-remote` Type 0 — four SPEC forms |
+| 2026-09-02 | Active 2.6.0 | `setup` inlines studied xAI procedure; **MUST NOT** fetch or exec `install.sh` |
+| 2026-09-02 | Active 2.7.0 | Dual-mode channel; off-TTY empty argv Type O; `version-check` / `self-update` / `self-uninstall` |
 
 ---
 

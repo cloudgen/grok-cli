@@ -1,5 +1,5 @@
 # =============================================================================
-# tests/test_cli.sh — CLI surface (local-only; no network)
+# tests/test_cli.sh — CLI surface (no public network; off-TTY empty argv is Type O already-installed)
 # =============================================================================
 # Primary REQs: requirement-shell-cli-interface, requirement-shell-cli-zero-arguments,
 # requirement-shell-cli-default-interaction, requirement-shell-output-requirements,
@@ -60,10 +60,10 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help SUDOER_PUBLIC_ROOT" "$_out" "SUDOER_PUBLIC_ROOT"
     assert_contains "TP-CLI-04 help GROK_CLI_ROOT" "$_out" "GROK_CLI_ROOT"
     assert_contains "TP-CLI-04 help --json" "$_out" "--json"
-    assert_not_contains "TP-CLI-04 no self-update" "$_out" "self-update"
-    assert_not_contains "TP-CLI-04 no self-uninstall" "$_out" "self-uninstall"
-    assert_not_contains "TP-CLI-04 no version-check" "$_out" "version-check"
-    assert_not_contains "TP-CLI-04 no SCRIPT_URL channel" "$_out" "SCRIPT_URL"
+    assert_contains "TP-CLI-04 help self-update" "$_out" "self-update"
+    assert_contains "TP-CLI-04 help self-uninstall" "$_out" "self-uninstall"
+    assert_contains "TP-CLI-04 help version-check" "$_out" "version-check"
+    assert_contains "TP-CLI-04 help SCRIPT_URL channel" "$_out" "SCRIPT_URL"
     assert_not_contains "TP-CLI-04 no CHECKSUM" "$_out" "CHECKSUM"
 
     # TP-CLI-05 help json
@@ -96,13 +96,16 @@ run_test_cli() {
     assert_not_contains "TP-CLI-06 no CHECKSUM" "$_out" "CHECKSUM"
     assert_not_contains "TP-CLI-06 no SCRIPT_URL" "$_out" "SCRIPT_URL"
 
-    # TP-CLI-07 empty argv = Type N (not install). Off-TTY: help. TTY: numbered menu.
-    _out=$(sh "${SCRIPT}" 2>/dev/null)
+    # TP-CLI-07 empty argv: off-TTY Type O ensure (not help). TTY: numbered menu.
+    ci_isolated_env
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" install >/dev/null 2>&1
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-07 empty argv off-TTY exit 0" 0 "$_ec"
-    assert_contains "TP-CLI-07 empty argv off-TTY is help" "$_out" "Usage:"
-    assert_contains "TP-CLI-07 empty argv off-TTY mentions help" "$_out" "help"
+    assert_contains "TP-CLI-07 empty argv off-TTY already installed" "$_out" "already installed"
+    assert_not_contains "TP-CLI-07 empty argv off-TTY not help dump" "$_out" "Usage:"
     assert_not_contains "TP-CLI-07 empty argv off-TTY not numbered list" "$_out" "9. Exit"
+    ci_cleanup_env
 
     _out=$(sh "${SCRIPT}" --json 2>/dev/null)
     _ec=$?
@@ -174,13 +177,11 @@ PY
         t_fail "TP-CLI-09 quiet expected empty stdout, got '$(_trunc "$_out")'"
     fi
 
-    # TP-CLI-10 online verbs rejected
-    _err=$(sh "${SCRIPT}" self-update 2>&1 >/dev/null)
-    assert_eq "TP-CLI-10 self-update exit 1" 1 "$?"
-    assert_contains "TP-CLI-10 self-update unknown" "$_err" "Unknown command"
-
-    _err=$(sh "${SCRIPT}" version-check 2>&1 >/dev/null)
-    assert_eq "TP-CLI-10 version-check exit 1" 1 "$?"
+    # TP-CLI-10 online verbs are routed (channel may fail without a fake curl)
+    _err=$(sh "${SCRIPT}" self-update 2>&1 >/dev/null) || true
+    assert_not_contains "TP-CLI-10 self-update is routed" "${_err}" "Unknown command"
+    _err=$(sh "${SCRIPT}" version-check 2>&1 >/dev/null) || true
+    assert_not_contains "TP-CLI-10 version-check is routed" "${_err}" "Unknown command"
 
     # TP-CLI-11 set -u HOME unset still works for version
     _out=$(env -u HOME sh "${SCRIPT}" version 2>/dev/null)
@@ -222,7 +223,7 @@ PY
     esac
     ci_cleanup_env
 
-    # TP-CLI-13 menu/main: off-TTY help; TTY numbered list; empty argv off-TTY still help
+    # TP-CLI-13 menu/main: off-TTY help; TTY numbered list; empty argv off-TTY is Type O (not help)
     _out=$(sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-13 menu off-TTY exit 0" 0 "$_ec"
@@ -240,9 +241,13 @@ PY
     assert_contains "TP-CLI-13 menu --json off-TTY JSON help" "$_out" '"type":"success"'
     assert_not_contains "TP-CLI-13 menu --json off-TTY not numbered list" "$_out" "9. Exit"
 
-    _out=$(sh "${SCRIPT}" 2>/dev/null)
+    ci_isolated_env
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" install >/dev/null 2>&1
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" 2>/dev/null)
     assert_not_contains "TP-CLI-13 empty argv off-TTY not numbered list" "$_out" "9. Exit"
-    assert_contains "TP-CLI-13 empty argv off-TTY still help" "$_out" "Usage:"
+    assert_not_contains "TP-CLI-13 empty argv off-TTY not help" "$_out" "Usage:"
+    assert_contains "TP-CLI-13 empty argv off-TTY is ensure" "$_out" "already installed"
+    ci_cleanup_env
 
     _out=$(sh "${SCRIPT}" --quiet menu 2>/dev/null)
     _ec=$?

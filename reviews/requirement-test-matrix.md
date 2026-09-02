@@ -1,23 +1,26 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-08-30  
-**Product VERSION:** 1.3.0  
+**Updated:** 2026-09-02  
+**Product VERSION:** 1.7.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
 |-----------------|------|-------------|----------------|
-| requirement-class-software-dev | class | TP-CLI-01, TP-CLI-11 | Syntax + stack residual; no online package |
-| requirement-bootstrap-chain | architecture | TP-CLI-04, TP-CLI-10 | Online surface absent |
+| requirement-class-software-dev | class | TP-CLI-01, TP-CLI-11 | Syntax + stack residual; dual-mode |
+| requirement-bootstrap-chain | architecture | TP-CLI-04, TP-CLI-10 · TP-ONL-* | Channel + checkout; selfmanaged hop |
 | requirement-project-folder | architecture | TP-LC-01, TP-GROK-CLI-07 | src ship unit; `/var/grok-cli` store |
 | requirement-three-layer-privilege-model | architecture | TP-GROK-CLI-01, 01b, 02, 12, 14, 15, 15b, 19, 20, 21, 21b, 22e, 23, 23b, 23c, 24* | Trust tiers; submit; independent generate; inbound; host-probe add/update |
 | requirement-sudoer-json-file | architecture | TP-GROK-CLI-22* · 24* | JSON grant is `grok-cli backup` only |
 | requirement-grok-auth-backup | backup | TP-GROK-CLI-03..10, 12 · 30..33 | Session gate; deposit; sync-auth; sync-auth-from-remote; production dest fail-closed |
-| requirement-grok-setup | domain | TP-VCLI-01..09 · 11 · 12 · TP-CLI-04 · TP-CLI-13 | Peer grok installer; stale PATH after `.bashrc` is not an error |
+| requirement-grok-setup | domain | TP-VCLI-01..09 · 11..14 · TP-CLI-04 · TP-CLI-13 | Peer grok channel + artifact (no `install.sh`); stale PATH after `.bashrc` is not an error |
 | requirement-grok-crontab | domain | TP-GROK-CLI-26..29 · TP-CLI-04 · TP-CLI-13 | Per-login crontab jobs; grant gate is this `id -un` |
-| requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 | Commands, flags, dispatch; `setup` |
-| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 | Type N: TTY numbered menu; off-TTY help; not install |
-| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 | Case 3 `menu`/`main` + TTY empty argv — daily-work list + sudoers submenu / off-TTY help |
-| requirement-shell-local-self-management | shell | TP-LC-* | install/uninstall/where-is-me; 0755 |
+| requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* | Commands, flags, dispatch; `setup`; online verbs |
+| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 | Case 3 `menu`/`main` + TTY empty argv; off-TTY `menu` help |
+| requirement-shell-local-self-management | shell | TP-LC-* | checkout install/uninstall/where-is-me; 0755 |
+| requirement-shell-online-install | shell | TP-ONL-01 · TP-CLI-07 | Channel `SCRIPT_URL`; pipe place |
+| requirement-shell-self-management | shell | TP-ONL-03 · 04 · TP-CLI-04 · 10 | version-check / self-update / self-uninstall |
+| requirement-shell-automatic-checksum | shell | TP-ONL-02 | Companion mismatch abort |
 | requirement-shell-output-requirements | shell | TP-CLI-03,05,08,09 | JSON / quiet / errors |
 | requirement-operator-readable-error | shell | TP-GROK-CLI-25* | Operator-facing `[ERROR]` |
 | requirement-shell-modular-function-design | shell | TP-CLI-01 | `gc_*` prefix |
@@ -29,4 +32,4 @@
 | requirement-domain-folder-backup | superseded | n/a | Retired |
 | requirement-folder-archive-backup* | superseded | n/a | Retired (TP-GROK-CLI-11 proves restore unknown) |
 
-**Absent by design (no TP Core):** online-install, remote self-management, automatic channel checksum, dest fence-test (no dest approval machine).
+**Absent by design (no TP Core):** Type O-P payload installer; dest fence-test (no dest approval machine).

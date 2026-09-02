@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-grok-cli.md  
-**Status**: Active (Version 1.3.0)  
+**Status**: Active (Version 1.4.0)  
 **Area**: domain  
 **Key**: `requirement-domain-grok-cli`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -32,7 +32,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Place grok | grok-cli curls xAI’s installer so `grok` is installed | `grok-cli setup` |
+| Place grok | grok-cli fetches xAI’s version pointer and matching `grok` binary (does not run `install.sh`) | `grok-cli setup` |
 | Confirm login | grok-cli reads `~/.grok/auth.json` and fails closed if it is missing or expired | `grok-cli check-session` |
 | Push shared auth | After a valid session, grok-cli copies `auth.*` into `/var/grok-cli` as root | `grok-cli backup` |
 | Pull shared auth | A normal login copies from `/var/grok-cli` into `~/.grok` with no sudo | `grok-cli sync-auth` |
@@ -47,7 +47,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 
 | Command | Operands / flags | Handler prefix | Behavior summary | Behavior SSOT |
 |---------|------------------|----------------|------------------|---------------|
-| `setup` | `--force` | `gc_*` | Curl xAI grok installer; skip if `grok` already present | **`requirement-grok-setup`** |
+| `setup` | `--force` | `gc_*` | Fetch xAI channel + artifact and place peer `grok`; **MUST NOT** exec `install.sh`; skip if already present | **`requirement-grok-setup`** |
 | `check-session` | none | `gc_*` | Confirm grok is logged in | **`requirement-grok-auth-backup`** |
 | `backup` | none | `gc_*` | Check session, then elevated deposit of `auth.*` into `/var/grok-cli` | **`requirement-grok-auth-backup`** |
 | `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo** | **`requirement-grok-auth-backup`** |
@@ -66,7 +66,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 
 | Feature area | Domain role | Full law |
 |--------------|-------------|----------|
-| Peer grok install | Expose `setup` (vendor curl; not grok-cli install) | `requirement-grok-setup` |
+| Peer grok install | Expose `setup` (channel + artifact procedure; not grok-cli install; not `install.sh`) | `requirement-grok-setup` |
 | Grok session gate | Expose `check-session`; backup MUST call the same gate | `requirement-grok-auth-backup` |
 | Auth deposit | Expose `backup` | `requirement-grok-auth-backup` |
 | Unprivileged sync | Expose `sync-auth` | `requirement-grok-auth-backup` |
@@ -120,7 +120,7 @@ leolio ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
 
 | Help row | Text intent |
 |----------|-------------|
-| `setup` | Install grok from x.ai (`curl` vendor installer); skip if already present |
+| `setup` | Install grok from x.ai (channel + artifact; skip if already present) |
 | `check-session` | Confirm grok is logged in |
 | `backup` | Check session, push `~/.grok/auth.*` to `/var/grok-cli` (passwordless `sudo grok-cli backup` after sudoer-adm) |
 | `sync-auth` | Copy `/var/grok-cli/auth.*` into `~/.grok` with no sudo |
@@ -232,7 +232,7 @@ grok-cli add-crontab
 | `docs/requirements/index.md` | Registry SSOT |
 | `docs/requirements/requirement-grok-auth-backup.md` | Ops SSOT |
 | `docs/requirements/requirement-grok-crontab.md` | `add-crontab` ops SSOT |
-| `docs/requirements/requirement-grok-setup.md` | `setup` / peer grok installer |
+| `docs/requirements/requirement-grok-setup.md` | `setup` / peer grok channel + artifact |
 | `docs/requirements/requirement-three-layer-privilege-model.md` | Privilege workflow |
 | `docs/requirements/requirement-sudoer-json-file.md` | JSON grant body |
 | `docs/requirements/requirement-shell-cli-interface.md` | Dual mention of verbs |
@@ -248,6 +248,7 @@ grok-cli add-crontab
 | 2026-08-25 | Active (1.1.0) | `setup` peer grok installer (xAI curl) |
 | 2026-09-02 | Active (1.2.0) | `add-crontab` per-login backup/sync-auth timers |
 | 2026-09-02 | Active (1.3.0) | `sync-auth-from-remote` four SPEC forms |
+| 2026-09-02 | Active (1.4.0) | `setup` inlines studied xAI procedure (no `install.sh`) |
 
 ---
 
@@ -257,7 +258,7 @@ grok-cli add-crontab
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-04**, **TP-CLI-06** | `tests/test_cli.sh` | have |
-| **TP-VCLI-01**–**09**, **11**, **12** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01**–**09**, **11**–**14** | `tests/test_grok_setup.sh` | have |
 | **TP-GROK-CLI-01**, **01b**, **02**, **11**, **14**, **15**, **15b**, **19**–**25** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-26**–**29** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-30**–**33** | `tests/test_domain_grok_cli.sh` | have |

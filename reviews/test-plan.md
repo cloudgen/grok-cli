@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.5.0  
+**Product VERSION:** 1.7.0  
 **Last plan update:** 2026-09-02  
-**Last suite run:** `./tests/run.sh` (1.5.0: PASS=345 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.7.0: PASS=360 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -17,12 +17,12 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 |------|--------|----------|
 | Syntax `sh -n` | have | TP-CLI-01 |
 | version / help / about human + JSON | have | TP-CLI-02..06 |
-| Type N empty argv = TTY menu / off-TTY help | have | TP-CLI-07 |
-| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler) | have | TP-CLI-13 |
+| Empty argv: TTY menu; off-TTY Type O ensure (not help) | have | TP-CLI-07 · TP-ONL-01 |
+| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Cache folder + persistence storage | have | TP-CLI-12 |
 | Help lists setup / check-session / backup / sync-auth / sync-auth-from-remote / add-crontab; no restore operand | have | TP-CLI-04 |
-| `setup` vendor grok installer (fake curl) | have | TP-VCLI-01..09 · 11 · 12 |
+| `setup` grok channel + artifact (fake curl; no `install.sh`) | have | TP-VCLI-01..09 · 11..14 |
 | Local install / idempotent / uninstall / mode 0755 | have | TP-LC-01..10 |
 | Session gate | have | TP-GROK-CLI-03..06 |
 | Backup to writable GROK_CLI_ROOT + overwrite | have | TP-GROK-CLI-07/08 |
@@ -33,7 +33,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Operator-readable inbound-fidelity `[ERROR]` | have | TP-GROK-CLI-25* |
 | add-crontab grant gate + isolated jobs + idempotent | have | TP-GROK-CLI-26..29 |
 | sync-auth-from-remote four SPEC forms + fake scp | have | TP-GROK-CLI-30..33 |
-| Online curl / companion checksum | n/a | Local-only product |
+| Online curl / companion checksum / version-check / self-uninstall | have | TP-ONL-01..04 · TP-CLI-10 |
 | Folder tar.gz restore / retention | n/a | Superseded; TP-GROK-CLI-11 proves `restore` unknown |
 
 ---
@@ -47,16 +47,16 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-01 | `sh -n` ship unit | `tests/test_cli.sh` | requirement-shell-cli-interface · requirement-shell-script-coding | **have** |
 | TP-CLI-02 | version human | test_cli | requirement-shell-cli-interface | **have** |
 | TP-CLI-03 | version JSON | test_cli | requirement-shell-output-requirements | **have** |
-| TP-CLI-04 | help: setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, sudoers verbs; no restore operand; no grok-cli online channel | test_cli | requirement-shell-cli-interface · requirement-domain-grok-cli · requirement-grok-setup · requirement-grok-crontab · requirement-grok-auth-backup | **have** |
+| TP-CLI-04 | help: setup, auth verbs, version-check / self-update / self-uninstall, SCRIPT_URL; no restore; no CHECKSUM | test_cli | requirement-shell-cli-interface · requirement-domain-grok-cli · requirement-grok-setup · requirement-grok-crontab · requirement-grok-auth-backup · requirement-shell-self-management | **have** |
 | TP-CLI-05 | help JSON short | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-06 | about JSON cache_preferred / cache_fallback / persistence_storage + grok_cli_root + session; human Cache folder + Persistence storage | test_cli | requirement-shell-cli-storage · requirement-domain-grok-cli | **have** |
-| TP-CLI-07 | empty argv Type N: off-TTY help; `--json` no command JSON help; TTY numbered list | test_cli | requirement-shell-cli-zero-arguments · requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-07 | empty argv: off-TTY Type O already-installed (not help); `--json` no command JSON help; TTY numbered list | test_cli | requirement-shell-cli-zero-arguments · requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-08 | unknown fail-closed | test_cli | requirement-shell-cli-interface | **have** |
 | TP-CLI-09 | quiet suppresses version | test_cli | requirement-shell-output-requirements | **have** |
-| TP-CLI-10 | online verbs rejected | test_cli | requirement-bootstrap-chain | **have** |
+| TP-CLI-10 | version-check / self-update routed (not unknown) | test_cli | requirement-shell-self-management · requirement-bootstrap-chain | **have** |
 | TP-CLI-11 | env -u HOME version | test_cli | requirement-shell-script-coding | **have** |
 | TP-CLI-12 | preferred cache `/dev/shm/cache/cache-${APP_NAME}`; persistence `${HOME}/.local/${APP_NAME}`; live dirs exist; cache not APP-USERNAME shape; persistence not USER_BIN | test_cli | requirement-shell-cli-storage | **have** |
-| TP-CLI-13 | `menu`/`main`: TTY daily-work list (sync-auth-from-remote is 4; add-crontab is 5; sudoers family is 6) + submenu (Back 8 / Exit 9); ignore `--json` on TTY; non-TTY help following `--json`; empty argv off-TTY still help; `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
+| TP-CLI-13 | `menu`/`main`: TTY daily-work list (sync-auth-from-remote is 4; add-crontab is 5; sudoers family is 6) + submenu (Back 8 / Exit 9); ignore `--json` on TTY; off-TTY `menu` help; empty argv off-TTY is Type O ensure (not help); `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
 
 ### TP-LC (local lifecycle)
 
@@ -78,17 +78,28 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-ID | Intent | Suite | Primary requirement(s) | Status |
 |-------|--------|-------|------------------------|--------|
 | TP-VCLI-01 | `setup` is routed | `tests/test_grok_setup.sh` | requirement-grok-setup · requirement-shell-cli-interface | **have** |
-| TP-VCLI-02 | help lists setup; no self-update / SCRIPT_URL | test_grok_setup | requirement-grok-setup · requirement-domain-grok-cli | **have** |
+| TP-VCLI-02 | help lists setup, self-update, SCRIPT_URL; no `install.sh` | test_grok_setup | requirement-grok-setup · requirement-domain-grok-cli | **have** |
 | TP-VCLI-03 | TTY menu excludes setup | test_cli (TP-CLI-13) | requirement-shell-cli-default-interaction | **have** |
 | TP-VCLI-04 | grok already on PATH → no-op, no curl | test_grok_setup | requirement-grok-setup | **have** |
-| TP-VCLI-05 | `--force` fetches vendor URL | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-05 | `--force` fetches channel pointer + artifact (not `install.sh`) | test_grok_setup | requirement-grok-setup | **have** |
 | TP-VCLI-06 | curl fail → operator-readable Next | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
 | TP-VCLI-07 | missing curl → fail closed | test_grok_setup | requirement-grok-setup | **have** |
-| TP-VCLI-08 | fake installer places `grok`, not grok-cli | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-08 | fake fetch places `grok` under `~/.grok/bin`, not grok-cli | test_grok_setup | requirement-grok-setup | **have** |
 | TP-VCLI-09 | JSON `status` installed / already_installed | test_grok_setup | requirement-grok-setup | **have** |
 | TP-VCLI-10 | live x.ai fetch | — | requirement-grok-setup | **optional** |
 | TP-VCLI-11 | vendor `~/.grok/bin` + stale session PATH → exit 0, not `[ERROR]` | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
-| TP-VCLI-12 | installer ran, grok missing on disk → fail closed, no USER_BIN PATH hint | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-12 | binary download fail → fail closed, no USER_BIN PATH hint | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-13 | curl log MUST NOT contain `install.sh` | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-14 | curl log contains channel pointer and `grok-` artifact | test_grok_setup | requirement-grok-setup | **have** |
+
+### TP-ONL (grok-cli channel install)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-ONL-01 | off-TTY empty argv places `USER_BIN/grok-cli` (fake curl; not help; not x.ai `install.sh`) | `tests/test_online_install.sh` | requirement-shell-online-install · requirement-shell-cli-zero-arguments | **have** |
+| TP-ONL-02 | companion digest mismatch aborts | test_online_install | requirement-shell-automatic-checksum | **have** |
+| TP-ONL-03 | `version-check --json` reports remote_version | test_online_install | requirement-shell-self-management | **have** |
+| TP-ONL-04 | `self-uninstall --force` removes managed binary | test_online_install | requirement-shell-self-management | **have** |
 
 ### TP-GROK-CLI (domain + privilege + auth ops)
 

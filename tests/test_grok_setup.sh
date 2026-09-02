@@ -1,5 +1,5 @@
 # =============================================================================
-# tests/test_grok_setup.sh — TP-VCLI-* vendor grok installer (no public network)
+# tests/test_grok_setup.sh — TP-VCLI-* peer grok channel + artifact (no public network)
 # =============================================================================
 # ALIGNMENT: requirement-grok-setup.md
 # =============================================================================
@@ -8,7 +8,7 @@
 ci_toolbin() {
     _tb="${CI_HOME}/toolbin"
     mkdir -p "${_tb}"
-    for _t in sh bash mktemp rm id chmod mkdir cat grep sed awk tr cut head ls mv cp ln; do
+    for _t in sh bash mktemp rm id chmod mkdir cat grep sed awk tr cut head ls mv cp ln uname dirname basename; do
         _c=$(command -v "${_t}" 2>/dev/null || true)
         if [ -n "${_c}" ] && [ ! -e "${_tb}/${_t}" ]; then
             ln -s "${_c}" "${_tb}/${_t}" 2>/dev/null || true
@@ -51,18 +51,42 @@ fi
 if [ "${CURL_FAIL:-0}" = "1" ]; then
     exit 22
 fi
-if [ "${CURL_NOOP:-0}" = "1" ]; then
-    body='#!/bin/sh
+# Compressed variants: not provided by this stub (setup falls through to raw).
+case "${url}" in
+    *.zst|*.gz)
+        exit 22
+        ;;
+esac
+if [ "${CURL_EMPTY_BIN:-0}" = "1" ]; then
+    case "${url}" in
+        *grok-*)
+            if [ -n "${out}" ]; then
+                : > "${out}"
+            fi
+            exit 22
+            ;;
+    esac
+fi
+body=""
+case "${url}" in
+    *install.sh*)
+        body='#!/bin/sh
 exit 0
 '
-else
-    body='#!/bin/sh
-: "${CURL_PEER_DIR:=${USER_BIN:-${HOME}/.local/bin}}"
-mkdir -p "${CURL_PEER_DIR}"
-printf "%s\n" "#!/bin/sh" "echo grok-stub" > "${CURL_PEER_DIR}/grok"
-chmod +x "${CURL_PEER_DIR}/grok"
+        ;;
+    *grok-*)
+        body='#!/bin/sh
+echo grok 0.0.0-test
+exit 0
 '
-fi
+        ;;
+    */stable|*/alpha|*/enterprise|*/stable/*|*/alpha/*|*/enterprise/*)
+        body='0.0.0-test'
+        ;;
+    *)
+        exit 22
+        ;;
+esac
 if [ -n "${out}" ]; then
     printf '%s\n' "${body}" > "${out}"
 else
@@ -74,7 +98,7 @@ EOS
 }
 
 run_test_grok_setup() {
-    t_header "TP-VCLI grok-cli setup (peer grok installer)"
+    t_header "TP-VCLI grok-cli setup (peer grok channel + artifact)"
 
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
@@ -90,8 +114,9 @@ run_test_grok_setup() {
     _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" help 2>/dev/null)
     assert_contains "TP-VCLI-02 help lists setup" "${_out}" "setup"
     assert_contains "TP-VCLI-02 help names x.ai" "${_out}" "x.ai"
-    assert_not_contains "TP-VCLI-02 help no self-update" "${_out}" "self-update"
-    assert_not_contains "TP-VCLI-02 help no SCRIPT_URL" "${_out}" "SCRIPT_URL"
+    assert_contains "TP-VCLI-02 help lists self-update" "${_out}" "self-update"
+    assert_contains "TP-VCLI-02 help names SCRIPT_URL" "${_out}" "SCRIPT_URL"
+    assert_not_contains "TP-VCLI-02 help no install.sh" "${_out}" "install.sh"
     ci_cleanup_env
 
     # TP-VCLI-04 already-installed: stub grok on PATH, fake curl must not run
@@ -132,10 +157,15 @@ run_test_grok_setup() {
     )
     _ec=$?
     assert_eq "TP-VCLI-05 --force exit 0" 0 "${_ec}"
-    if [ -f "${CURL_LOG}" ] && grep -q 'x.ai/cli/install.sh' "${CURL_LOG}"; then
-        t_pass "TP-VCLI-05 curl hit vendor URL"
+    if [ -f "${CURL_LOG}" ] && grep -q '/stable' "${CURL_LOG}" && grep -q 'grok-' "${CURL_LOG}"; then
+        t_pass "TP-VCLI-05 curl hit channel pointer and artifact"
     else
-        t_fail "TP-VCLI-05 curl log missing vendor URL"
+        t_fail "TP-VCLI-05 curl log missing channel/artifact URL"
+    fi
+    if [ -f "${CURL_LOG}" ] && grep -q 'install.sh' "${CURL_LOG}"; then
+        t_fail "TP-VCLI-05 curl must not fetch install.sh"
+    else
+        t_pass "TP-VCLI-05 curl did not fetch install.sh"
     fi
     ci_cleanup_env
     unset CURL_LOG
@@ -151,7 +181,7 @@ run_test_grok_setup() {
     )
     _ec=$?
     assert_eq "TP-VCLI-06 curl fail exit 1" 1 "${_ec}"
-    assert_contains "TP-VCLI-06 error happened" "${_err}" "Download of the grok installer failed"
+    assert_contains "TP-VCLI-06 error happened" "${_err}" "Download of the grok version pointer failed"
     assert_contains "TP-VCLI-06 Next step" "${_err}" "Next:"
     assert_contains "TP-VCLI-06 did not install grok-cli" "${_err}" "did not install"
     ci_cleanup_env
@@ -169,21 +199,36 @@ run_test_grok_setup() {
     assert_contains "TP-VCLI-07 Next" "${_err}" "Next:"
     ci_cleanup_env
 
-    # TP-VCLI-08 fake installer places grok, not grok-cli
+    # TP-VCLI-08 fake fetch places grok under ~/.grok/bin, not grok-cli
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
+    CURL_LOG="${CI_HOME}/curl.log"
+    export CURL_LOG
     _out=$(
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+            CURL_LOG="${CURL_LOG}" \
             sh "${SCRIPT}" --json setup 2>/dev/null
     )
     _ec=$?
     assert_eq "TP-VCLI-08 setup exit 0" 0 "${_ec}"
-    assert_file_exists "TP-VCLI-08 peer grok placed" "${CI_USER_BIN}/grok"
+    assert_file_exists "TP-VCLI-08 peer grok at vendor dir" "${CI_HOME}/.grok/bin/grok"
     assert_file_missing "TP-VCLI-08 did not write grok-cli as peer" "${CI_USER_BIN}/grok-cli"
+    assert_file_missing "TP-VCLI-08 did not write grok-cli under vendor dir" "${CI_HOME}/.grok/bin/grok-cli"
     assert_contains "TP-VCLI-09 JSON installed" "${_out}" '"status":"installed"'
     assert_contains "TP-VCLI-09 JSON peer grok" "${_out}" '"peer":"grok"'
+    if [ -f "${CURL_LOG}" ] && grep -q 'install.sh' "${CURL_LOG}"; then
+        t_fail "TP-VCLI-13 curl must not fetch install.sh"
+    else
+        t_pass "TP-VCLI-13 curl did not fetch install.sh"
+    fi
+    if [ -f "${CURL_LOG}" ] && grep -q '/stable' "${CURL_LOG}" && grep -q 'grok-' "${CURL_LOG}"; then
+        t_pass "TP-VCLI-14 curl hit channel pointer and grok- artifact"
+    else
+        t_fail "TP-VCLI-14 curl log missing channel/artifact"
+    fi
     ci_cleanup_env
+    unset CURL_LOG
 
     # TP-VCLI-11 vendor dir (~/.grok/bin), not on this session PATH: success, not ERROR
     ci_isolated_env
@@ -191,7 +236,7 @@ run_test_grok_setup() {
     _tb=$(ci_toolbin)
     _vendor_bin="${CI_HOME}/.grok/bin"
     _all=$(
-        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_PEER_DIR="${_vendor_bin}" \
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
             PATH="${CI_HOME}/fakecurl:${_tb}" \
             sh "${SCRIPT}" setup 2>&1
     )
@@ -212,18 +257,18 @@ run_test_grok_setup() {
     assert_contains "TP-VCLI-11 JSON on_path false" "${_j}" '"on_path":"false"'
     ci_cleanup_env
 
-    # TP-VCLI-12 installer ran, grok missing on disk: fail closed, no PATH-hint lie
+    # TP-VCLI-12 binary download empty/fail: fail closed, no PATH-hint lie
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
     _err=$(
-        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_NOOP=1 \
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_EMPTY_BIN=1 \
             PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
             sh "${SCRIPT}" setup 2>&1 >/dev/null
     )
     _ec=$?
     assert_eq "TP-VCLI-12 missing grok exit 1" 1 "${_ec}"
-    assert_contains "TP-VCLI-12 error happened" "${_err}" "was not found"
+    assert_contains "TP-VCLI-12 error happened" "${_err}" "Download of the grok binary failed"
     assert_contains "TP-VCLI-12 Next step" "${_err}" "Next:"
     assert_contains "TP-VCLI-12 Next is setup" "${_err}" "setup"
     assert_not_contains "TP-VCLI-12 does not say add USER_BIN" "${_err}" "add ${CI_USER_BIN} to PATH"

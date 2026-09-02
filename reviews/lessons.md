@@ -4,9 +4,9 @@ Durable failure modes. **Always re-check on product review.**
 
 | ID | Mode | Prevention | Status |
 |----|------|------------|--------|
-| L-TYPE-N-01 | Empty argv becomes install-ensure (parent Type O leak) | `requirement-shell-cli-zero-arguments` Type N; TP-CLI-07 | open watch |
-| L-ARGV-01 | Off-TTY empty argv draws or hangs the numbered menu | Type N off-TTY help; `app_default` TTY-only; TP-CLI-07 | open watch |
-| L-ONLINE-01 | Online verbs reintroduced (self-update / SCRIPT_URL UX) | A=cli-template already absent + TP-CLI-04/10 | open watch |
+| L-TYPE-N-01 | TTY empty argv becomes install-ensure (menu stolen) | TTY → `app_default`; off-TTY Type O only; TP-CLI-07 PTY | open watch |
+| L-ARGV-01 | Off-TTY empty argv draws or hangs the numbered menu | Off-TTY empty argv is Type O ensure; `menu` off-TTY is help; TP-CLI-07/13 | open watch |
+| L-ONLINE-01 | Drop channel / dual-mode matrix while advertising `curl\|sh` | `requirement-shell-online-install` matrix; TP-ONL-* · TP-CLI-04/10 | open watch |
 | L-UNIN-01 | Non-interactive uninstall succeeds without force | TP-LC-05 confirm fail-closed | open watch |
 | L-INST-MODE-01 | Install leaves `0711`/`0700` (chmod +x after mktemp) so non-owners cannot run shell ship unit | absolute `chmod 0755` + heal on reinstall; TP-LC-09/10; local-self-management §2.3.1 | open watch |
 | L-DEPOSIT-01 | Unprivileged write to `/var/grok-cli` or silent deposit success without grant | fail-closed + `sudo grok-cli backup`; TP-GROK-CLI-12 | open watch |
@@ -26,4 +26,4 @@ Durable failure modes. **Always re-check on product review.**
 | L-OUTPUT-01 | Submit fail-closed `[ERROR]` uses inbound/verb/sibling-re-encode jargon; operator cannot act | Fatal submit errors must name the missing grant, do-not-approve request id, and next command (`generate-sudoer-request`); **requirement-operator-readable-error**; TP-25*; incomplete inbound JSON is **not** a standing expected class (owner); INC-20260817-002 | open watch |
 | L-TEST-REVIEW-01 | Green emit TP-22 + stub TP-20 + S14 Pass miss sibling decode drop | Assert inbound after **real** sudoer-cli; pretty + compact fixtures; do not treat `tests/run.sh` PASS as grant fidelity; INC-20260817-001 | open watch |
 
-**Bootstrap parent lessons (cli-template) still relevant for kept surfaces:** output SSOT, no basename gate on entry, storage isolation, Type N empty argv (not install; off-TTY help), local-only install. Historical selfmanaged lessons apply only as retired-hop context.
+**Bootstrap parent lessons:** cli-template still owns output SSOT, no basename gate, storage isolation, checkout `install`. selfmanaged owns channel `SCRIPT_URL`, Type O off-TTY empty argv, companion digest, `version-check` / `self-update` / `self-uninstall`. TTY numbered menu is grok-cli case 3 (not selfmanaged).

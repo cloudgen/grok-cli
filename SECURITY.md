@@ -4,7 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.5.0 (current) | Yes |
+| 1.7.0 (current) | Yes |
+| 1.6.0 | Yes |
+| 1.5.0 | Yes |
 | 1.4.0 | Yes |
 | 1.3.0 | Yes |
 | 1.2.2 | Yes |
@@ -41,7 +43,8 @@ This section is **design posture**, not a third-party certification claim.
 ## Scope notes
 
 - Elevation is limited to allowlisted `grok-cli backup` under product law.  
-- **`setup`** fetches xAI’s published installer (`https://x.ai/cli/install.sh`) as the invoking login (no sudo). It does **not** install grok-cli and does **not** grant extra sudoers. Treat the vendor script as third-party code.  
+- **Online install** fetches this product’s ship unit from `SCRIPT_URL` (`https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli`) as the invoking login. Companion `${SCRIPT_URL}.sha256` is checked when present. This is **not** xAI’s grok installer.  
+- **`setup`** fetches xAI’s published **version pointer and `grok` binary** (`https://x.ai/cli/{channel}` and `https://x.ai/cli/grok-{version}-{os}-{arch}`) as the invoking login (no sudo). It does **not** download or execute `install.sh`, does **not** install grok-cli, and does **not** grant extra sudoers. Treat the vendor **binary** as third-party code.  
 - Operators must admin-install sudoers fragments after review (`visudo -c`, mode `0440`) **or** have sudoer-adm approve the JSON request.  
 - **Install trust tiers for elevation:**
   - **Production:** global managed binary (`/usr/local/bin/grok-cli`, typically root-owned). Prefer `sudo grok-cli install` before durable sudoers.  

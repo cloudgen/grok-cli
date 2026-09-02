@@ -2,9 +2,12 @@
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-09-02 | `reports/2026-09-02-requirement-review-online-menu.md` | curl install + TTY menu; test-plan/lessons/molds/checklist | **Approve with follow-ups closed** | PASS=360 FAIL=0 SKIP=0 |
+| 2026-09-02 | `reports/2026-09-02-checklist-online-install-script.md` | Filled `CL-ONLINE-INSTALL-SCRIPT` | **Pass** | 1.7.0 |
+| 2026-09-02 | `reports/2026-09-02-requirement-review-grok-setup-inline.md` | `setup` inlines studied xAI channel + artifact; no `install.sh` | **Approve with follow-ups closed** | PASS=350 FAIL=0 SKIP=0 |
 | 2026-08-23 | `reports/2026-08-23-empty-argv-menu.md` | Empty argv → TTY numbered menu; off-TTY help; Type N | **Pass** | PASS=242 FAIL=0 SKIP=0 |
 | 2026-08-23 | `reports/2026-08-23-empty-argv-menu-requirement-review.md` | Zero-arguments 1.3.0 + default-interaction 1.7.0 + interface 2.2.0 | **Approve with follow-ups closed** | PASS=242 FAIL=0 SKIP=0 |
-| 2026-09-02 | `cli-routed-verb-table.md` | Kept live-command list (name, function, who may run, comment date, **human-readable** help one-liner) | **18 live** · 1 not-yet-wired (`restore` forbidden) | living |
+| 2026-09-02 | `cli-routed-verb-table.md` | Kept live-command list | **21 live** · 1 not-yet-wired (`restore` forbidden) | living |
 | 2026-08-22 | `reports/2026-08-22-product-review-grok-cli.md` | Full product grok-cli 1.0.0 | **Pass** | PASS=207 FAIL=0 SKIP=0 |
 | 2026-08-22 | `reports/2026-08-22-requirement-review-grok-cli.md` | Requirement review + authorized retarget | **Approve with follow-ups closed** | PASS=207 FAIL=0 SKIP=0 |
 | 2026-08-17 | `reports/2026-08-17-review-revision-test-plans.md` | Review/test-plan revision vs 1.9.0 generate + operator-readable errors | **PASS** (plans aligned; suite green) | PASS=242 FAIL=0 SKIP=2 |

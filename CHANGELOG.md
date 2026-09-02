@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] - 2026-09-02
+
+### Added
+
+- **Online install** from selfmanaged, specialized onto grok-cli: `curl -fsSL https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli | sh`. Companion `${SCRIPT_URL}.sha256`. Verbs `version-check`, `self-update`, `self-uninstall`.
+- **Empty argv:** TTY still opens the numbered menu. Off-TTY empty argv is Type O install-ensure (**not** help), so the pipe one-liner works. Checkout `install` remains an offline copy. Dual-mode matrix: `requirement-shell-online-install` **1.0.0**. Suite **TP-ONL-01..04** · **TP-CLI-07** / **13**.
+
+## [1.6.0] - 2026-09-02
+
+### Changed
+
+- **`setup`**: install peer `grok` by the studied xAI procedure (platform detect, channel version pointer, `grok-{version}-{os}-{arch}` artifact, place under `~/.grok/downloads` and `~/.grok/bin`). **Does not** download or execute `https://x.ai/cli/install.sh` and **does not** require bash. Idempotent if `grok` is already present; `--force` fetches again. Core tests use a fake `curl` (no public network). Law: `requirement-grok-setup` **2.0.0**. Suite **TP-VCLI-01..09 · 11..14**.
+
 ## [1.5.0] - 2026-09-02
 
 ### Added

@@ -2,7 +2,7 @@
 
 Authoritative specialized product law for **grok-cli** lives here.
 
-**Current state (2026-09-02):** Specialized **software-development** product. Left genesis. Bootstrap chain is **cli-template → folder-backup → grok-cli**. Registry is populated — see `index.md` (CLI default-interaction is case 3: TTY empty argv and `menu`/`main` show the numbered list; off-TTY empty argv stays Type N help). `setup` installs peer `grok` from x.ai (not grok-cli). `add-crontab` installs this login’s backup/sync-auth crontab jobs.
+**Current state (2026-09-02):** Specialized **software-development** product. Left genesis. Bootstrap: **cli-template → folder-backup → grok-cli** (domain) **plus** selfmanaged online package. Case 3: TTY empty argv and `menu`/`main` show the numbered list; off-TTY empty argv is Type O install-ensure (not help). `setup` installs peer `grok` (not `install.sh`). Dual-mode install: `curl|sh` primary; checkout `install` secondary.
 
 ## Product identity (summary)
 
@@ -12,11 +12,12 @@ Authoritative specialized product law for **grok-cli** lives here.
 | Version SSOT | ship unit `VERSION=` (do not pin a stale number here) |
 | Ship unit | `src/grok-cli` |
 | Default install | `~/.local/bin/grok-cli` |
-| Install mode | **Local-only** |
+| Install mode | **Dual-mode** (channel primary; checkout `install` secondary) |
+| Online channel | `requirement-shell-online-install` · `requirement-shell-self-management` · `requirement-shell-automatic-checksum` |
 | Auth ops | `requirement-grok-auth-backup` — session check / deposit / sync-auth |
 | Crontab ops | `requirement-grok-crontab` — `add-crontab` per-login timers |
 | Domain surface | `requirement-domain-grok-cli` — four pillars |
-| Peer grok install | `requirement-grok-setup` — `setup` curls xAI installer |
+| Peer grok install | `requirement-grok-setup` — `setup` fetches xAI channel + artifact (does not exec `install.sh`) |
 | JSON sudoer file | `requirement-sudoer-json-file` — grant is `grok-cli backup` only; no `cp`/`mkdir`/`chmod` |
 
 ## Class requirement gate
@@ -48,5 +49,5 @@ Typical: `draft` · `Active` · `approved` · `in-progress` · `done` · `deprec
 1. Never invent paths — verify on disk.  
 2. Class files only via class process; non-class via create-specific process.  
 3. Never dump harness inventories into this versioned surface.  
-4. Online install requirements stay **absent** unless product mode is explicitly changed.  
+4. Online install requirements are **Active** (dual-mode). Do not drop them without updating this registry and the dual-mode matrix.  
 5. Sole domain SSOT: `requirement-domain-grok-cli.md`.

@@ -17,7 +17,10 @@
 # - requirement-three-layer-privilege-model.md
 # - requirement-sudoer-json-file.md  (JSON sudoer file: PRJ_NAME only)
 # - requirement-shell-cli-interface.md
-# - requirement-shell-cli-zero-arguments.md  (Type N empty argv = help)
+# - requirement-shell-cli-zero-arguments.md  (TTY menu; off-TTY Type O ensure)
+# - requirement-shell-online-install.md
+# - requirement-shell-self-management.md
+# - requirement-shell-automatic-checksum.md
 # - requirement-shell-cli-default-interaction.md  (menu/main numbered list)
 # - requirement-shell-local-self-management.md
 # - requirement-shell-cli-storage.md
@@ -27,7 +30,7 @@
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
 # - requirement-grok-crontab.md      (add-crontab: per-login backup/sync-auth jobs)
-# - requirement-grok-setup.md        (setup: curl xAI grok installer for peer grok)
+# - requirement-grok-setup.md        (setup: xAI channel + artifact; MUST NOT exec install.sh)
 # - requirement-domain-grok-cli.md   (domain surface four pillars)
 # Plus CIAO Protection Zones and "DO NOT MODIFY" rules.
 #
@@ -35,7 +38,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.5.0"
+# VERSION: hard-assign VERSION="1.7.0"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -49,15 +52,14 @@ APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
 : "${APP_DESC:=Local grok auth backup to /var/grok-cli and unprivileged sync-auth}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.5.0"
-: "${VERSION:=1.5.0}"
+VERSION="1.7.0"
+: "${VERSION:=1.7.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
-# Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
 : "${REPO_NAME:=grok-cli}"
-: "${SCRIPT_URL:=}"
+: "${SCRIPT_URL:=https://raw.githubusercontent.com/${REPO_USER}/${REPO_NAME}/main/src/${APP_NAME}}"
 
 # Runtime flags (safe defaults)
 : "${QUIET:=0}"
@@ -103,9 +105,12 @@ fi
 
 # Domain / grok auth deposit SSOT
 : "${GROK_CLI_ROOT:=/var/grok-cli}"
-# Peer grok (xAI) installer — setup verb. Not grok-cli's own install channel.
-: "${GROK_VENDOR_INSTALL_URL:=https://x.ai/cli/install.sh}"
+# Peer grok (xAI) — setup verb. Channel + artifact procedure; not install.sh.
+: "${GROK_VENDOR_BASE_URL:=https://x.ai/cli}"
+: "${GROK_VENDOR_FALLBACK_URL:=https://storage.googleapis.com/grok-build-public-artifacts/cli}"
+: "${GROK_CHANNEL:=stable}"
 : "${GROK_PEER_NAME:=grok}"
+# GROK_SETUP_VERSION optional pin (skip channel pointer). GROK_BIN_DIR optional.
 # GROK_BIN optional absolute override for the peer executable.
 # GROK_HOME is resolved at call time (SUDO_USER-aware). Tests may export it.
 # Optional sudoer-cli compose (Type 0 submit into approval inbound)
@@ -736,6 +741,81 @@ path_add_shell() {
 # PRINTF/ECHO EXCEPTION (class B – return-via-stdout):
 # Digests are data returns for $(util_sha256_file …), not product UI.
 # =============================================================================
+util_sha256_file() {
+    _usf_file="${1-}"
+    _usf_dig=""
+    if [ -z "${_usf_file}" ] || [ ! -f "${_usf_file}" ]; then
+        return 1
+    fi
+    if command -v sha256sum >/dev/null 2>&1; then
+        _usf_dig=$(sha256sum "${_usf_file}" 2>/dev/null | awk '{ print $1; exit }')
+    elif command -v shasum >/dev/null 2>&1; then
+        _usf_dig=$(shasum -a 256 "${_usf_file}" 2>/dev/null | awk '{ print $1; exit }')
+    elif command -v openssl >/dev/null 2>&1; then
+        _usf_dig=$(openssl dgst -sha256 "${_usf_file}" 2>/dev/null | awk '{ print $NF; exit }')
+    else
+        return 1
+    fi
+    if [ -z "${_usf_dig}" ]; then
+        return 1
+    fi
+    printf '%s\n' "${_usf_dig}"
+    return 0
+}
+
+# =============================================================================
+# util_fetch_remote_version() - Class B: VERSION= from SCRIPT_URL body
+# =============================================================================
+util_fetch_remote_version() {
+    _ufr_url="${1-}"
+    _ufr_body=""
+    if [ -z "${_ufr_url}" ]; then
+        return 1
+    fi
+    if command -v curl >/dev/null 2>&1; then
+        _ufr_body=$(curl -fsSL "${_ufr_url}" 2>/dev/null) || _ufr_body=""
+    elif command -v wget >/dev/null 2>&1; then
+        _ufr_body=$(wget -qO- "${_ufr_url}" 2>/dev/null) || _ufr_body=""
+    else
+        return 1
+    fi
+    if [ -z "${_ufr_body}" ]; then
+        return 1
+    fi
+    printf '%s\n' "${_ufr_body}" | grep '^VERSION="' | head -n1 | cut -d'"' -f2
+    return 0
+}
+
+# =============================================================================
+# ver_gt() - POSIX semver compare; 0 if $1 > $2
+# =============================================================================
+ver_gt() {
+    v1=$1
+    v2=$2
+    while [ -n "$v1" ] || [ -n "$v2" ]; do
+        p1=${v1%%.*}
+        p2=${v2%%.*}
+        [ -z "$p1" ] && p1=0
+        [ -z "$p2" ] && p2=0
+        if [ "$p1" -gt "$p2" ]; then
+            return 0
+        fi
+        if [ "$p1" -lt "$p2" ]; then
+            return 1
+        fi
+        if [ "$v1" = "${v1#*.}" ]; then
+            v1=""
+        else
+            v1=${v1#*.}
+        fi
+        if [ "$v2" = "${v2#*.}" ]; then
+            v2=""
+        else
+            v2=${v2#*.}
+        fi
+    done
+    return 1
+}
 
 util_get_install_bin_path() {
     # --- Safe Variable Defaults ----
@@ -1449,6 +1529,256 @@ inst_local_uninstall() {
 }
 
 # =============================================================================
+# inst_perform_channel_install() - Download SCRIPT_URL and atomically place
+# =============================================================================
+#
+# ALIGNMENT:
+# - requirement-shell-online-install.md
+# - requirement-shell-automatic-checksum.md
+#
+# Last updated: 2026-09-02
+# =============================================================================
+inst_perform_channel_install() {
+    : "${APP_NAME:=grok-cli}"
+    : "${HOME:=/tmp}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+    : "${FORCE_REINSTALL:=0}"
+    : "${FORCE:=0}"
+    : "${CHECKSUM:=}"
+    : "${SCRIPT_URL:=}"
+    : "${JSON:=0}"
+    : "${INST_MANAGED_MODE:=0755}"
+
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+        IS_ROOT=1
+        INSTALL_PATH="${GLOBAL_BIN}/${APP_NAME}"
+        _ici_dir="${GLOBAL_BIN}"
+    else
+        IS_ROOT=0
+        INSTALL_PATH="${USER_BIN}/${APP_NAME}"
+        _ici_dir="${USER_BIN}"
+    fi
+
+    if [ -z "${SCRIPT_URL}" ]; then
+        out_die "SCRIPT_URL is empty, so ${APP_NAME} cannot download itself. Next: set SCRIPT_URL, then curl -fsSL \"\${SCRIPT_URL}\" | sh."
+    fi
+    if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+        out_die "curl or wget is required to download ${APP_NAME}. Next: install curl, then curl -fsSL ${SCRIPT_URL} | sh."
+    fi
+
+    if inst_is_installed && [ "${FORCE_REINSTALL}" -ne 1 ] && [ "${FORCE}" -ne 1 ]; then
+        out_success "${APP_NAME} is already installed at $(util_get_install_bin_path)."
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "install" "${APP_NAME} is already installed." \
+                "app" "${APP_NAME}" \
+                "path" "$(util_get_install_bin_path)" \
+                "status" "already_installed" \
+                "script_url" "${SCRIPT_URL}"
+        fi
+        return 0
+    fi
+
+    if [ ! -d "${_ici_dir}" ]; then
+        mkdir -p "${_ici_dir}" 2>/dev/null || out_die "Cannot create ${_ici_dir}."
+    fi
+    if [ ! -w "${_ici_dir}" ]; then
+        out_die "Cannot write ${_ici_dir}."
+    fi
+
+    _ici_tmp=$(util_mktemp chandl)
+    if [ -z "${_ici_tmp}" ] || [ ! -f "${_ici_tmp}" ]; then
+        out_die "Could not create a temp file for the channel download."
+    fi
+    out_info "Downloading ${APP_NAME} from ${SCRIPT_URL}"
+    if command -v curl >/dev/null 2>&1; then
+        if ! curl -fsSL "${SCRIPT_URL}" -o "${_ici_tmp}"; then
+            rm -f "${_ici_tmp}"
+            out_die "Download of ${SCRIPT_URL} failed. Next: check network, then curl -fsSL ${SCRIPT_URL} | sh."
+        fi
+    else
+        if ! wget -qO "${_ici_tmp}" "${SCRIPT_URL}"; then
+            rm -f "${_ici_tmp}"
+            out_die "Download of ${SCRIPT_URL} failed. Next: check network, then curl -fsSL ${SCRIPT_URL} | sh."
+        fi
+    fi
+    if [ ! -s "${_ici_tmp}" ]; then
+        rm -f "${_ici_tmp}"
+        out_die "Downloaded ${SCRIPT_URL} is empty. Next: check the channel, then retry."
+    fi
+
+    INST_AUTO_CHECKSUM_OK=0
+    if [ -n "${CHECKSUM}" ]; then
+        _ici_act=$(util_sha256_file "${_ici_tmp}") || _ici_act=""
+        if [ "${_ici_act}" != "${CHECKSUM}" ]; then
+            rm -f "${_ici_tmp}"
+            out_die "Checksum verification failed (CHECKSUM pin). Installation aborted."
+        fi
+        INST_AUTO_CHECKSUM_OK=1
+        out_success "Strict CHECKSUM pin matched."
+    else
+        _ici_sha=$(util_mktemp chansha)
+        _ici_got=0
+        if command -v curl >/dev/null 2>&1; then
+            if curl -fsSL "${SCRIPT_URL}.sha256" -o "${_ici_sha}" 2>/dev/null && [ -s "${_ici_sha}" ]; then
+                _ici_got=1
+            fi
+        elif wget -qO "${_ici_sha}" "${SCRIPT_URL}.sha256" 2>/dev/null && [ -s "${_ici_sha}" ]; then
+            _ici_got=1
+        fi
+        if [ "${_ici_got}" -eq 1 ]; then
+            _ici_exp=$(awk 'NF { print $1; exit }' "${_ici_sha}" 2>/dev/null)
+            _ici_act=$(util_sha256_file "${_ici_tmp}") || _ici_act=""
+            out_info "Companion link: ${SCRIPT_URL}.sha256"
+            out_info "Expected SHA-256: ${_ici_exp:-"(empty)"}"
+            out_info "Actual SHA-256:   ${_ici_act:-"(empty)"}"
+            if [ -n "${_ici_exp}" ] && [ -n "${_ici_act}" ] && [ "${_ici_exp}" = "${_ici_act}" ]; then
+                INST_AUTO_CHECKSUM_OK=1
+                out_success "Automatic checksum result: PASS."
+            else
+                rm -f "${_ici_tmp}" "${_ici_sha}"
+                out_die "Checksum verification failed (mismatch with ${SCRIPT_URL}.sha256). Installation aborted."
+            fi
+        else
+            out_warn "No .sha256 companion at ${SCRIPT_URL}.sha256 → continuing without automatic verification."
+        fi
+        rm -f "${_ici_sha}"
+    fi
+
+    chmod "${INST_MANAGED_MODE}" "${_ici_tmp}" || true
+    if ! mv -f "${_ici_tmp}" "${INSTALL_PATH}"; then
+        rm -f "${_ici_tmp}"
+        out_die "Failed to install to ${INSTALL_PATH}."
+    fi
+    chmod "${INST_MANAGED_MODE}" "${INSTALL_PATH}" || true
+    if [ "${_ici_dir}" = "${USER_BIN}" ]; then
+        path_add_shell 2>/dev/null || true
+    fi
+    out_success "Installed ${APP_NAME} to ${INSTALL_PATH}"
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "install" "installed" \
+            "app" "${APP_NAME}" \
+            "path" "${INSTALL_PATH}" \
+            "status" "installed" \
+            "script_url" "${SCRIPT_URL}"
+    fi
+    return 0
+}
+
+# =============================================================================
+# inst_channel_ensure() - Off-TTY empty argv / pipe: install or already-installed
+# =============================================================================
+#
+# ALIGNMENT: requirement-shell-cli-zero-arguments.md · requirement-shell-online-install.md
+# Last updated: 2026-09-02
+# =============================================================================
+inst_channel_ensure() {
+    : "${FORCE:=0}"
+    : "${FORCE_REINSTALL:=0}"
+    : "${JSON:=0}"
+    if inst_is_installed && [ "${FORCE_REINSTALL}" -ne 1 ] && [ "${FORCE}" -ne 1 ]; then
+        out_success "${APP_NAME} is already installed at $(util_get_install_bin_path)."
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "install" "${APP_NAME} is already installed." \
+                "app" "${APP_NAME}" \
+                "path" "$(util_get_install_bin_path)" \
+                "status" "already_installed"
+        fi
+        return 0
+    fi
+    inst_perform_channel_install
+}
+
+# =============================================================================
+# ver_check() - Local vs remote VERSION on SCRIPT_URL
+# =============================================================================
+#
+# ALIGNMENT: requirement-shell-self-management.md
+# Last updated: 2026-09-02
+# =============================================================================
+ver_check() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${SCRIPT_URL:=}"
+    REMOTE_VERSION=$(util_fetch_remote_version "${SCRIPT_URL}") || REMOTE_VERSION=""
+    if [ -z "${REMOTE_VERSION}" ]; then
+        out_die "Failed to fetch remote version from ${SCRIPT_URL}. Next: check network, then ${APP_NAME} version-check."
+    fi
+    _vc_local=$(inst_get_version)
+    _vc_latest="false"
+    if [ "${_vc_local}" = "${REMOTE_VERSION}" ]; then
+        _vc_latest="true"
+    elif ver_gt "${_vc_local}" "${REMOTE_VERSION}" 2>/dev/null; then
+        _vc_latest="true"
+    fi
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "ver_check" "" \
+            "local_version" "${_vc_local}" \
+            "remote_version" "${REMOTE_VERSION}" \
+            "is_latest" "${_vc_latest}"
+        return 0
+    fi
+    out_info "Checking latest version of ${APP_NAME}..."
+    out_plain "Local version : ${_vc_local}"
+    out_plain "Latest version: ${REMOTE_VERSION}"
+    if [ "${_vc_local}" = "${REMOTE_VERSION}" ]; then
+        out_success "You are running the latest version."
+    elif ver_gt "${_vc_local}" "${REMOTE_VERSION}" 2>/dev/null; then
+        out_success "You are running a newer development version (${_vc_local} > ${REMOTE_VERSION})"
+    elif [ "${_vc_local}" = "not installed" ]; then
+        out_warn "${APP_NAME} is not installed yet."
+    else
+        out_warn "A newer version is available (${REMOTE_VERSION})"
+    fi
+    return 0
+}
+
+# =============================================================================
+# inst_self_update() - Channel re-download when remote is newer (or --force)
+# =============================================================================
+#
+# ALIGNMENT: requirement-shell-self-management.md
+# Last updated: 2026-09-02
+# =============================================================================
+inst_self_update() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${FORCE:=0}"
+    : "${SCRIPT_URL:=}"
+    if [ "${FORCE}" -eq 1 ]; then
+        FORCE_REINSTALL=1
+    fi
+    out_info "Starting self-update of ${APP_NAME}..."
+    REMOTE_VERSION=$(util_fetch_remote_version "${SCRIPT_URL}") || REMOTE_VERSION=""
+    if [ -z "${REMOTE_VERSION}" ]; then
+        out_die "Failed to fetch remote version from ${SCRIPT_URL}. Next: check network, then ${APP_NAME} self-update."
+    fi
+    _isu_local=$(inst_get_version)
+    if [ "${FORCE}" -ne 1 ] && [ "${_isu_local}" != "not installed" ]; then
+        if [ "${_isu_local}" = "${REMOTE_VERSION}" ]; then
+            out_success "${APP_NAME} is already at ${REMOTE_VERSION}."
+            return 0
+        fi
+        if ver_gt "${_isu_local}" "${REMOTE_VERSION}" 2>/dev/null; then
+            out_die "Local ${_isu_local} is newer than remote ${REMOTE_VERSION}. Next: ${APP_NAME} self-update --force to replace anyway."
+        fi
+    fi
+    FORCE_REINSTALL=1
+    inst_perform_channel_install
+}
+
+# =============================================================================
+# inst_self_uninstall() - Channel-named remove; same dest as uninstall
+# =============================================================================
+#
+# ALIGNMENT: requirement-shell-self-management.md
+# Last updated: 2026-09-02
+# =============================================================================
+inst_self_uninstall() {
+    inst_local_uninstall
+}
+
+# =============================================================================
 # app_where_is_me() - Report running + install paths
 # =============================================================================
 #
@@ -1550,7 +1880,7 @@ gc_resolve_grok_home() {
 # GENERAL PURPOSE:
 # Locate the xAI grok binary: GROK_BIN override, else command -v grok, else
 # the vendor dir (~/.grok/bin) and USER_BIN. Disk search is required because
-# the vendor installer writes PATH into ~/.bashrc; that does not apply to the
+# setup writes PATH into ~/.bashrc; that does not apply to the
 # current session. Empty string means not found. Does not mean grok-cli is
 # installed.
 #
@@ -1638,31 +1968,235 @@ gc_setup_print_next() {
 }
 
 # =============================================================================
-# gc_setup() - Type 0: curl xAI grok installer (peer CLI)
+# gc_setup_version_ok() - 0 if X.Y.Z or X.Y.Z-suffix
+# =============================================================================
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-02
+# =============================================================================
+gc_setup_version_ok() {
+    printf '%s' "${1:-}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9._]+)?$'
+}
+
+# =============================================================================
+# gc_setup_path_has_dir() - 0 if dir is already on PATH
+# =============================================================================
+gc_setup_path_has_dir() {
+    case ":${PATH}:" in
+        *":${1}:"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# =============================================================================
+# gc_setup_detect_platform() - Class B: print os-arch (linux-aarch64, …)
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Fetch https://x.ai/cli/install.sh (or GROK_VENDOR_INSTALL_URL) into a temp
-# file and run it with bash so peer grok is installed. Skip if grok is already
-# present unless --force. After a successful vendor run, grok on disk is
-# success even when this session's PATH is stale (vendor writes PATH into
-# ~/.bashrc). MUST NOT install grok-cli.
+# Same OS/arch map as the studied xAI installer (Darwin→macos, Linux→linux;
+# x86_64/amd64, aarch64/arm64; macOS Rosetta → aarch64). Empty + return 1
+# when unsupported. Windows is out of scope for this POSIX ship unit.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-02
+# =============================================================================
+gc_setup_detect_platform() {
+    _sys=$(uname -s 2>/dev/null) || _sys=""
+    _mach=$(uname -m 2>/dev/null) || _mach=""
+    case "${_sys}" in
+        Darwin) _os="macos" ;;
+        Linux)  _os="linux" ;;
+        *)
+            printf ''
+            return 1
+            ;;
+    esac
+    case "${_mach}" in
+        x86_64|amd64|AMD64) _arch="x86_64" ;;
+        arm64|aarch64|ARM64) _arch="aarch64" ;;
+        *)
+            printf ''
+            return 1
+            ;;
+    esac
+    if [ "${_os}" = "macos" ] && [ "${_arch}" = "x86_64" ]; then
+        _sysctl=$(command -v sysctl 2>/dev/null || echo /usr/sbin/sysctl)
+        if [ "$("${_sysctl}" -n hw.optional.arm64 2>/dev/null)" = "1" ]; then
+            _arch="aarch64"
+        fi
+    fi
+    printf '%s-%s' "${_os}" "${_arch}"
+    return 0
+}
+
+# =============================================================================
+# gc_setup_curl_file() - curl URL into a file; 0 only when the file is non-empty
+# =============================================================================
+gc_setup_curl_file() {
+    _gcf_url="${1:-}"
+    _gcf_out="${2:-}"
+    if [ -z "${_gcf_url}" ] || [ -z "${_gcf_out}" ]; then
+        return 1
+    fi
+    curl -fsSL -o "${_gcf_out}" "${_gcf_url}" || return 1
+    [ -s "${_gcf_out}" ] || return 1
+    return 0
+}
+
+# =============================================================================
+# gc_setup_read_pointer() - Class B: print channel version from base or fallback
+# =============================================================================
+gc_setup_read_pointer() {
+    _grp_channel="${1:-stable}"
+    : "${GROK_VENDOR_BASE_URL:=https://x.ai/cli}"
+    : "${GROK_VENDOR_FALLBACK_URL:=https://storage.googleapis.com/grok-build-public-artifacts/cli}"
+    for _grp_base in "${GROK_VENDOR_BASE_URL}" "${GROK_VENDOR_FALLBACK_URL}"; do
+        _grp_probe=$(curl -fsSL "${_grp_base}/${_grp_channel}" 2>/dev/null) || _grp_probe=""
+        _grp_ver=$(printf '%s' "${_grp_probe}" | tr -d '\r' | head -n1 | tr -d '[:space:]')
+        if gc_setup_version_ok "${_grp_ver}"; then
+            printf '%s' "${_grp_ver}"
+            return 0
+        fi
+    done
+    printf ''
+    return 1
+}
+
+# =============================================================================
+# gc_setup_fetch_binary_from() - one artifact base (.zst / .gz / raw) → dest
+# =============================================================================
+gc_setup_fetch_binary_from() {
+    _gfb_art="${1:-}"
+    _gfb_dest="${2:-}"
+    _gfb_tmp=$(util_mktemp setupz)
+    if [ -z "${_gfb_tmp}" ]; then
+        return 1
+    fi
+    if command -v zstd >/dev/null 2>&1; then
+        if gc_setup_curl_file "${_gfb_art}.zst" "${_gfb_tmp}"; then
+            if zstd -q -dc < "${_gfb_tmp}" > "${_gfb_dest}" 2>/dev/null && [ -s "${_gfb_dest}" ]; then
+                rm -f "${_gfb_tmp}"
+                return 0
+            fi
+        fi
+        rm -f "${_gfb_dest}"
+    fi
+    if command -v gzip >/dev/null 2>&1; then
+        if gc_setup_curl_file "${_gfb_art}.gz" "${_gfb_tmp}"; then
+            if gzip -dc < "${_gfb_tmp}" > "${_gfb_dest}" 2>/dev/null && [ -s "${_gfb_dest}" ]; then
+                rm -f "${_gfb_tmp}"
+                return 0
+            fi
+        fi
+        rm -f "${_gfb_dest}"
+    fi
+    rm -f "${_gfb_tmp}"
+    if gc_setup_curl_file "${_gfb_art}" "${_gfb_dest}"; then
+        return 0
+    fi
+    rm -f "${_gfb_dest}"
+    return 1
+}
+
+# =============================================================================
+# gc_setup_fetch_artifact() - primary then fallback bases
+# =============================================================================
+gc_setup_fetch_artifact() {
+    _gfa_version="${1:-}"
+    _gfa_platform="${2:-}"
+    _gfa_dest="${3:-}"
+    : "${GROK_VENDOR_BASE_URL:=https://x.ai/cli}"
+    : "${GROK_VENDOR_FALLBACK_URL:=https://storage.googleapis.com/grok-build-public-artifacts/cli}"
+    for _gfa_base in "${GROK_VENDOR_BASE_URL}" "${GROK_VENDOR_FALLBACK_URL}"; do
+        if gc_setup_fetch_binary_from "${_gfa_base}/grok-${_gfa_version}-${_gfa_platform}" "${_gfa_dest}"; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# =============================================================================
+# gc_setup_place_links() - downloads file + relative grok/agent symlinks
+# =============================================================================
+gc_setup_place_links() {
+    _gpl_src="${1:-}"
+    _gpl_download_dir="${2:-}"
+    _gpl_bin_dir="${3:-}"
+    _gpl_platform="${4:-}"
+    _gpl_final="${_gpl_download_dir}/grok-${_gpl_platform}"
+    mkdir -p "${_gpl_download_dir}" "${_gpl_bin_dir}" || return 1
+    mv -f "${_gpl_src}" "${_gpl_final}" || return 1
+    chmod 0755 "${_gpl_final}" || return 1
+    if [ "$(dirname "${_gpl_bin_dir}")" = "$(dirname "${_gpl_download_dir}")" ]; then
+        _gpl_link="../$(basename "${_gpl_download_dir}")/$(basename "${_gpl_final}")"
+    else
+        _gpl_link="${_gpl_final}"
+    fi
+    ln -sf "${_gpl_link}" "${_gpl_bin_dir}/grok" || return 1
+    ln -sf "${_gpl_link}" "${_gpl_bin_dir}/agent" || return 1
+    return 0
+}
+
+# =============================================================================
+# gc_setup_path_symlink() - link into a writable PATH dir (USER_BIN, GLOBAL_BIN, PREFIX)
+# =============================================================================
+gc_setup_path_symlink() {
+    _gps_bin_dir="${1:-}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    for _gps_cand in "${USER_BIN}" "${GLOBAL_BIN}" ${PREFIX:+"${PREFIX}/bin"}; do
+        [ -n "${_gps_cand}" ] || continue
+        if gc_setup_path_has_dir "${_gps_cand}" && [ -d "${_gps_cand}" ] && [ -w "${_gps_cand}" ]; then
+            ln -sf "${_gps_bin_dir}/grok" "${_gps_cand}/grok" 2>/dev/null || true
+            ln -sf "${_gps_bin_dir}/agent" "${_gps_cand}/agent" 2>/dev/null || true
+            return 0
+        fi
+    done
+    return 0
+}
+
+# =============================================================================
+# gc_setup_maybe_bashrc() - append vendor-style PATH block when SHELL is bash
+# =============================================================================
+gc_setup_maybe_bashrc() {
+    _gmb_bin_dir="${1:-}"
+    _gmb_shell=$(basename "${SHELL:-}")
+    [ "${_gmb_shell}" = "bash" ] || return 0
+    _gmb_rc="${HOME}/.bashrc"
+    if grep -qs "grok installer" "${_gmb_rc}" 2>/dev/null; then
+        return 0
+    fi
+    printf '\n# >>> grok installer >>>\nexport PATH="%s:$PATH"\n# <<< grok installer <<<\n' "${_gmb_bin_dir}" >> "${_gmb_rc}" 2>/dev/null || true
+    return 0
+}
+
+# =============================================================================
+# gc_setup() - Type 0: place peer grok via studied xAI channel + artifact
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Detect platform, fetch the channel version pointer, download
+# grok-{version}-{os}-{arch}, smoke --version, and link ~/.grok/bin/grok
+# (and agent). MUST NOT download or exec install.sh. MUST NOT require bash.
+# Skip if grok is already present unless --force. grok on disk is success
+# even when this session's PATH is stale.
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
 # - requirement-shell-cli-interface.md
 # - requirement-operator-readable-error.md
 #
-# Last updated: 2026-08-30
+# Last updated: 2026-09-02
 # =============================================================================
 gc_setup() {
     : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${FORCE:=0}"
-    : "${GROK_VENDOR_INSTALL_URL:=https://x.ai/cli/install.sh}"
+    : "${GROK_VENDOR_BASE_URL:=https://x.ai/cli}"
+    : "${GROK_VENDOR_FALLBACK_URL:=https://storage.googleapis.com/grok-build-public-artifacts/cli}"
+    : "${GROK_CHANNEL:=stable}"
     : "${GROK_PEER_NAME:=grok}"
     : "${USER_BIN:=${HOME}/.local/bin}"
-    : "${EFFECTIVE_STORAGE_DIR:=${TMPDIR:-/tmp}}"
 
     _peer=$(gc_resolve_grok_peer)
     if [ -n "${_peer}" ] && [ "${FORCE}" -ne 1 ]; then
@@ -1677,43 +2211,78 @@ gc_setup() {
                 "peer" "${GROK_PEER_NAME}" \
                 "peer_path" "${_peer}" \
                 "on_path" "${_on_path}" \
-                "vendor_url" "${GROK_VENDOR_INSTALL_URL}"
+                "vendor_base" "${GROK_VENDOR_BASE_URL}"
         fi
         return 0
     fi
 
     if ! command -v curl >/dev/null 2>&1; then
-        out_die "curl is not on PATH, so ${APP_NAME} cannot download the grok installer. Next: install curl, then ${APP_NAME} setup."
+        out_die "curl is not on PATH, so ${APP_NAME} cannot download grok. Next: install curl, then ${APP_NAME} setup."
     fi
-    if ! command -v bash >/dev/null 2>&1; then
-        out_die "bash is not on PATH. The xAI grok installer needs bash. Next: install bash, then ${APP_NAME} setup."
+    if ! command -v uname >/dev/null 2>&1; then
+        out_die "uname is not on PATH, so ${APP_NAME} cannot detect the grok platform. Next: install uname, then ${APP_NAME} setup."
     fi
 
-    _tmp=$(mktemp "${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.setup.XXXXXX" 2>/dev/null || mktemp)
+    case "${GROK_CHANNEL}" in
+        stable|alpha|enterprise) ;;
+        *)
+            out_die "Invalid GROK_CHANNEL (${GROK_CHANNEL}). Next: set GROK_CHANNEL to stable, alpha, or enterprise, then ${APP_NAME} setup."
+            ;;
+    esac
+
+    _platform=$(gc_setup_detect_platform) || _platform=""
+    if [ -z "${_platform}" ]; then
+        out_die "Unsupported OS or architecture ($(uname -s)/$(uname -m)). Next: use linux or macos on x86_64 or aarch64, then ${APP_NAME} setup."
+    fi
+
+    if [ -n "${GROK_SETUP_VERSION:-}" ]; then
+        if ! gc_setup_version_ok "${GROK_SETUP_VERSION}"; then
+            out_die "Invalid GROK_SETUP_VERSION (${GROK_SETUP_VERSION}). Next: use X.Y.Z, then ${APP_NAME} setup."
+        fi
+        _version="${GROK_SETUP_VERSION}"
+    else
+        out_info "Fetching latest ${GROK_CHANNEL} grok version from ${GROK_VENDOR_BASE_URL}"
+        _version=$(gc_setup_read_pointer "${GROK_CHANNEL}") || _version=""
+        if [ -z "${_version}" ]; then
+            out_die "Download of the grok version pointer failed (${GROK_VENDOR_BASE_URL}/${GROK_CHANNEL}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
+        fi
+    fi
+
+    _tmp=$(util_mktemp setupbin)
     if [ -z "${_tmp}" ] || [ ! -f "${_tmp}" ]; then
-        out_die "Could not create a temp file for the grok installer. Next: check disk space under ${EFFECTIVE_STORAGE_DIR}, then ${APP_NAME} setup."
+        out_die "Could not create a temp file for the grok binary. Next: check disk space under ${EFFECTIVE_STORAGE_DIR:-/tmp}, then ${APP_NAME} setup."
     fi
-    out_info "Downloading the xAI grok installer from ${GROK_VENDOR_INSTALL_URL}"
-    if ! curl -fsSL "${GROK_VENDOR_INSTALL_URL}" -o "${_tmp}"; then
+    out_info "Downloading grok ${_version} (${_platform})"
+    if ! gc_setup_fetch_artifact "${_version}" "${_platform}" "${_tmp}"; then
         rm -f "${_tmp}"
-        out_die "Download of the grok installer failed (${GROK_VENDOR_INSTALL_URL}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
+        out_die "Download of the grok binary failed (grok-${_version}-${_platform}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
     fi
-    if [ ! -s "${_tmp}" ]; then
+    chmod 0755 "${_tmp}" 2>/dev/null || true
+    if ! "${_tmp}" --version </dev/null >/dev/null 2>&1; then
         rm -f "${_tmp}"
-        out_die "The grok installer file is empty (${GROK_VENDOR_INSTALL_URL}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
+        out_die "The downloaded grok failed to run --version. This did not install ${APP_NAME}. Next: check the download, then ${APP_NAME} setup."
     fi
-    out_info "Running the xAI grok installer (does not install ${APP_NAME})"
-    bash "${_tmp}"
-    _rc=$?
-    rm -f "${_tmp}"
-    if [ "${_rc}" -ne 0 ]; then
-        out_die "The xAI grok installer exited ${_rc}. This did not install ${APP_NAME}. Next: check the installer output, then ${APP_NAME} setup."
+
+    _home_grok=$(gc_resolve_grok_home)
+    _download_dir="${_home_grok}/downloads"
+    if [ -n "${GROK_BIN_DIR:-}" ]; then
+        _bin_dir="${GROK_BIN_DIR}"
+    else
+        _bin_dir="${_home_grok}/bin"
+    fi
+    if ! gc_setup_place_links "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}"; then
+        rm -f "${_tmp}"
+        out_die "Could not place grok under ${_bin_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
+    fi
+    gc_setup_path_symlink "${_bin_dir}"
+    gc_setup_maybe_bashrc "${_bin_dir}"
+    if [ ! -s /etc/resolv.conf ] || ! grep -q '^nameserver' /etc/resolv.conf 2>/dev/null; then
+        out_info "This host has no usable /etc/resolv.conf, so grok may fail DNS (common on Termux). Next: export XAI_API_KEY, or grok login from a host with working DNS."
     fi
 
     _peer=$(gc_resolve_grok_peer)
     if [ -z "${_peer}" ]; then
-        _vendor_dir="$(gc_resolve_grok_home)/bin"
-        out_die "The installer finished but grok was not found under ${_vendor_dir} or ${USER_BIN}. Next: check the installer output, then ${APP_NAME} setup."
+        out_die "The download finished but grok was not found under ${_bin_dir} or ${USER_BIN}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
     fi
     out_success "grok is installed at ${_peer}."
     gc_setup_print_next "${_peer}"
@@ -1726,7 +2295,9 @@ gc_setup() {
             "peer" "${GROK_PEER_NAME}" \
             "peer_path" "${_peer}" \
             "on_path" "${_on_path}" \
-            "vendor_url" "${GROK_VENDOR_INSTALL_URL}"
+            "vendor_base" "${GROK_VENDOR_BASE_URL}" \
+            "version" "${_version}" \
+            "platform" "${_platform}"
     fi
     return 0
 }
@@ -4482,7 +5053,7 @@ app_default() {
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Local grok auth backup to /var/grok-cli and unprivileged sync-auth}}"
-    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
@@ -4505,15 +5076,18 @@ app_help() {
     out_plain "  install              Install ${APP_NAME} (root→global, user→~/.local/bin)"
     out_plain "  install --global     Force global path (${GLOBAL_BIN}; needs write/root)"
     out_plain "  uninstall            Remove managed binary (confirm or --force); not sudoers"
+    out_plain "  self-uninstall       Same remove as uninstall (channel name)"
     out_plain "  where-is-me          Show running and install paths"
     out_plain "  version              Show local version"
+    out_plain "  version-check        Compare local vs remote VERSION on SCRIPT_URL"
+    out_plain "  self-update          Re-download grok-cli from SCRIPT_URL"
     out_plain "  about                Show diagnostics (incl. sudoers trust tier)"
     out_plain "  help                 Show this help"
     out_plain "  menu                 Show the numbered list of live commands (TTY; help off-TTY)"
     out_plain "  main                 Same as menu (also empty argv on a TTY)"
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
-    out_plain "  setup                Install grok from x.ai (curl vendor installer; skip if present)"
+    out_plain "  setup                Install grok from x.ai (channel + artifact; skip if present)"
     out_plain "  check-session        Confirm grok is logged in"
     out_plain "  backup               Push ~/.grok/auth.* to ${GROK_CLI_ROOT}/"
     out_plain "                       (checks session first; sudo -n ${GLOBAL_BIN}/${APP_NAME} backup after sudoer-adm grant;"
@@ -4561,6 +5135,7 @@ app_help() {
     out_plain "  --debug              Debug diagnostics on stderr"
     out_empty_line
     out_info "Environment:"
+    out_plain "  SCRIPT_URL           grok-cli channel (default github raw src/grok-cli)"
     out_plain "  GROK_HOME            grok auth dir (default ~/.grok of invoking login)"
     out_plain "  GROK_CLI_ROOT        durable store (default /var/grok-cli)"
     out_plain "  GROK_CLI_CRONTAB     crontab binary (default crontab; tests inject a fake)"
@@ -4568,7 +5143,10 @@ app_help() {
     out_plain "  GROK_CLI_CRON_SYNC   sync-auth crontab schedule (default 45 * * * *)"
     out_plain "  GROK_CLI_SCP            scp binary (default scp; tests inject a fake)"
     out_plain "  GROK_CLI_REMOTE_ROOT    remote store path (default /var/grok-cli)"
-    out_plain "  GROK_VENDOR_INSTALL_URL  xAI grok installer (default https://x.ai/cli/install.sh)"
+    out_plain "  GROK_VENDOR_BASE_URL     xAI grok channel/artifact base (default https://x.ai/cli)"
+    out_plain "  GROK_VENDOR_FALLBACK_URL xAI grok GCS fallback base"
+    out_plain "  GROK_CHANNEL            grok channel (stable|alpha|enterprise; default stable)"
+    out_plain "  GROK_SETUP_VERSION      pin grok version (skip channel pointer)"
     out_plain "  GROK_BIN             override path to peer grok"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers / generate / submit"
@@ -4580,8 +5158,9 @@ app_help() {
     out_empty_line
     out_info "Examples:"
     out_plain "  ${APP_NAME}                    # numbered list on a TTY; help off-TTY"
+    out_plain "  curl -fsSL https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli | sh"
     out_plain "  ${APP_NAME} install"
-    out_plain "  ${APP_NAME} setup                 # install grok from x.ai (not ${APP_NAME})"
+    out_plain "  ${APP_NAME} setup                 # install grok from x.ai channel + artifact (not ${APP_NAME})"
     out_plain "  sudo ${APP_NAME} install          # global (production sudoers trust)"
     out_plain "  ${APP_NAME} print-sudoers --allow-test-local  # → sudoers.fragment-<user>"
     out_plain "  ${APP_NAME} print-sudoers-install-script   # → /dev/shm/…-sudoers-admin.sh"
@@ -4598,7 +5177,7 @@ app_help() {
     out_plain "  ${APP_NAME} sync-auth-from-remote user@192.0.2.10"
     out_plain "  ${APP_NAME} add-crontab"
     out_empty_line
-    out_info "Empty argv on a real terminal shows the numbered list (Type N — local-only; no curl|sh)."
+    out_info "Empty argv on a real terminal shows the numbered list. Off-TTY empty argv is channel install-ensure (curl|sh)."
     out_info "Off-TTY empty argv shows help. Explicit help stays help."
     out_info "backup needs a valid grok login, then passwordless sudo ${APP_NAME} backup (sudoer-adm)."
     out_info "sync-auth never uses sudo. Local install + sudoers is TEST MODE ONLY; prefer global."
@@ -4610,7 +5189,7 @@ app_help() {
 #
 # GENERAL PURPOSE:
 # Single dispatcher for grok-cli (specialized from folder-backup; local Type 0 + grok auth domain).
-# Empty argv = Type N default interaction (TTY menu; off-TTY help). Not install-ensure.
+# Empty argv = TTY menu; off-TTY Type O channel ensure. Flags-only stay help.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-interface.md
@@ -4645,9 +5224,13 @@ app_main() {
     export EFFECTIVE_STORAGE_DIR STORAGE_DIR PERSISTENT_STORAGE_DIR
     export TMPDIR="${EFFECTIVE_STORAGE_DIR}"
 
-    # Type N: empty argv → default interaction (TTY menu / off-TTY help)
+    # TTY empty argv → menu. Off-TTY empty argv → Type O ensure (not help).
     if [ $# -eq 0 ]; then
-        COMMAND=menu
+        if [ "${TTY}" -eq 1 ]; then
+            COMMAND=menu
+        else
+            COMMAND=ensure
+        fi
     fi
 
     _domain_arg=""
@@ -4680,7 +5263,7 @@ app_main() {
                 SUBMIT_ACTION_EXPLICIT=1
                 export SUBMIT_ACTION SUBMIT_ACTION_EXPLICIT
                 ;;
-            version|about|help|menu|main|install|uninstall|where-is-me|setup|check-session|backup|sync-auth|sync-auth-from-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
+            version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|check-session|backup|sync-auth|sync-auth-from-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
                 COMMAND="$1"
                 ;;
             *)
@@ -4710,9 +5293,13 @@ app_main() {
         version)      app_version ;;
         about)        app_about ;;
         menu|main)    app_default ;;
+        ensure)       inst_channel_ensure ;;
         install)      inst_local_install ;;
         uninstall)    inst_local_uninstall ;;
         where-is-me)  app_where_is_me ;;
+        version-check) ver_check ;;
+        self-update)  inst_self_update ;;
+        self-uninstall) inst_self_uninstall ;;
         setup)        gc_setup ;;
         check-session) gc_check_session ;;
         backup)       gc_backup ;;
@@ -4732,6 +5319,6 @@ app_main() {
 # BOOTSTRAP
 # =============================================================================
 # Always invoke app_main. No basename gate (pipe-safe entry).
-# Product law: requirement-shell-cli-zero-arguments.md (Type N).
+# Product law: requirement-shell-cli-zero-arguments.md (TTY menu; off-TTY Type O).
 # =============================================================================
 app_main "$@"

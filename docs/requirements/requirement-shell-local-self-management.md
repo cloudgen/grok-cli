@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-local-self-management.md  
-**Status**: Active (Version 1.2.0)  
+**Status**: Active (Version 1.3.0)  
 **Area**: shell  
 **Key**: `requirement-shell-local-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -8,7 +8,7 @@
 
 This requirement is the **project Single Source of Truth** for **local self-managed lifecycle** of the grok-cli POSIX shell CLI: **`install`**, **`uninstall`**, and **`where-is-me`**, plus the local diagnostics package contract for **`version`**, **`about`**, and **`help`** (wiring owned with CLI interface).
 
-**Install mode:** **local-only**. Online channel install, remote version-check, self-update, and self-uninstall are **out of scope** (intentionally absent).
+**Install mode:** **dual-mode secondary**. This file owns **checkout copy** `install` / `uninstall` / `where-is-me` (offline, no network). Channel pipe, `self-update`, `version-check`, and `self-uninstall` are owned by `requirement-shell-online-install` and `requirement-shell-self-management`.
 
 ---
 
@@ -18,7 +18,7 @@ Install copies grok-cli into your bin; uninstall removes that copy. It does not 
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| `grok-cli install` / `uninstall` | Admin installs the sudoers fragment | Online self-update |
+| `grok-cli install` / `uninstall` from a checkout | Admin installs the sudoers fragment | The curl one-liner (online-install) |
 
 **Includes:** place/remove binary, mode 0755. **Excludes:** `/var/grok-cli` content.
 
@@ -38,14 +38,14 @@ Install copies grok-cli into your bin; uninstall removes that copy. It does not 
 | Local refresh | **`install --force`** | Replace managed binary from **this** running ship unit |
 | Where-is-me | **`where-is-me`** | Report running path + managed install path + installed flag |
 
-**Forbidden primary verbs for this product:** `self-install`, `self-uninstall`, `self-update`, `version-check`.
+**This file does not own** `self-uninstall`, `self-update`, `version-check` (peer self-management). `install` here is checkout copy, not channel download.
 
 ### 2.2 Local diagnostics (required companions)
 
 | Feature | Command | Network |
 |---------|---------|---------|
 | **Local version** | `version` | **MUST NOT** fetch remote |
-| About | `about` | Local diagnostics only; **no** `SCRIPT_URL` install one-liner as product UX |
+| About | `about` | Local diagnostics **plus** channel URL (`SCRIPT_URL`) |
 | Help | `help` | Lists local lifecycle + domain commands |
 
 ### 2.3 Local install rules
@@ -98,13 +98,13 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | Variable | Role | Default / note |
 |----------|------|----------------|
 | `APP_NAME` | Binary basename SSOT | hard-assign `grok-cli` |
-| `VERSION` | Local version SSOT | hard-assign `1.6.1` |
+| `VERSION` | Local version SSOT | hard-assign in ship unit (do not pin a stale number here) |
 | `GLOBAL_BIN` | System-wide bin | `/usr/local/bin` |
 | `USER_BIN` | Per-user bin | `${HOME}/.local/bin` |
 | `FORCE` | Replace / skip confirm | `0` |
 | `FORCE_GLOBAL` | Force install/operate on global path | `0` (`install --global`) |
 | `ALLOW_TEST_LOCAL_SUDOERS` | Allow `print-sudoers` under test_local tier | `0` (see three-layer privilege) |
-| `SCRIPT_URL` / `REPO_*` / `CHECKSUM` | **Not** install source | Must not appear as required install UX |
+| `SCRIPT_URL` / `REPO_*` / `CHECKSUM` | **Not** checkout-install source | Channel owned by `requirement-shell-online-install` |
 
 ### 2.7 Implementation Notes (this project)
 
@@ -115,7 +115,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | **Primary install path story** | Type 0 day-to-day: `${HOME}/.local/bin/grok-cli`; production elevation: `/usr/local/bin/grok-cli` |
 | **Handlers** | `inst_local_install`, `inst_local_uninstall`, `app_where_is_me`, `app_version` |
 | **Detect** | `inst_is_installed` / privilege-correct path helpers |
-| **Online package** | **Absent by design** (inherited from cli-template) |
+| **Online package** | **Dual-mode secondary** — checkout copy here; channel owned by `requirement-shell-online-install` |
 
 ### 2.8 Why This Requirement Exists (CIAO)
 
@@ -131,7 +131,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 - **Caution**: No network in install path.  
 - **Intentional**: Local verbs only (`install`/`uninstall`).  
 - **Anti-fragile**: Idempotent place/remove.  
-- **Over-protect**: Do not reintroduce online lifecycle under new names.
+- **Over-protect**: Do not steal channel verbs (`self-update` / `version-check`) into checkout `install`.
 
 ---
 
@@ -141,7 +141,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 
 1. Replace local `uninstall` with online `self-uninstall` as the primary remove verb.  
 2. Require `SCRIPT_URL` for install.  
-3. Make empty argv install-ensure while this product remains local-only (Type N owns empty argv).  
+3. Steal empty argv from `requirement-shell-cli-zero-arguments` (TTY menu / off-TTY Type O).  
 4. Delete user data or `/var/backup` content during uninstall.  
 5. Fetch remote version inside `version`.  
 6. Install the managed binary with execute-only group/other bits (`0711` / `chmod +x` after `0600` stage) — **must** keep absolute **`0755`** so global install remains multi-user runnable for a shell ship unit.
@@ -158,7 +158,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | AC-2 | `uninstall` removes managed binary only with confirm/`--force` contract |
 | AC-3 | `where-is-me` reports paths + installed flag |
 | AC-4 | `version` is local-only |
-| AC-5 | No Active online self-management requirement required for lifecycle |
+| AC-5 | Checkout `install` stays offline; channel verbs live on peer online/self-management REQs |
 | AC-6 | Installed managed binary mode is **`0755`** (not `0711` / owner-only) after install |
 | AC-7 | Global install is executable by a non-owner account (shell script remains readable) |
 | AC-8 | Re-running `install` without `--force` heals a broken mode (`0700`/`0711` → `0755`) when writable |
@@ -170,10 +170,11 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | Key | Relationship |
 |-----|--------------|
 | `requirement-shell-cli-interface` | Command table + flags |
-| `requirement-shell-cli-zero-arguments` | Type N empty argv |
+| `requirement-shell-cli-zero-arguments` | TTY menu; off-TTY Type O (not checkout `install`) |
 | `requirement-project-folder` | Path defaults |
 | `requirement-shell-idempotency` | Already installed / uninstalled |
-| `requirement-bootstrap-chain` | Why online package is absent |
+| `requirement-bootstrap-chain` | Dual-mode: checkout keep; channel from selfmanaged |
+| `requirement-shell-online-install` | Channel pipe primary |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -195,9 +196,10 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 |------|--------|------|
 | 2026-08-03 | Active | Local-only lifecycle for folder-backup |
 | 2026-08-09 | Active 1.2.0 | §2.3.1 mode **0755** multi-user; ban `chmod +x`→`0711` trap; AC-6..8; TP-LC-09/10 |
+| 2026-09-02 | Active 1.3.0 | Dual-mode secondary: checkout `install` stays offline; channel owned by online-install |
 
 ---
 
-**Last Updated**: 2026-08-09  
+**Last Updated**: 2026-09-02  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
