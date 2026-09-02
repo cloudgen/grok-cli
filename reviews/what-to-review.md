@@ -4,8 +4,8 @@
 **Class:** software-development · domain SSOT present · **local-only** install channel (online package intentionally absent).  
 **Always load first:** `reviews/lessons.md`
 
-**Last plan update:** 2026-08-23  
-**Ship unit VERSION:** 1.1.0  
+**Last plan update:** 2026-09-02  
+**Ship unit VERSION:** 1.5.0  
 **Suite baseline:** `reviews/test-plan.md`
 
 ---
@@ -26,6 +26,7 @@
 | P10 | **Independent generate dest** | TP-GROK-CLI-24* |
 | P11 | **Operator-readable errors** | TP-GROK-CLI-25* |
 | P12 | **Session gate + sync-auth** | TP-GROK-CLI-03..10 · 12 |
+| P13 | **sync-auth-from-remote** | TP-GROK-CLI-30..33 |
 
 ---
 
@@ -38,7 +39,7 @@
 | Project folder | `requirement-project-folder.md` | `src/grok-cli`, bins, `/var/grok-cli` |
 | **Privilege / sudoers** | `requirement-three-layer-privilege-model.md` | Type 0/1; `sudo grok-cli backup` only |
 | **JSON sudoer file** | `requirement-sudoer-json-file.md` | `grok-cli backup` only; no OS tools |
-| **Auth ops** | `requirement-grok-auth-backup.md` | Session gate; deposit; sync-auth |
+| **Auth ops** | `requirement-grok-auth-backup.md` | Session gate; deposit; sync-auth; sync-auth-from-remote |
 | **Operator-readable error** | `requirement-operator-readable-error.md` | Blocking `[ERROR]` next step |
 | CLI interface | `requirement-shell-cli-interface.md` | check-session / backup / sync-auth |
 | Empty argv Type N | `requirement-shell-cli-zero-arguments.md` | TTY = numbered menu; off-TTY = help; never install |

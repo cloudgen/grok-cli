@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-09-02
+
+### Added
+
+- **`sync-auth-from-remote`**: `scp` a remote host’s `/var/grok-cli/auth.*` into this login’s `~/.grok` (dest `auth.json` mode `0600`, no sudo). SPEC forms: `user@IPv4`, IPv4, domain-name, `user@domain-name` (documentation examples `192.0.2.10` / `host.example.com`). BatchMode scp (no password hang). Main menu row **4**; `add-crontab` **5**; family `sudoers` **6**. Law: `requirement-grok-auth-backup` **1.1.0**. Suite **TP-GROK-CLI-30..33**.
+
+## [1.4.0] - 2026-09-02
+
+### Added
+
+- **`add-crontab`**: install this login’s crontab jobs matching the studied host timers — `*/30 * * * * sudo /usr/local/bin/grok-cli backup` and `45 * * * * /usr/local/bin/grok-cli sync-auth`. Uses `id -un` (any login with the matching `/etc/sudoers.d/grok-cli-<user>` NOPASSWD backup grant). Does not write `/etc`. Re-run does not duplicate. Main menu row **4**; family `sudoers` is **5**. Law: `requirement-grok-crontab` **1.0.0**. Suite **TP-GROK-CLI-26..29**.
+
 ## [1.3.0] - 2026-08-30
 
 ### Added

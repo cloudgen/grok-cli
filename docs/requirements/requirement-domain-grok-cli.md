@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-grok-cli.md  
-**Status**: Active (Version 1.1.0)  
+**Status**: Active (Version 1.3.0)  
 **Area**: domain  
 **Key**: `requirement-domain-grok-cli`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -20,7 +20,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Run `setup`, `check-session`, `backup`, `sync-auth`, and the sudoer generate/submit verbs | sudoer-adm approves the JSON grant so `sudo grok-cli backup` is passwordless | Folder tar.gz backup; writing `/etc` yourself; typing `restore` (retired — the program must say unknown); using `setup` to install grok-cli |
+| Run `setup`, `check-session`, `backup`, `sync-auth`, `sync-auth-from-remote`, `add-crontab`, and the sudoer generate/submit verbs | sudoer-adm approves the JSON grant so `sudo grok-cli backup` is passwordless | Folder tar.gz backup; writing `/etc` yourself; typing `restore` (retired — the program must say unknown); using `setup` to install grok-cli |
 
 **Includes:** verb catalog, help rows, about fields, pointers to ops and privilege law.  
 **Excludes:** JWT/token parsing rules, chown/chmod numbers, sudoers schema (peer files).
@@ -36,6 +36,8 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | Confirm login | grok-cli reads `~/.grok/auth.json` and fails closed if it is missing or expired | `grok-cli check-session` |
 | Push shared auth | After a valid session, grok-cli copies `auth.*` into `/var/grok-cli` as root | `grok-cli backup` |
 | Pull shared auth | A normal login copies from `/var/grok-cli` into `~/.grok` with no sudo | `grok-cli sync-auth` |
+| Pull from another host | `scp` that host’s store into `~/.grok` | `grok-cli sync-auth-from-remote user@192.0.2.10` |
+| Install the timers | This login’s crontab gets backup every 30 minutes and sync-auth at minute 45 | `grok-cli add-crontab` |
 
 ---
 
@@ -49,6 +51,8 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | `check-session` | none | `gc_*` | Confirm grok is logged in | **`requirement-grok-auth-backup`** |
 | `backup` | none | `gc_*` | Check session, then elevated deposit of `auth.*` into `/var/grok-cli` | **`requirement-grok-auth-backup`** |
 | `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo** | **`requirement-grok-auth-backup`** |
+| `sync-auth-from-remote` | SPEC (`user@IPv4`, IPv4, domain, `user@domain`) | `gc_*` | `scp` remote `/var/grok-cli/auth.*` into `~/.grok` **without sudo** | **`requirement-grok-auth-backup`** |
+| `add-crontab` | none | `gc_*` | Install this login’s crontab jobs (backup every 30 min; sync-auth at :45) after **this** login’s backup grant exists | **`requirement-grok-crontab`** |
 | `print-sudoers` | optional output path; `--allow-test-local` when test_local | `gc_*` | Emit **project-sudoers-file** (draft; no `/etc` write) | **`requirement-three-layer-privilege-model`** |
 | `print-sudoers-install-script` | optional script path; same trust gate | `gc_*` | Admin handoff script under `/dev/shm` or temp | **`requirement-three-layer-privilege-model`** |
 | `remove-project-sudoers` | optional path; `--force` | `gc_*` | Remove **project-sudoers-file** draft only (not `/etc`) | **`requirement-three-layer-privilege-model`** |
@@ -66,6 +70,8 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | Grok session gate | Expose `check-session`; backup MUST call the same gate | `requirement-grok-auth-backup` |
 | Auth deposit | Expose `backup` | `requirement-grok-auth-backup` |
 | Unprivileged sync | Expose `sync-auth` | `requirement-grok-auth-backup` |
+| Remote unprivileged sync | Expose `sync-auth-from-remote` | `requirement-grok-auth-backup` |
+| Per-login crontab timers | Expose `add-crontab` | `requirement-grok-crontab` |
 | Sudoers draft print | Expose `print-sudoers` | `requirement-three-layer-privilege-model` |
 | Admin sudoers install script | Expose `print-sudoers-install-script` | `requirement-three-layer-privilege-model` |
 | Remove project-sudoers draft | Expose `remove-project-sudoers` | `requirement-three-layer-privilege-model` |
@@ -118,6 +124,8 @@ leolio ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
 | `check-session` | Confirm grok is logged in |
 | `backup` | Check session, push `~/.grok/auth.*` to `/var/grok-cli` (passwordless `sudo grok-cli backup` after sudoer-adm) |
 | `sync-auth` | Copy `/var/grok-cli/auth.*` into `~/.grok` with no sudo |
+| `sync-auth-from-remote` | Copy a remote host's `/var/grok-cli/auth.*` into `~/.grok` |
+| `add-crontab` | Add backup and sync-auth jobs to this login's crontab |
 | `print-sudoers` | Emit project-sudoers-file (draft) for admin install |
 | `print-sudoers-install-script` | Write admin script for sudo install/uninstall/replace |
 | `remove-project-sudoers [path]` | Delete project-sudoers-file draft only |
@@ -135,6 +143,8 @@ grok-cli generate-sudoer-request
 grok-cli submit-sudoer-request
 grok-cli backup
 grok-cli sync-auth
+grok-cli sync-auth-from-remote user@192.0.2.10
+grok-cli add-crontab
 ```
 
 ### 2.4 Pillar D — Specialized project about items
@@ -165,6 +175,7 @@ grok-cli sync-auth
 | **VERSION** | ship unit SSOT (`1.0.0`) |
 | **Primary user install** | `~/.local/bin/grok-cli` |
 | **Auth operations SSOT** | `requirement-grok-auth-backup` |
+| **Crontab operations SSOT** | `requirement-grok-crontab` |
 | **Privilege / sudoers SSOT** | `requirement-three-layer-privilege-model` (workflow) · `requirement-sudoer-json-file` (JSON grant body) |
 | **Public inbound (sibling)** | `/var/sudoer-cli/sudoer-request` |
 | **Worked queued basename** | `sudoer-20260822-grok-cli-leolio-add-1.json` |
@@ -206,7 +217,7 @@ grok-cli sync-auth
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | `help` lists setup, check-session, backup, sync-auth and sudoer verbs |
+| AC-1 | `help` lists setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab and sudoer verbs |
 | AC-2 | `about --json` reports grok_cli_root, deposit_dir, session |
 | AC-3 | Dispatcher routes those verbs; `restore` is unknown |
 | AC-4 | JSON grant sample in this file names backup only |
@@ -220,6 +231,7 @@ grok-cli sync-auth
 |----------|------|
 | `docs/requirements/index.md` | Registry SSOT |
 | `docs/requirements/requirement-grok-auth-backup.md` | Ops SSOT |
+| `docs/requirements/requirement-grok-crontab.md` | `add-crontab` ops SSOT |
 | `docs/requirements/requirement-grok-setup.md` | `setup` / peer grok installer |
 | `docs/requirements/requirement-three-layer-privilege-model.md` | Privilege workflow |
 | `docs/requirements/requirement-sudoer-json-file.md` | JSON grant body |
@@ -234,6 +246,8 @@ grok-cli sync-auth
 |------|--------|------|
 | 2026-08-22 | Active (1.0.0) | Specialized from folder-backup domain; grok auth surface |
 | 2026-08-25 | Active (1.1.0) | `setup` peer grok installer (xAI curl) |
+| 2026-09-02 | Active (1.2.0) | `add-crontab` per-login backup/sync-auth timers |
+| 2026-09-02 | Active (1.3.0) | `sync-auth-from-remote` four SPEC forms |
 
 ---
 
@@ -245,10 +259,12 @@ grok-cli sync-auth
 | **TP-CLI-04**, **TP-CLI-06** | `tests/test_cli.sh` | have |
 | **TP-VCLI-01**–**09**, **11**, **12** | `tests/test_grok_setup.sh` | have |
 | **TP-GROK-CLI-01**, **01b**, **02**, **11**, **14**, **15**, **15b**, **19**–**25** | `tests/test_domain_grok_cli.sh` | have |
+| **TP-GROK-CLI-26**–**29** | `tests/test_domain_grok_cli.sh` | have |
+| **TP-GROK-CLI-30**–**33** | `tests/test_domain_grok_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-08-25  
+**Last Updated**: 2026-09-02  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

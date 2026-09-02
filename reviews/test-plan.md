@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.3.0  
-**Last plan update:** 2026-08-30  
-**Last suite run:** `./tests/run.sh` (1.3.0: PASS=294 FAIL=0 SKIP=0)
+**Product VERSION:** 1.5.0  
+**Last plan update:** 2026-09-02  
+**Last suite run:** `./tests/run.sh` (1.5.0: PASS=345 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -21,7 +21,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler) | have | TP-CLI-13 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Cache folder + persistence storage | have | TP-CLI-12 |
-| Help lists setup / check-session / backup / sync-auth; no restore operand | have | TP-CLI-04 |
+| Help lists setup / check-session / backup / sync-auth / sync-auth-from-remote / add-crontab; no restore operand | have | TP-CLI-04 |
 | `setup` vendor grok installer (fake curl) | have | TP-VCLI-01..09 · 11 · 12 |
 | Local install / idempotent / uninstall / mode 0755 | have | TP-LC-01..10 |
 | Session gate | have | TP-GROK-CLI-03..06 |
@@ -31,6 +31,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | JSON grant is `grok-cli backup` only | have | TP-GROK-CLI-22* |
 | Independent generate dest readable | have | TP-GROK-CLI-24* |
 | Operator-readable inbound-fidelity `[ERROR]` | have | TP-GROK-CLI-25* |
+| add-crontab grant gate + isolated jobs + idempotent | have | TP-GROK-CLI-26..29 |
+| sync-auth-from-remote four SPEC forms + fake scp | have | TP-GROK-CLI-30..33 |
 | Online curl / companion checksum | n/a | Local-only product |
 | Folder tar.gz restore / retention | n/a | Superseded; TP-GROK-CLI-11 proves `restore` unknown |
 
@@ -45,7 +47,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-01 | `sh -n` ship unit | `tests/test_cli.sh` | requirement-shell-cli-interface · requirement-shell-script-coding | **have** |
 | TP-CLI-02 | version human | test_cli | requirement-shell-cli-interface | **have** |
 | TP-CLI-03 | version JSON | test_cli | requirement-shell-output-requirements | **have** |
-| TP-CLI-04 | help: setup, check-session, backup, sync-auth, sudoers verbs; no restore operand; no grok-cli online channel | test_cli | requirement-shell-cli-interface · requirement-domain-grok-cli · requirement-grok-setup | **have** |
+| TP-CLI-04 | help: setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, sudoers verbs; no restore operand; no grok-cli online channel | test_cli | requirement-shell-cli-interface · requirement-domain-grok-cli · requirement-grok-setup · requirement-grok-crontab · requirement-grok-auth-backup | **have** |
 | TP-CLI-05 | help JSON short | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-06 | about JSON cache_preferred / cache_fallback / persistence_storage + grok_cli_root + session; human Cache folder + Persistence storage | test_cli | requirement-shell-cli-storage · requirement-domain-grok-cli | **have** |
 | TP-CLI-07 | empty argv Type N: off-TTY help; `--json` no command JSON help; TTY numbered list | test_cli | requirement-shell-cli-zero-arguments · requirement-shell-cli-default-interaction | **have** |
@@ -54,7 +56,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-10 | online verbs rejected | test_cli | requirement-bootstrap-chain | **have** |
 | TP-CLI-11 | env -u HOME version | test_cli | requirement-shell-script-coding | **have** |
 | TP-CLI-12 | preferred cache `/dev/shm/cache/cache-${APP_NAME}`; persistence `${HOME}/.local/${APP_NAME}`; live dirs exist; cache not APP-USERNAME shape; persistence not USER_BIN | test_cli | requirement-shell-cli-storage | **have** |
-| TP-CLI-13 | `menu`/`main`: TTY daily-work list + sudoers submenu (Back 8 / Exit 9); ignore `--json` on TTY; non-TTY help following `--json`; empty argv off-TTY still help; `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
+| TP-CLI-13 | `menu`/`main`: TTY daily-work list (sync-auth-from-remote is 4; add-crontab is 5; sudoers family is 6) + submenu (Back 8 / Exit 9); ignore `--json` on TTY; non-TTY help following `--json`; empty argv off-TTY still help; `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
 
 ### TP-LC (local lifecycle)
 
@@ -115,3 +117,11 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-23 / 23b / 23c | host fragment → update default | test_domain_grok_cli | three-layer | **have** |
 | TP-GROK-CLI-24 / 24b / 24c / 24d | independent generate dest readable | test_domain_grok_cli | sudoer-json-file · three-layer | **have** |
 | TP-GROK-CLI-25 / 25b / 25c | operator-readable inbound incomplete | test_domain_grok_cli | operator-readable-error | **have** |
+| TP-GROK-CLI-26 / 26b | add-crontab fail-closed without this login’s backup grant; wrong-user / wrong-argv / sibling fragment refused | test_domain_grok_cli | grok-crontab | **have** |
+| TP-GROK-CLI-27 | add-crontab fail-closed without global binary | test_domain_grok_cli | grok-crontab | **have** |
+| TP-GROK-CLI-28 / 28b | isolated crontab gets studied backup + sync-auth jobs on GLOBAL_BIN; user is `id -un` | test_domain_grok_cli | grok-crontab | **have** |
+| TP-GROK-CLI-29 / 29b | re-run does not duplicate; other crontab lines kept | test_domain_grok_cli | grok-crontab · idempotency | **have** |
+| TP-GROK-CLI-30 / 30b | sync-auth-from-remote missing/invalid SPEC fail-closed | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-31 / 31b / 31c / 31d | four SPEC forms (IPv4, user@IPv4, domain, user@domain) via fake scp | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-32 | dest auth.json mode 0600 | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-33 | missing remote auth fail-closed with Next: | test_domain_grok_cli | grok-auth-backup · operator-readable-error | **have** |

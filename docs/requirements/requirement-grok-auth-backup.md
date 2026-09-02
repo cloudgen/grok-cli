@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-grok-auth-backup.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0)  
 **Area**: backup  
 **Key**: `requirement-grok-auth-backup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **operations Single Source of Truth** for grok-cli auth handling: how the product **detects a valid grok login**, **copies `~/.grok/auth.*` into `/var/grok-cli`**, **chowns/chmods** that store, and how a **normal login syncs those files back** without sudo.
+This requirement is the **operations Single Source of Truth** for grok-cli auth handling: how the product **detects a valid grok login**, **copies `~/.grok/auth.*` into `/var/grok-cli`**, **chowns/chmods** that store, how a **normal login syncs those files back** without sudo, and how a login **pulls the same store from another host** over `scp`.
 
 It supersedes folder-archive backup/retention law for this product.
 
@@ -16,7 +16,7 @@ This file says: do not copy grok auth until the login is real; only an approved 
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| `grok login`, then `grok-cli backup` / `sync-auth` | sudoer-adm approves the JSON grant; root via that grant chowns the store | tar.gz of a project folder; granting `cp`/`chmod` as extra sudoers tools |
+| `grok login`, then `grok-cli backup` / `sync-auth` / `sync-auth-from-remote SPEC` | sudoer-adm approves the JSON grant; root via that grant chowns the store | tar.gz of a project folder; granting `cp`/`chmod` as extra sudoers tools |
 
 **Includes:** session gate, auth.* glob, deposit dest, ownership/mode, sync-auth dest mode, fail-closed errors.  
 **Excludes:** sudoers JSON schema; help catalog (domain file).
@@ -32,6 +32,7 @@ This file says: do not copy grok auth until the login is real; only an approved 
 | Prove login | grok-cli reads `auth.json` and refuses expired/empty credentials | `grok-cli check-session` |
 | Share the login | grok-cli copies `auth.*` to `/var/grok-cli` as root:root mode 0644 | `grok-cli backup` |
 | Use the shared login | grok-cli copies those files into your `~/.grok` as 0600, no sudo | `grok-cli sync-auth` |
+| Pull from another host | grok-cli `scp`s that host’s `/var/grok-cli/auth.*` into your `~/.grok` | `grok-cli sync-auth-from-remote user@192.0.2.10` |
 
 ---
 
@@ -76,12 +77,33 @@ This file says: do not copy grok auth until the login is real; only an approved 
 4. **MUST** create dest grok home if needed (dir mode `0700` when possible).  
 5. Dest `auth.json` **MUST** be mode `0600` after copy.
 
+### 2.4b sync-auth-from-remote (no sudo)
+
+1. **MUST** route **`sync-auth-from-remote`**. Dual mention: this file **and** `requirement-shell-cli-interface`.  
+2. **MUST** be Type 0. **MUST NOT** call `sudo`.  
+3. Operand **SPEC** **MUST** be exactly one of:
+   - `{{user}}@{{ipv4}}` (example shape `user@192.0.2.10`)
+   - `{{ipv4}}` (example shape `192.0.2.10`)
+   - `{{domain-name}}` (example shape `host.example.com`)
+   - `{{user}}@{{domain-name}}` (example shape `user@host.example.com`)
+4. When SPEC has no `user@`, SSH **MUST** use the invoking login / ssh config (do not invent a Unix login).  
+5. **MUST** reject empty SPEC, extra `@`, paths, and shell metacharacters. Off-TTY missing SPEC **MUST** fail closed with Next: `grok-cli sync-auth-from-remote USER@HOST`. On TTY with no operand, **MAY** prompt for SPEC.  
+6. Transport **MUST** be `scp` in **BatchMode** (no password hang). Override `GROK_CLI_SCP` for tests. Missing `scp` **MUST** fail closed.  
+7. Remote source **MUST** be `{{GROK_CLI_REMOTE_ROOT}}/auth.json` (default `/var/grok-cli`). Optional `auth.json.lock` when present.  
+8. Dest is this login’s grok home. Dest `auth.json` **MUST** be mode `0600`. Dest dir mode `0700` when created.  
+9. **MUST NOT** print token values. JSON **MAY** name host/user/count/paths only.  
+10. Core tests **MUST NOT** open a real SSH session.
+
 ### 2.5 Invocation samples (dual mention)
 
 ```text
 grok-cli check-session
 grok-cli backup
 grok-cli sync-auth
+grok-cli sync-auth-from-remote user@192.0.2.10
+grok-cli sync-auth-from-remote 192.0.2.10
+grok-cli sync-auth-from-remote host.example.com
+grok-cli sync-auth-from-remote user@host.example.com
 ```
 
 ### 2.6 Implementation Notes (this project)
@@ -89,7 +111,8 @@ grok-cli sync-auth
 | Item | Value |
 |------|--------|
 | Product | `grok-cli` |
-| Handlers | `gc_check_session`, `gc_backup`, `gc_sync_auth` |
+| Handlers | `gc_check_session`, `gc_backup`, `gc_sync_auth`, `gc_sync_auth_from_remote` |
+| Remote pull | `scp -o BatchMode=yes`; `GROK_CLI_SCP` / `GROK_CLI_REMOTE_ROOT` for tests |
 | Default grok home | `~/.grok` |
 | Default store | `/var/grok-cli` |
 | Elevated grant | `NOPASSWD: /usr/local/bin/grok-cli backup` |
@@ -117,7 +140,7 @@ grok-cli sync-auth
 
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
-1. Elevate `sync-auth` or grant `chmod`/`cp` as sudoers Cmnds.  
+1. Elevate `sync-auth` or `sync-auth-from-remote`, or grant `chmod`/`cp` as sudoers Cmnds.  
 2. Skip the session gate on backup.  
 3. Leave store files owner-only (`0600`) so other logins cannot sync-auth.  
 4. Copy tokens into help/about/JSON logs.  
@@ -134,6 +157,7 @@ grok-cli sync-auth
 | AC-3 | sync-auth copies into grok home mode 0600 without sudo |
 | AC-4 | Production `/var/grok-cli` as non-root uses `sudo -n /usr/local/bin/grok-cli backup` |
 | AC-5 | JSON grant names backup only |
+| AC-6 | `sync-auth-from-remote` accepts the four SPEC forms; dest `auth.json` is 0600; no sudo; Core tests use a fake `scp` |
 
 ---
 
@@ -156,6 +180,7 @@ grok-cli sync-auth
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-22 | Active (1.0.0) | Grok auth backup/sync ops; replaces folder-archive backup |
+| 2026-09-02 | Active (1.1.0) | `sync-auth-from-remote` four SPEC forms; fake scp in Core tests |
 
 ---
 
@@ -165,11 +190,12 @@ grok-cli sync-auth
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-GROK-CLI-03**–**10**, **12** | `tests/test_domain_grok_cli.sh` | have |
+| **TP-GROK-CLI-30**–**33** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-CLI-06** | `tests/test_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-08-22  
+**Last Updated**: 2026-09-02  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

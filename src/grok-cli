@@ -26,6 +26,7 @@
 # - requirement-shell-output-requirements.md
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
+# - requirement-grok-crontab.md      (add-crontab: per-login backup/sync-auth jobs)
 # - requirement-grok-setup.md        (setup: curl xAI grok installer for peer grok)
 # - requirement-domain-grok-cli.md   (domain surface four pillars)
 # Plus CIAO Protection Zones and "DO NOT MODIFY" rules.
@@ -34,7 +35,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.3.0"
+# VERSION: hard-assign VERSION="1.5.0"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -48,10 +49,10 @@ APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
 : "${APP_DESC:=Local grok auth backup to /var/grok-cli and unprivileged sync-auth}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.3.0"
-: "${VERSION:=1.3.0}"
+VERSION="1.5.0"
+: "${VERSION:=1.5.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -118,6 +119,13 @@ fi
 : "${SUBMIT_ACTION:=add}"
 : "${SUBMIT_ACTION_EXPLICIT:=0}"
 : "${SUDOERS_D_DIR:=/etc/sudoers.d}"
+# User crontab jobs (add-crontab). Schedules match the studied host pattern.
+: "${GROK_CLI_CRONTAB:=}"
+: "${GROK_CLI_CRON_BACKUP:=*/30 * * * *}"
+: "${GROK_CLI_CRON_SYNC:=45 * * * *}"
+# sync-auth-from-remote: scp binary + remote store path (tests inject a fake).
+: "${GROK_CLI_SCP:=}"
+: "${GROK_CLI_REMOTE_ROOT:=/var/grok-cli}"
 
 # Interactive capability SSOT — measure [ -t outside functions only.
 TTY=0
@@ -2154,6 +2162,507 @@ EOF
 }
 
 # =============================================================================
+# gc_scp_cmd() - Class B: scp binary (GROK_CLI_SCP or PATH)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Return the scp program sync-auth-from-remote will invoke. Tests inject a
+# fake via GROK_CLI_SCP so the suite never opens a real SSH session.
+#
+# ALIGNMENT:
+# - requirement-grok-auth-backup.md
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_scp_cmd() {
+    : "${GROK_CLI_SCP:=}"
+    if [ -n "${GROK_CLI_SCP}" ]; then
+        printf '%s' "${GROK_CLI_SCP}"
+        return 0
+    fi
+    command -v scp 2>/dev/null || true
+}
+
+# =============================================================================
+# gc_host_is_ipv4() - Class B: dotted-quad 0-255
+# =============================================================================
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_host_is_ipv4() {
+    _h="${1-}"
+    [ -n "${_h}" ] || return 1
+    _n=0
+    _rest="${_h}."
+    while [ -n "${_rest}" ]; do
+        _oct="${_rest%%.*}"
+        _rest="${_rest#*.}"
+        case "${_oct}" in
+            ''|*[!0-9]*) return 1 ;;
+        esac
+        if [ "${_oct}" -lt 0 ] || [ "${_oct}" -gt 255 ]; then
+            return 1
+        fi
+        _n=$((_n + 1))
+        if [ "${_n}" -gt 4 ]; then
+            return 1
+        fi
+    done
+    [ "${_n}" -eq 4 ]
+}
+
+# =============================================================================
+# gc_host_is_dns() - Class B: hostname / domain-name labels
+# =============================================================================
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_host_is_dns() {
+    _h="${1-}"
+    [ -n "${_h}" ] || return 1
+    case "${_h}" in
+        *[!A-Za-z0-9.-]*|.*|*..*|*.) return 1 ;;
+        -*|*-) return 1 ;;
+    esac
+    case "${_h}" in
+        *[A-Za-z]*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# =============================================================================
+# gc_parse_remote_spec() - parse user@host | host | domain into GC_REMOTE_*
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Accept SPEC forms: user@IPv4, IPv4, domain-name, user@domain-name.
+# Reject empty, extra @, paths, and shell metacharacters. Sets GC_REMOTE_USER
+# (may be empty) and GC_REMOTE_HOST.
+#
+# ALIGNMENT:
+# - requirement-grok-auth-backup.md
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_parse_remote_spec() {
+    _spec="${1-}"
+    GC_REMOTE_USER=""
+    GC_REMOTE_HOST=""
+    if [ -z "${_spec}" ]; then
+        return 1
+    fi
+    case "${_spec}" in
+        *[';|&$`()<>\\/ '*]*|*'*'*|*\[*|*\]*)
+            return 1
+            ;;
+        -*)
+            return 1
+            ;;
+    esac
+    _atcount=0
+    _tmp="${_spec}"
+    while [ -n "${_tmp}" ]; do
+        case "${_tmp}" in
+            *@*)
+                _atcount=$((_atcount + 1))
+                _tmp="${_tmp#*@}"
+                ;;
+            *)
+                _tmp=""
+                ;;
+        esac
+    done
+    if [ "${_atcount}" -gt 1 ]; then
+        return 1
+    fi
+    if [ "${_atcount}" -eq 1 ]; then
+        GC_REMOTE_USER="${_spec%@*}"
+        GC_REMOTE_HOST="${_spec#*@}"
+        if [ -z "${GC_REMOTE_USER}" ] || [ -z "${GC_REMOTE_HOST}" ]; then
+            GC_REMOTE_USER=""
+            GC_REMOTE_HOST=""
+            return 1
+        fi
+        case "${GC_REMOTE_USER}" in
+            *[!A-Za-z0-9_.-]*)
+                GC_REMOTE_USER=""
+                GC_REMOTE_HOST=""
+                return 1
+                ;;
+        esac
+        case "${GC_REMOTE_USER}" in
+            [A-Za-z_]*|[0-9]*)
+                ;;
+            *)
+                GC_REMOTE_USER=""
+                GC_REMOTE_HOST=""
+                return 1
+                ;;
+        esac
+    else
+        GC_REMOTE_HOST="${_spec}"
+    fi
+    if gc_host_is_ipv4 "${GC_REMOTE_HOST}"; then
+        return 0
+    fi
+    if gc_host_is_dns "${GC_REMOTE_HOST}"; then
+        return 0
+    fi
+    GC_REMOTE_USER=""
+    GC_REMOTE_HOST=""
+    return 1
+}
+
+# =============================================================================
+# gc_sync_auth_from_remote() - Type 0: scp remote store auth.* into ~/.grok
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Pull auth.* from a remote host's GROK_CLI_REMOTE_ROOT (default /var/grok-cli)
+# into this login's grok home. SPEC is user@host, host IPv4, domain-name, or
+# user@domain-name. Uses scp in BatchMode (no password hang). MUST NOT sudo.
+# Dest auth.json mode 0600. Tests inject GROK_CLI_SCP.
+#
+# ALIGNMENT:
+# - requirement-grok-auth-backup.md
+# - requirement-operator-readable-error.md
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_sync_auth_from_remote() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${TTY:=0}"
+    : "${GROK_CLI_REMOTE_ROOT:=/var/grok-cli}"
+    : "${HOME:=/tmp}"
+
+    _spec="${1-}"
+    if [ -z "${_spec}" ] && [ "${TTY}" -eq 1 ] && [ "${JSON}" -ne 1 ]; then
+        _spec=$(prompt_ask "Remote (user@host, IPv4, domain, or user@domain)" "")
+    fi
+    if [ -z "${_spec}" ]; then
+        out_die "Cannot sync-auth-from-remote: missing remote. Next: ${APP_NAME} sync-auth-from-remote USER@HOST"
+    fi
+    if ! gc_parse_remote_spec "${_spec}"; then
+        out_die "Cannot sync-auth-from-remote: remote '${_spec}' is not user@host, IPv4, domain, or user@domain. Next: ${APP_NAME} sync-auth-from-remote USER@HOST"
+    fi
+
+    _scp=$(gc_scp_cmd)
+    if [ -z "${_scp}" ] || [ ! -x "${_scp}" ]; then
+        out_die "Cannot sync-auth-from-remote: scp not found. Next: install openssh-client, then ${APP_NAME} sync-auth-from-remote ${_spec}"
+    fi
+
+    _dest=$(gc_resolve_grok_home)
+    if [ ! -d "${_dest}" ]; then
+        mkdir -p "${_dest}" || out_die "Cannot create ${_dest}"
+    fi
+    chmod 0700 "${_dest}" 2>/dev/null || true
+
+    _auth_src="${GROK_CLI_REMOTE_ROOT}/auth.json"
+    if [ -n "${GC_REMOTE_USER}" ]; then
+        _remote="${GC_REMOTE_USER}@${GC_REMOTE_HOST}:${_auth_src}"
+        _label="${GC_REMOTE_USER}@${GC_REMOTE_HOST}"
+    else
+        _remote="${GC_REMOTE_HOST}:${_auth_src}"
+        _label="${GC_REMOTE_HOST}"
+    fi
+
+    _tmp=$(util_mktemp authjson)
+    out_info "Fetching auth.json from ${_label}"
+    if ! "${_scp}" -o BatchMode=yes -o ConnectTimeout=15 "${_remote}" "${_tmp}"; then
+        rm -f "${_tmp}"
+        out_die "Cannot sync-auth-from-remote: scp from ${_label} failed. Next: ssh ${_label}, then ${APP_NAME} sync-auth-from-remote ${_spec}"
+    fi
+    if [ ! -s "${_tmp}" ]; then
+        rm -f "${_tmp}"
+        out_die "Cannot sync-auth-from-remote: remote ${_label} has no auth.json under ${GROK_CLI_REMOTE_ROOT}. Next: on that host run ${APP_NAME} backup, then ${APP_NAME} sync-auth-from-remote ${_spec}"
+    fi
+
+    _outp="${_dest}/auth.json"
+    if command -v install >/dev/null 2>&1; then
+        install -m 0600 "${_tmp}" "${_outp}" || out_die "Failed to write ${_outp}"
+    else
+        cp "${_tmp}" "${_outp}" || out_die "Failed to write ${_outp}"
+        chmod 0600 "${_outp}" 2>/dev/null || true
+    fi
+    rm -f "${_tmp}"
+    chmod 0600 "${_outp}" 2>/dev/null || true
+
+    _copied="auth.json "
+    _n=1
+    _lock_src="${GROK_CLI_REMOTE_ROOT}/auth.json.lock"
+    if [ -n "${GC_REMOTE_USER}" ]; then
+        _lock_remote="${GC_REMOTE_USER}@${GC_REMOTE_HOST}:${_lock_src}"
+    else
+        _lock_remote="${GC_REMOTE_HOST}:${_lock_src}"
+    fi
+    _ltmp=$(util_mktemp authlock)
+    if "${_scp}" -o BatchMode=yes -o ConnectTimeout=15 "${_lock_remote}" "${_ltmp}" 2>/dev/null; then
+        if [ -s "${_ltmp}" ]; then
+            if command -v install >/dev/null 2>&1; then
+                install -m 0600 "${_ltmp}" "${_dest}/auth.json.lock" || true
+            else
+                cp "${_ltmp}" "${_dest}/auth.json.lock" 2>/dev/null || true
+                chmod 0600 "${_dest}/auth.json.lock" 2>/dev/null || true
+            fi
+            if [ -f "${_dest}/auth.json.lock" ]; then
+                _copied="${_copied}auth.json.lock "
+                _n=$((_n + 1))
+            fi
+        fi
+    fi
+    rm -f "${_ltmp}"
+
+    out_success "sync-auth-from-remote complete: ${_label}:${GROK_CLI_REMOTE_ROOT} → ${_dest} (${_n} file(s): ${_copied})"
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "sync-auth-from-remote" "ok" \
+            "app" "${APP_NAME}" \
+            "remote" "${_label}" \
+            "host" "${GC_REMOTE_HOST}" \
+            "user" "${GC_REMOTE_USER}" \
+            "source" "${GROK_CLI_REMOTE_ROOT}" \
+            "grok_home" "${_dest}" \
+            "files" "${_copied}" \
+            "count" "${_n}"
+    fi
+    return 0
+}
+
+# =============================================================================
+# gc_crontab_cmd() - Class B: crontab binary (GROK_CLI_CRONTAB or PATH)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Return the crontab program add-crontab will invoke. Tests inject a fake
+# via GROK_CLI_CRONTAB so the suite never writes the operator's real crontab.
+#
+# ALIGNMENT:
+# - requirement-grok-crontab.md
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_crontab_cmd() {
+    : "${GROK_CLI_CRONTAB:=}"
+    if [ -n "${GROK_CLI_CRONTAB}" ]; then
+        printf '%s' "${GROK_CLI_CRONTAB}"
+        return 0
+    fi
+    command -v crontab 2>/dev/null || true
+}
+
+# =============================================================================
+# gc_cron_backup_job() / gc_cron_sync_job() - Class B: studied crontab lines
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Emit one crontab line (no trailing newline) matching the host pattern:
+#   */30 * * * * sudo /usr/local/bin/grok-cli backup
+#   45 * * * * /usr/local/bin/grok-cli sync-auth
+# Login is not on the line: user crontab is already per-login.
+#
+# ALIGNMENT:
+# - requirement-grok-crontab.md
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_cron_backup_job() {
+    : "${APP_NAME:=grok-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${GROK_CLI_CRON_BACKUP:=*/30 * * * *}"
+    printf '%s sudo %s/%s backup' "${GROK_CLI_CRON_BACKUP}" "${GLOBAL_BIN}" "${APP_NAME}"
+}
+
+gc_cron_sync_job() {
+    : "${APP_NAME:=grok-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${GROK_CLI_CRON_SYNC:=45 * * * *}"
+    printf '%s %s/%s sync-auth' "${GROK_CLI_CRON_SYNC}" "${GLOBAL_BIN}" "${APP_NAME}"
+}
+
+# =============================================================================
+# gc_crontab_text_has() - Class B: needle present in crontab text
+# =============================================================================
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_crontab_text_has() {
+    _hay="${1-}"
+    _ndl="${2-}"
+    [ -n "${_ndl}" ] || return 1
+    case "${_hay}" in
+        *"${_ndl}"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# =============================================================================
+# gc_sudoers_grants_backup() - this login's fragment grants NOPASSWD backup
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Return 0 only when THIS login (id -un) has an installed sudoers fragment
+# that allows passwordless {{GLOBAL_BIN}}/grok-cli backup. Other users'
+# grok-cli-<other> files do not count. Wrong username / missing NOPASSWD /
+# extra argv / different verb fail closed.
+#
+# ALIGNMENT:
+# - requirement-grok-crontab.md
+# - requirement-sudoer-json-file.md
+# - requirement-three-layer-privilege-model.md
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_sudoers_grants_backup() {
+    : "${APP_NAME:=grok-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    _user=$(gc_current_login_user)
+    _bin="${GLOBAL_BIN}/${APP_NAME}"
+    _need="${_user} ALL=(root) NOPASSWD: ${_bin} backup"
+    _path=""
+    if _path=$(gc_probe_current_user_host_sudoers); then
+        :
+    else
+        return 1
+    fi
+    if [ -r "${_path}" ]; then
+        while IFS= read -r _line || [ -n "${_line}" ]; do
+            case "${_line}" in
+                "${_need}"|"${_need} ")
+                    return 0
+                    ;;
+            esac
+        done < "${_path}"
+        return 1
+    fi
+    # Fragment exists (probe) but is unreadable: corroborate sudo -n -l only.
+    if command -v sudo >/dev/null 2>&1; then
+        _lst=$(sudo -n -l 2>/dev/null || true)
+        if gc_crontab_text_has "${_lst}" "${_bin} backup"; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# =============================================================================
+# gc_add_crontab() - Type 0: install backup + sync-auth jobs in this crontab
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Ensure this login's user crontab contains the studied grok-cli timer jobs.
+# Fail closed unless this login's installed sudoers fragment grants
+# passwordless grok-cli backup. Never writes /etc or another user's crontab.
+# Idempotent: missing lines are appended; existing command lines are kept.
+#
+# CIAO PRINCIPLES APPLIED:
+# - Caution: grant + global binary + crontab cmd checked before write
+# - Intentional: two studied lines; sync-auth stays unprivileged
+# - Anti-fragile: re-run does not duplicate; other jobs preserved
+# - Over-protect: wrong-user / wrong-argv fragments are refusals
+#
+# ALIGNMENT:
+# - requirement-grok-crontab.md
+# - requirement-operator-readable-error.md
+# - requirement-shell-idempotency.md
+#
+# Last updated: 2026-09-02
+# =============================================================================
+gc_add_crontab() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${HOME:=/tmp}"
+
+    _user=$(gc_current_login_user)
+    _bin="${GLOBAL_BIN}/${APP_NAME}"
+    _cron=$(gc_crontab_cmd)
+    _backup_job=$(gc_cron_backup_job)
+    _sync_job=$(gc_cron_sync_job)
+    _backup_cmd="sudo ${_bin} backup"
+    _sync_cmd="${_bin} sync-auth"
+
+    if [ ! -x "${_bin}" ]; then
+        out_die "Cannot add crontab: need the global binary ${_bin} (sudoers grants that path). Next: sudo sh src/${APP_NAME} install, then ${APP_NAME} add-crontab."
+    fi
+    if ! gc_sudoers_grants_backup; then
+        out_die "Cannot add crontab: no passwordless sudo ${_bin} backup grant for this login (${_user}). Next: ${APP_NAME} generate-sudoer-request && ${APP_NAME} submit-sudoer-request, then ask sudoer-adm to approve."
+    fi
+    if [ -z "${_cron}" ] || [ ! -x "${_cron}" ]; then
+        out_die "Cannot add crontab: crontab command not found. Next: install cron, then ${APP_NAME} add-crontab."
+    fi
+
+    _listed=""
+    if _listed=$("${_cron}" -l 2>/dev/null); then
+        :
+    else
+        _listed=""
+    fi
+    case "${_listed}" in
+        "no crontab for"*) _listed="" ;;
+    esac
+
+    _have_backup=0
+    _have_sync=0
+    if gc_crontab_text_has "${_listed}" "${_backup_cmd}"; then
+        _have_backup=1
+    fi
+    if gc_crontab_text_has "${_listed}" "${_sync_cmd}"; then
+        _have_sync=1
+    fi
+
+    if [ "${_have_backup}" -eq 1 ] && [ "${_have_sync}" -eq 1 ]; then
+        out_success "add-crontab: backup and sync-auth jobs already present for ${_user}"
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "add-crontab" "ok" \
+                "app" "${APP_NAME}" \
+                "user" "${_user}" \
+                "backup_job" "${_backup_job}" \
+                "sync_job" "${_sync_job}" \
+                "added_backup" "false" \
+                "added_sync" "false" \
+                "already_present" "true"
+        fi
+        return 0
+    fi
+
+    _tmp=$(util_mktemp crontab)
+    if [ -n "${_listed}" ]; then
+        printf '%s\n' "${_listed}" > "${_tmp}"
+    else
+        : > "${_tmp}"
+    fi
+    _added_backup="false"
+    _added_sync="false"
+    if [ "${_have_backup}" -eq 0 ]; then
+        printf '%s\n' "${_backup_job}" >> "${_tmp}"
+        _added_backup="true"
+    fi
+    if [ "${_have_sync}" -eq 0 ]; then
+        printf '%s\n' "${_sync_job}" >> "${_tmp}"
+        _added_sync="true"
+    fi
+    if ! "${_cron}" "${_tmp}"; then
+        rm -f "${_tmp}"
+        out_die "Cannot add crontab: crontab install failed. Next: check crontab -l, then ${APP_NAME} add-crontab."
+    fi
+    rm -f "${_tmp}"
+
+    out_success "add-crontab complete for ${_user}: backup every 30 minutes; sync-auth at minute 45"
+    out_info "Jobs use ${_bin} (sudoers grants that path). sync-auth does not use sudo."
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "add-crontab" "ok" \
+            "app" "${APP_NAME}" \
+            "user" "${_user}" \
+            "backup_job" "${_backup_job}" \
+            "sync_job" "${_sync_job}" \
+            "added_backup" "${_added_backup}" \
+            "added_sync" "${_added_sync}" \
+            "already_present" "false"
+    fi
+    return 0
+}
+
+# =============================================================================
 #
 # Prints one of: production | test_local | unmanaged
 # production = executable global managed binary present
@@ -3688,12 +4197,12 @@ app_about() {
 #
 # GENERAL PURPOSE:
 # Print the grok-cli daily-work list: check-session, backup, sync-auth,
-# sudoers family, then Exit 9.
+# sync-auth-from-remote, add-crontab, sudoers family, then Exit 9.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-08-23
+# Last updated: 2026-09-02
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=grok-cli}"
@@ -3705,7 +4214,9 @@ app_default_print_menu() {
     out_plain "1. check-session: Confirm grok is logged in"
     out_plain "2. backup: Push ~/.grok/auth.* to ${GROK_CLI_ROOT}"
     out_plain "3. sync-auth: Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok"
-    out_plain "4. sudoers: Grant and drafts"
+    out_plain "4. sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok"
+    out_plain "5. add-crontab: Add backup and sync-auth jobs to this login's crontab"
+    out_plain "6. sudoers: Grant and drafts"
     out_plain "9. Exit"
 }
 
@@ -3748,7 +4259,7 @@ app_default_print_sudoers_menu() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-08-23
+# Last updated: 2026-09-02
 # =============================================================================
 app_default_run_pick() {
     _pick="${1:-}"
@@ -3763,6 +4274,12 @@ app_default_run_pick() {
             ;;
         3|sync-auth)
             gc_sync_auth
+            ;;
+        4|sync-auth-from-remote)
+            gc_sync_auth_from_remote
+            ;;
+        5|add-crontab)
+            gc_add_crontab
             ;;
         generate-sudoer-request)
             gc_generate_sudoer_request
@@ -3887,7 +4404,7 @@ app_default_sudoers_loop() {
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-shell-cli-zero-arguments.md
 #
-# Last updated: 2026-08-23
+# Last updated: 2026-09-02
 # =============================================================================
 app_default() {
     : "${TTY:=0}"
@@ -3928,7 +4445,7 @@ app_default() {
                 export JSON QUIET
                 return 0
                 ;;
-            4|sudoers)
+            6|sudoers)
                 JSON="${_menu_json}"
                 QUIET="${_menu_quiet}"
                 export JSON QUIET
@@ -3953,7 +4470,7 @@ app_default() {
         JSON=0
         QUIET=0
         export JSON QUIET
-        out_warn "Not a menu choice. Type 1-4, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+        out_warn "Not a menu choice. Type 1-6, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
     done
 }
 
@@ -3961,17 +4478,17 @@ app_default() {
 # app_help() - Usage (local Type 0 + domain)
 # =============================================================================
 #
-# Last updated: 2026-08-25
+# Last updated: 2026-09-02
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Local grok auth backup to /var/grok-cli and unprivileged sync-auth}}"
-    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, menu, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
         out_json "success" "Help text available in human-readable mode. Run without --json." \
             "command" "help" \
-            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth. Empty argv and menu/main off-TTY use this help."
+            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab. Empty argv and menu/main off-TTY use this help."
         return 0
     fi
     if [ "${QUIET}" -eq 1 ]; then
@@ -4002,6 +4519,13 @@ app_help() {
     out_plain "                       (checks session first; sudo -n ${GLOBAL_BIN}/${APP_NAME} backup after sudoer-adm grant;"
     out_plain "                       chown root:root, chmod 0644 so others can sync-auth)"
     out_plain "  sync-auth            Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok (no sudo)"
+    out_plain "  sync-auth-from-remote SPEC"
+    out_plain "                       Copy a remote host's ${GROK_CLI_REMOTE_ROOT:-/var/grok-cli}/auth.* into ~/.grok"
+    out_plain "                       (SPEC: user@IPv4, IPv4, domain-name, or user@domain-name;"
+    out_plain "                       scp BatchMode; no sudo; dest auth.json 0600)"
+    out_plain "  add-crontab          Add backup and sync-auth jobs to this login's crontab"
+    out_plain "                       (*/30 sudo ${GLOBAL_BIN}/${APP_NAME} backup; minute 45 ${GLOBAL_BIN}/${APP_NAME} sync-auth;"
+    out_plain "                       needs this login's NOPASSWD ${GLOBAL_BIN}/${APP_NAME} backup grant; does not write /etc)"
     out_plain "  print-sudoers [path] Emit sudoers draft for admin"
     out_plain "                       (test_local/unmanaged needs --allow-test-local);"
     out_plain "                       default: ~/.config/${APP_NAME}/sudoers.fragment-<user>"
@@ -4039,6 +4563,11 @@ app_help() {
     out_info "Environment:"
     out_plain "  GROK_HOME            grok auth dir (default ~/.grok of invoking login)"
     out_plain "  GROK_CLI_ROOT        durable store (default /var/grok-cli)"
+    out_plain "  GROK_CLI_CRONTAB     crontab binary (default crontab; tests inject a fake)"
+    out_plain "  GROK_CLI_CRON_BACKUP backup crontab schedule (default */30 * * * *)"
+    out_plain "  GROK_CLI_CRON_SYNC   sync-auth crontab schedule (default 45 * * * *)"
+    out_plain "  GROK_CLI_SCP            scp binary (default scp; tests inject a fake)"
+    out_plain "  GROK_CLI_REMOTE_ROOT    remote store path (default /var/grok-cli)"
     out_plain "  GROK_VENDOR_INSTALL_URL  xAI grok installer (default https://x.ai/cli/install.sh)"
     out_plain "  GROK_BIN             override path to peer grok"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
@@ -4066,6 +4595,8 @@ app_help() {
     out_plain "  ${APP_NAME} check-session"
     out_plain "  ${APP_NAME} backup"
     out_plain "  ${APP_NAME} sync-auth"
+    out_plain "  ${APP_NAME} sync-auth-from-remote user@192.0.2.10"
+    out_plain "  ${APP_NAME} add-crontab"
     out_empty_line
     out_info "Empty argv on a real terminal shows the numbered list (Type N — local-only; no curl|sh)."
     out_info "Off-TTY empty argv shows help. Explicit help stays help."
@@ -4089,7 +4620,7 @@ app_help() {
 #
 # !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
 #
-# Last updated: 2026-08-25
+# Last updated: 2026-09-02
 # =============================================================================
 app_main() {
     : "${COMMAND:=help}"
@@ -4149,7 +4680,7 @@ app_main() {
                 SUBMIT_ACTION_EXPLICIT=1
                 export SUBMIT_ACTION SUBMIT_ACTION_EXPLICIT
                 ;;
-            version|about|help|menu|main|install|uninstall|where-is-me|setup|check-session|backup|sync-auth|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
+            version|about|help|menu|main|install|uninstall|where-is-me|setup|check-session|backup|sync-auth|sync-auth-from-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
                 COMMAND="$1"
                 ;;
             *)
@@ -4158,7 +4689,8 @@ app_main() {
                     || [ "${COMMAND}" = "print-sudoers-install-script" ] \
                     || [ "${COMMAND}" = "remove-project-sudoers" ] \
                     || [ "${COMMAND}" = "generate-sudoer-request" ] \
-                    || [ "${COMMAND}" = "submit-sudoer-request" ]; then
+                    || [ "${COMMAND}" = "submit-sudoer-request" ] \
+                    || [ "${COMMAND}" = "sync-auth-from-remote" ]; then
                     if [ -z "${_domain_arg}" ]; then
                         _domain_arg="$1"
                     else
@@ -4185,6 +4717,8 @@ app_main() {
         check-session) gc_check_session ;;
         backup)       gc_backup ;;
         sync-auth)    gc_sync_auth ;;
+        sync-auth-from-remote) gc_sync_auth_from_remote "${_domain_arg}" ;;
+        add-crontab)  gc_add_crontab ;;
         print-sudoers) gc_print_sudoers "${_domain_arg}" ;;
         print-sudoers-install-script) gc_print_sudoers_install_script "${_domain_arg}" ;;
         remove-project-sudoers) gc_remove_project_sudoers "${_domain_arg}" ;;

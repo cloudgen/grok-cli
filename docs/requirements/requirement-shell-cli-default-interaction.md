@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 1.7.0)  
+**Status**: Active (Version 1.9.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -14,7 +14,7 @@ Empty-argv type (Type N vs Type O) and the TTY vs off-TTY split for **no command
 
 ### 1.1 Human-facing
 
-Typing only `grok-cli` at a real terminal shows the numbered start list. In a script it prints help. `grok-cli menu` (or `grok-cli main`) does the same. The list shows check-session, backup, sync-auth, then **sudoers** for grants and drafts. Install, uninstall, where-is-me, version, and about stay on **help**. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`. In a script, `menu` prints the help screen; with `--json` it prints JSON help.
+Typing only `grok-cli` at a real terminal shows the numbered start list. In a script it prints help. `grok-cli menu` (or `grok-cli main`) does the same. The list shows check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, then **sudoers** for grants and drafts. Install, uninstall, where-is-me, version, and about stay on **help**. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`. In a script, `menu` prints the help screen; with `--json` it prints JSON help.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
@@ -26,7 +26,9 @@ Typing only `grok-cli` at a real terminal shows the numbered start list. In a sc
 |---------|---------------|---------------|
 | Start at a prompt | Daily auth work; **check-session** is **1** | `grok-cli` then `1` |
 | Push auth to the store | Second row | `grok-cli` then `2` |
-| Open grant/drafts | Family row **4**, then a number | `grok-cli` then `4` then `1` |
+| Pull from another host | Fourth row (prompts for SPEC on TTY) | `grok-cli` then `4` |
+| Install the timers | Fifth row | `grok-cli` then `5` |
+| Open grant/drafts | Family row **6**, then a number | `grok-cli` then `6` then `1` |
 | Leave the grant list | Back to the start list | `8` |
 | Leave the menu | Exit | `9` |
 | Install the program | Not on this list | `grok-cli install` |
@@ -65,9 +67,9 @@ After flag parse, when the command token is `menu` or `main`, **or** when argv w
 2. **MUST NOT** list **install / setup**, **self-managed** commands (`install`, `uninstall`, `where-is-me`), **diagnostics** (`version`, `about`), or **test-purpose** verbs.  
 3. Command-row text **MUST** be `command: what it does`.  
 4. **MUST NOT** list `help`, `restore`, `menu`/`main`, or the five sudoers verbs on the **main** list (they live on the submenu).  
-5. Main command rows **N = 4** (three verbs + one family). Exit **MUST** be **9**. Unused integers **5–8** are omitted.  
+5. Main command rows **N = 6** (five verbs + one family). Exit **MUST** be **9**. Unused integers **7–8** are omitted.  
 6. Accept a **number** or a **listed verb**. **9** / `exit` / `quit` returns 0.  
-7. **`sudoers` is not a live CLI command.** Choosing **4** or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). `grok-cli sudoers` **MUST** remain unknown.  
+7. **`sudoers` is not a live CLI command.** Choosing **6** or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). `grok-cli sudoers` **MUST** remain unknown.  
 8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut). Live verbs excluded from both lists **MUST NOT** run from the pick prompt.
 
 Normative **main** order:
@@ -77,12 +79,14 @@ Normative **main** order:
 | 1 | `check-session` | `check-session: Confirm grok is logged in` |
 | 2 | `backup` | `backup: Push ~/.grok/auth.* to /var/grok-cli` |
 | 3 | `sync-auth` | `sync-auth: Copy /var/grok-cli/auth.* into ~/.grok` |
-| 4 | family `sudoers` | `sudoers: Grant and drafts` |
+| 4 | `sync-auth-from-remote` | `sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok` |
+| 5 | `add-crontab` | `add-crontab: Add backup and sync-auth jobs to this login's crontab` |
+| 6 | family `sudoers` | `sudoers: Grant and drafts` |
 | **9** | **Exit** | leave the menu |
 
 ### 2.4 Sudoers submenu
 
-Choosing main **4** / `sudoers` **MUST** print a second numbered list of the grouped live verbs. **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
+Choosing main **6** / `sudoers` **MUST** print a second numbered list of the grouped live verbs. **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
 
 | # | Command | Label |
 |---|---------|-------|
@@ -116,7 +120,7 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 | **Label source** | `reviews/cli-routed-verb-table.md` **human-readable** for command rows; family explain is this file’s table |
 | **Interactive + `--json`** | Ignore json on `menu`/`main`; still the menu |
 | **Non-interactive** | `app_help` (human; `--quiet` still prints help) |
-| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv still prints help. Main **N = 4**; submenu **N = 5**; Exit **9**; Back **8**. |
+| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv still prints help. Main **N = 6**; submenu **N = 5**; Exit **9**; Back **8**. |
 
 ### 2.6 Why this requirement exists (CIAO)
 
@@ -165,6 +169,6 @@ Future agents **MUST NOT**:
 
 ---
 
-**Last Updated**: 2026-08-23 (1.7.0 — TTY empty argv is this menu; `menu`/`main` remain; Exit 9; Back 8)  
+**Last Updated**: 2026-09-02 (1.9.0 — main list adds `sync-auth-from-remote` as **4**; `add-crontab` **5**; family `sudoers` **6**; Exit 9; Back 8)  
 **Owner**: product  
 **Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

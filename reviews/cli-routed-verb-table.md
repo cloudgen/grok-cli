@@ -4,9 +4,9 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 
 **Ship unit:** `src/grok-cli`  
 **Dispatcher:** `app_main`  
-**Scan date:** 2026-08-25  
-**Mode:** incremental (new dispatcher token `setup`)  
-**Copied:** 16 live + 1 not-yet-wired · **Re-checked:** `setup` (`gc_setup`)  
+**Scan date:** 2026-09-02  
+**Mode:** incremental (new dispatcher token `sync-auth-from-remote`)  
+**Copied:** 17 live + 1 not-yet-wired · **Re-checked:** `sync-auth-from-remote` (`gc_sync_auth_from_remote`)  
 **Inventory:** dispatcher `case "${COMMAND}"` — not `app_help` for routing; help one-liners copied into **human-readable**
 
 ## Live commands
@@ -14,6 +14,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | verb | handler | privilege | last modified date | human-readable |
 |------|---------|-----------|--------------------|----------------|
 | about | `app_about` | you (Type 0) | 2026-08-03 | `about: Show diagnostics (incl. sudoers trust tier)` |
+| add-crontab | `gc_add_crontab` | you (Type 0) | 2026-09-02 | `add-crontab: Add backup and sync-auth jobs to this login's crontab` |
 | backup | `gc_backup` | change-the-computer (Type 1) | missing | `backup: Push ~/.grok/auth.* to /var/grok-cli` |
 | check-session | `gc_check_session` | you (Type 0) | missing | `check-session: Confirm grok is logged in` |
 | generate-sudoer-request | `gc_generate_sudoer_request` | you (Type 0) | 2026-08-17 | `generate-sudoer-request: Write a JSON grant you can read` |
@@ -27,11 +28,12 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | remove-project-sudoers | `gc_remove_project_sudoers` | you (Type 0) | 2026-08-09 | `remove-project-sudoers: Remove sudoers draft only` |
 | submit-sudoer-request | `gc_submit_sudoer_request` | you (Type 0) | 2026-08-17 | `submit-sudoer-request: Queue the JSON grant inbound` |
 | sync-auth | `gc_sync_auth` | you (Type 0) | missing | `sync-auth: Copy /var/grok-cli/auth.* into ~/.grok` |
+| sync-auth-from-remote | `gc_sync_auth_from_remote` | you (Type 0) | 2026-09-02 | `sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok` |
 | uninstall | `inst_local_uninstall` | you (Type 0) | 2026-08-03 | `uninstall: Remove managed binary (confirm or --force); not sudoers` |
 | version | `app_version` | you (Type 0) | missing | `version: Show local version` |
 | where-is-me | `app_where_is_me` | you (Type 0) | 2026-08-03 | `where-is-me: Show running and install paths` |
 
-A TTY main menu **MUST** print daily-work **human-readable** lines as a **numbered list**, with related grant/draft verbs behind family row **`sudoers`** (submenu; **Back 8**, **Exit 9**). grok-cli is **case 3**: verb **`menu`** (alias **`main`**). **Exclude** `help`, `menu`/`main`, install/setup, self-managed (`install`, `uninstall`, `where-is-me`), diagnostics (`version`, `about`), and test-purpose. **`sudoers` is not a live dispatcher token.** Main **N = 4**; submenu **K = 5**; **Exit 9**.
+A TTY main menu **MUST** print daily-work **human-readable** lines as a **numbered list**, with related grant/draft verbs behind family row **`sudoers`** (submenu; **Back 8**, **Exit 9**). grok-cli is **case 3**: verb **`menu`** (alias **`main`**). **Exclude** `help`, `menu`/`main`, install/setup, self-managed (`install`, `uninstall`, `where-is-me`), diagnostics (`version`, `about`), and test-purpose. **`sudoers` is not a live dispatcher token.** Main **N = 6**; submenu **K = 5**; **Exit 9**.
 
 ## Not yet wired
 
@@ -41,5 +43,5 @@ A TTY main menu **MUST** print daily-work **human-readable** lines as a **number
 
 ---
 
-**Last Updated:** 2026-08-25 (`setup` live)  
+**Last Updated:** 2026-09-02 (`sync-auth-from-remote` live)  
 **Alignment:** term `cli-routed-verb-table` · **`SK-CLI-ROUTED-VERB-TABLE`** · **`SK-CLI-DEFAULT-INTERACTION`**

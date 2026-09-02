@@ -4,7 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.3.0 (current) | Yes |
+| 1.5.0 (current) | Yes |
+| 1.4.0 | Yes |
+| 1.3.0 | Yes |
 | 1.2.2 | Yes |
 | 1.2.1 | Yes |
 | 1.2.0 | Yes |

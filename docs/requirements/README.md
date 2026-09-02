@@ -2,7 +2,7 @@
 
 Authoritative specialized product law for **grok-cli** lives here.
 
-**Current state (2026-08-25):** Specialized **software-development** product. Left genesis. Bootstrap chain is **cli-template → folder-backup → grok-cli**. Registry is populated — see `index.md` (CLI default-interaction is case 3: TTY empty argv and `menu`/`main` show the numbered list; off-TTY empty argv stays Type N help). `setup` installs peer `grok` from x.ai (not grok-cli).
+**Current state (2026-09-02):** Specialized **software-development** product. Left genesis. Bootstrap chain is **cli-template → folder-backup → grok-cli**. Registry is populated — see `index.md` (CLI default-interaction is case 3: TTY empty argv and `menu`/`main` show the numbered list; off-TTY empty argv stays Type N help). `setup` installs peer `grok` from x.ai (not grok-cli). `add-crontab` installs this login’s backup/sync-auth crontab jobs.
 
 ## Product identity (summary)
 
@@ -14,6 +14,7 @@ Authoritative specialized product law for **grok-cli** lives here.
 | Default install | `~/.local/bin/grok-cli` |
 | Install mode | **Local-only** |
 | Auth ops | `requirement-grok-auth-backup` — session check / deposit / sync-auth |
+| Crontab ops | `requirement-grok-crontab` — `add-crontab` per-login timers |
 | Domain surface | `requirement-domain-grok-cli` — four pillars |
 | Peer grok install | `requirement-grok-setup` — `setup` curls xAI installer |
 | JSON sudoer file | `requirement-sudoer-json-file` — grant is `grok-cli backup` only; no `cp`/`mkdir`/`chmod` |

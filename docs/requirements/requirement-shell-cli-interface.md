@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.3.2)  
+**Status**: Active (Version 2.5.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -103,6 +103,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in |
 | `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
 | `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo |
+| `sync-auth-from-remote` | Type 0 | `gc_sync_auth_from_remote` (domain) | `scp` remote `/var/grok-cli/auth.*` into `~/.grok`; SPEC is `user@IPv4`, IPv4, domain, or `user@domain`; **does not** use sudo |
+| `add-crontab` | Type 0 | `gc_add_crontab` (domain) | Install this login’s crontab jobs (backup every 30 min; sync-auth at :45) after **this** login’s backup grant exists — **does not** write `/etc` |
 | `print-sudoers` | Type 0 | `gc_print_sudoers` (domain) | Emit sudoers fragment for admin to install under `/etc/sudoers.d/` — **does not** write `/etc` itself |
 | `print-sudoers-install-script` | Type 0 | `gc_print_sudoers_install_script` (domain) | Write admin handoff script (no `/etc` write) |
 | `remove-project-sudoers` | Type 0 | `gc_remove_project_sudoers` (domain) | Delete draft only; never `/etc` |
@@ -186,6 +188,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | AC-6 | `submit-sudoer-request` is Type 0, routed, listed in help; does not write `/etc` or create inbound |
 | AC-7 | `generate-sudoer-request` is Type 0, routed, listed in help; independent of submit; dest is invoking-user readable; does not write `/etc` or inbound |
 | AC-8 | `menu` / `main` routed; match `requirement-shell-cli-default-interaction` |
+| AC-9 | `add-crontab` is Type 0, routed, listed in help; does not write `/etc`; dual mention `requirement-grok-crontab` |
+| AC-10 | `sync-auth-from-remote` is Type 0, routed, listed in help; dual mention `requirement-grok-auth-backup` |
 
 ---
 
@@ -199,6 +203,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `requirement-shell-output-requirements` | `out_*` catalog |
 | `requirement-domain-grok-cli` | Domain four pillars |
 | `requirement-grok-setup` | Dual mention of `setup` |
+| `requirement-grok-crontab` | Dual mention of `add-crontab` |
 | `requirement-three-layer-privilege-model` | Elevation model |
 | `docs/requirements/index.md` | Registry |
 
@@ -228,9 +233,11 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | 2026-08-25 | Active 2.3.0 | `setup` Type 0 — curl xAI grok installer (peer CLI; not grok-cli install) |
 | 2026-08-30 | Active 2.3.1 | About **Cache folder (preferred)/(fallback)** |
 | 2026-08-30 | Active 2.3.2 | About **Persistence storage** `${HOME}/.local/${APP_NAME}` |
+| 2026-09-02 | Active 2.4.0 | `add-crontab` Type 0 — per-login backup/sync-auth crontab jobs |
+| 2026-09-02 | Active 2.5.0 | `sync-auth-from-remote` Type 0 — four SPEC forms |
 
 ---
 
-**Last Updated**: 2026-08-30  
+**Last Updated**: 2026-09-02  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,6 +1,6 @@
 # grok-cli - Grok auth backup to /var/grok-cli and unprivileged sync-auth
 
-![Version](https://img.shields.io/badge/Version-1.3.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.5.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -9,7 +9,7 @@
 
 | You (your own login) | Admin / already root | Not this |
 |----------------------|----------------------|----------|
-| Install to `~/.local/bin`, generate and submit a grant, run `check-session` / `backup` / `sync-auth` once the grant exists | Install into `/usr/local/bin` and install the sudoers fragment | No download-and-run install channel; a normal login does not write `/etc`; `sync-auth` never uses sudo |
+| Install to `~/.local/bin`, generate and submit a grant, run `check-session` / `backup` / `sync-auth` / `add-crontab` once the grant exists | Install into `/usr/local/bin` and install the sudoers fragment | No download-and-run install channel; a normal login does not write `/etc`; `sync-auth` never uses sudo |
 
 ## Features
 
@@ -18,6 +18,8 @@
 - **Session gate**: `check-session` — confirm grok is logged in (`~/.grok/auth.json`)
 - **Backup**: `backup` → check session → elevated deposit of `auth.*` into `/var/grok-cli` → `chown root:root` → `chmod 0644`
 - **sync-auth**: copy `/var/grok-cli/auth.*` into `~/.grok` as the invoking login (mode `0600` on `auth.json`; **no sudo**)
+- **sync-auth-from-remote**: `scp` a remote host’s `/var/grok-cli/auth.*` into `~/.grok`. SPEC: `user@192.0.2.10`, `192.0.2.10`, `host.example.com`, or `user@host.example.com`. No sudo.
+- **add-crontab**: install this login’s crontab jobs (`*/30` `sudo /usr/local/bin/grok-cli backup`; minute 45 `sync-auth`) after **this** login’s passwordless backup grant exists. Does not write `/etc`. Re-run does not duplicate.
 - **Narrow sudoers**: `print-sudoers` emits `NOPASSWD: /usr/local/bin/grok-cli backup` only (admin installs to `/etc/sudoers.d/`)
 - **Sudoer approval submit**: `generate-sudoer-request` writes a local JSON grant you can review; then `submit-sudoer-request` lets sudoer-cli allocate a JSON request into `/var/sudoer-cli/sudoer-request`
 - **Fail-closed**: missing login, unauthorized deposit, unreadable store
@@ -77,6 +79,8 @@ grok-cli setup                 # install grok from x.ai (not grok-cli)
 grok-cli check-session
 grok-cli backup
 grok-cli sync-auth
+grok-cli sync-auth-from-remote user@192.0.2.10
+grok-cli add-crontab
 
 grok-cli print-sudoers
 grok-cli generate-sudoer-request
@@ -108,6 +112,12 @@ grok-cli backup
 
 # Another login on the same host, no sudo:
 grok-cli sync-auth
+
+# Pull the shared store from another host (openssh scp; no sudo):
+grok-cli sync-auth-from-remote user@192.0.2.10
+
+# After sudoer-adm approves THIS login's backup grant:
+grok-cli add-crontab
 ```
 
 ## Platform Compatibility
@@ -136,6 +146,8 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-02 — version **1.5.0**: `sync-auth-from-remote` pulls `/var/grok-cli/auth.*` from another host via scp.  
+2026-09-02 — version **1.4.0**: `add-crontab` installs this login’s backup/sync-auth crontab jobs after **this** login’s sudoers grant exists.  
 2026-08-30 — version **1.3.0**: storage = cache folder **and** persistence `${HOME}/.local/grok-cli`; `about` prints both.  
 2026-08-30 — version **1.2.2**: `about` Cache folder preferred `/dev/shm/cache/cache-grok-cli`; fallback under XDG `cache-grok-cli` (not Storage (effective)/(fallback)).  
 2026-08-23 — version **1.1.0**: empty argv on a real terminal opens the numbered start list (same as `menu`); off-TTY empty argv still prints help; Type N (no install).  

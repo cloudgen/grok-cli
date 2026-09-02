@@ -64,6 +64,7 @@ Force policy (`--force` / `FORCE=1`) **MAY** re-apply ensure steps that would ot
 | `generate-sudoer-request` | Local verified JSON grant at dest path | Overwrite same dest (draft) | Does not write `/etc` or inbound |
 | `submit-sudoer-request` | Queue a **new** JSON request (sibling allocates next `n`) | Each success is a new `request_id`; not a no-op | Does not write `/etc`; does not `mkdir` inbound; missing inbound fails closed |
 | `backup` | New archive deposit for this run | **Not** “skip backup”; each run **SHOULD** create next `N` or fail if naming cannot progress | Must not overwrite existing archive without explicit force policy (default: **never overwrite** — allocate next `N`) |
+| `add-crontab` | This login’s crontab contains the studied backup + sync-auth command lines | Success no-op; **MUST NOT** duplicate lines | Does not write `/etc`; other crontab lines kept |
 
 ### 2.5 Domain numbering idempotency
 

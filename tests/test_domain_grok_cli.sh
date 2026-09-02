@@ -451,5 +451,240 @@ STUB25
     HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${CI_HOME}/.config/grok-cli/sudoers.fragment" >/dev/null 2>&1 || true
     HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${CI_HOME}/.config/grok-cli/sudoers.fragment-otheruser" >/dev/null 2>&1 || true
 
+    # TP-GROK-CLI-26..29 add-crontab (isolated fake crontab; never the operator crontab)
+    : "${CI_SUDOERS_D:=${CI_HOME}/sudoers.d}"
+    mkdir -p "${CI_SUDOERS_D}" "${CI_HOME}/bin" "${CI_GLOBAL_BIN}"
+    _user_cron=$(id -un)
+    rm -f "${CI_SUDOERS_D}/grok-cli-${_user_cron}" "${CI_GLOBAL_BIN}/grok-cli"
+    printf '#!/bin/sh\nexit 0\n' > "${CI_GLOBAL_BIN}/grok-cli"
+    chmod 0755 "${CI_GLOBAL_BIN}/grok-cli"
+    _fake_cron="${CI_HOME}/bin/crontab"
+    _cron_store="${CI_HOME}/crontab.txt"
+    cat > "${_fake_cron}" <<'FAKECRON'
+#!/bin/sh
+store="${GROK_CLI_CRONTAB_FILE:-}"
+[ -n "${store}" ] || exit 1
+if [ "${1:-}" = "-l" ]; then
+    if [ -f "${store}" ]; then
+        cat "${store}"
+        exit 0
+    fi
+    echo "no crontab for test" >&2
+    exit 1
+fi
+if [ "${1:-}" = "-" ]; then
+    cat > "${store}"
+    exit 0
+fi
+if [ -n "${1:-}" ] && [ -f "$1" ]; then
+    cat "$1" > "${store}"
+    exit 0
+fi
+exit 1
+FAKECRON
+    chmod 0755 "${_fake_cron}"
+    rm -f "${_cron_store}"
+
+    _err=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_GLOBAL_BIN}" \
+        SUDOERS_D_DIR="${CI_SUDOERS_D}" \
+        GROK_CLI_CRONTAB="${_fake_cron}" \
+        GROK_CLI_CRONTAB_FILE="${_cron_store}" \
+        sh "${SCRIPT}" add-crontab 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-26 no grant exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-26 next generate" "${_err}" "generate-sudoer-request"
+
+    printf 'otheruser ALL=(root) NOPASSWD: %s/grok-cli backup\n' "${CI_GLOBAL_BIN}" \
+        > "${CI_SUDOERS_D}/grok-cli-${_user_cron}"
+    _err=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_GLOBAL_BIN}" \
+        SUDOERS_D_DIR="${CI_SUDOERS_D}" \
+        GROK_CLI_CRONTAB="${_fake_cron}" \
+        GROK_CLI_CRONTAB_FILE="${_cron_store}" \
+        sh "${SCRIPT}" add-crontab 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-26b wrong-user fragment exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-26b next generate" "${_err}" "generate-sudoer-request"
+
+    printf '%s ALL=(root) NOPASSWD: %s/grok-cli restore\n' "${_user_cron}" "${CI_GLOBAL_BIN}" \
+        > "${CI_SUDOERS_D}/grok-cli-${_user_cron}"
+    _err=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_GLOBAL_BIN}" \
+        SUDOERS_D_DIR="${CI_SUDOERS_D}" \
+        GROK_CLI_CRONTAB="${_fake_cron}" \
+        GROK_CLI_CRONTAB_FILE="${_cron_store}" \
+        sh "${SCRIPT}" add-crontab 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-26b wrong-argv fragment exit 1" 1 "$?"
+
+    printf '%s ALL=(root) NOPASSWD: %s/grok-cli backup\n' "${_user_cron}" "${CI_GLOBAL_BIN}" \
+        > "${CI_SUDOERS_D}/grok-cli-otheruser"
+    rm -f "${CI_SUDOERS_D}/grok-cli-${_user_cron}"
+    _err=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_GLOBAL_BIN}" \
+        SUDOERS_D_DIR="${CI_SUDOERS_D}" \
+        GROK_CLI_CRONTAB="${_fake_cron}" \
+        GROK_CLI_CRONTAB_FILE="${_cron_store}" \
+        sh "${SCRIPT}" add-crontab 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-26b sibling fragment does not count exit 1" 1 "$?"
+    rm -f "${CI_SUDOERS_D}/grok-cli-otheruser"
+
+    rm -f "${CI_GLOBAL_BIN}/grok-cli"
+    printf '%s ALL=(root) NOPASSWD: %s/grok-cli backup\n' "${_user_cron}" "${CI_GLOBAL_BIN}" \
+        > "${CI_SUDOERS_D}/grok-cli-${_user_cron}"
+    _err=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_GLOBAL_BIN}" \
+        SUDOERS_D_DIR="${CI_SUDOERS_D}" \
+        GROK_CLI_CRONTAB="${_fake_cron}" \
+        GROK_CLI_CRONTAB_FILE="${_cron_store}" \
+        sh "${SCRIPT}" add-crontab 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-27 missing global binary exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-27 next install" "${_err}" "install"
+
+    printf '#!/bin/sh\nexit 0\n' > "${CI_GLOBAL_BIN}/grok-cli"
+    chmod 0755 "${CI_GLOBAL_BIN}/grok-cli"
+    printf '# keep me\n0 3 * * * /usr/bin/true\n' > "${_cron_store}"
+    _out=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_GLOBAL_BIN}" \
+        SUDOERS_D_DIR="${CI_SUDOERS_D}" \
+        GROK_CLI_CRONTAB="${_fake_cron}" \
+        GROK_CLI_CRONTAB_FILE="${_cron_store}" \
+        sh "${SCRIPT}" add-crontab 2>/dev/null)
+    assert_eq "TP-GROK-CLI-28 add-crontab exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-28 complete" "${_out}" "add-crontab complete"
+    _body=$(cat "${_cron_store}")
+    assert_contains "TP-GROK-CLI-28 backup job" "${_body}" "sudo ${CI_GLOBAL_BIN}/grok-cli backup"
+    assert_contains "TP-GROK-CLI-28 sync job" "${_body}" "${CI_GLOBAL_BIN}/grok-cli sync-auth"
+    assert_contains "TP-GROK-CLI-28 schedule backup" "${_body}" "*/30 * * * * sudo "
+    assert_contains "TP-GROK-CLI-28 schedule sync" "${_body}" "45 * * * * ${CI_GLOBAL_BIN}/grok-cli sync-auth"
+    assert_not_contains "TP-GROK-CLI-28b jobs have no sudo on sync-auth line pair" "${_body}" "sudo ${CI_GLOBAL_BIN}/grok-cli sync-auth"
+    assert_contains "TP-GROK-CLI-29b preserves other jobs" "${_body}" "/usr/bin/true"
+    _n_backup=$(printf '%s\n' "${_body}" | grep -c "sudo ${CI_GLOBAL_BIN}/grok-cli backup" || true)
+    _n_sync=$(printf '%s\n' "${_body}" | grep -c "${CI_GLOBAL_BIN}/grok-cli sync-auth" || true)
+    assert_eq "TP-GROK-CLI-28 one backup line" "1" "${_n_backup}"
+    assert_eq "TP-GROK-CLI-28 one sync line" "1" "${_n_sync}"
+
+    _out=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_GLOBAL_BIN}" \
+        SUDOERS_D_DIR="${CI_SUDOERS_D}" \
+        GROK_CLI_CRONTAB="${_fake_cron}" \
+        GROK_CLI_CRONTAB_FILE="${_cron_store}" \
+        sh "${SCRIPT}" add-crontab 2>/dev/null)
+    assert_eq "TP-GROK-CLI-29 re-run exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-29 already present" "${_out}" "already present"
+    _body2=$(cat "${_cron_store}")
+    _n_backup2=$(printf '%s\n' "${_body2}" | grep -c "sudo ${CI_GLOBAL_BIN}/grok-cli backup" || true)
+    _n_sync2=$(printf '%s\n' "${_body2}" | grep -c "${CI_GLOBAL_BIN}/grok-cli sync-auth" || true)
+    assert_eq "TP-GROK-CLI-29 no duplicate backup" "1" "${_n_backup2}"
+    assert_eq "TP-GROK-CLI-29 no duplicate sync" "1" "${_n_sync2}"
+
+    _j=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_GLOBAL_BIN}" \
+        SUDOERS_D_DIR="${CI_SUDOERS_D}" \
+        GROK_CLI_CRONTAB="${_fake_cron}" \
+        GROK_CLI_CRONTAB_FILE="${_cron_store}" \
+        sh "${SCRIPT}" --json add-crontab 2>/dev/null)
+    assert_contains "TP-GROK-CLI-29 json type" "${_j}" '"type":"add-crontab"'
+    assert_contains "TP-GROK-CLI-29 json already" "${_j}" '"already_present":"true"'
+    assert_contains "TP-GROK-CLI-28b json user is id -un" "${_j}" "\"user\":\"${_user_cron}\""
+
+    rm -f "${CI_SUDOERS_D}/grok-cli-${_user_cron}" "${_cron_store}" "${CI_GLOBAL_BIN}/grok-cli"
+
+    # TP-GROK-CLI-30..33 sync-auth-from-remote (isolated fake scp; never real SSH)
+    mkdir -p "${CI_HOME}/bin" "${CI_HOME}/remote-store"
+    gc_write_valid_auth "${CI_HOME}/remote-store"
+    printf 'lock\n' > "${CI_HOME}/remote-store/auth.json.lock"
+    _fake_scp="${CI_HOME}/bin/scp"
+    _scp_log="${CI_HOME}/scp.log"
+    : > "${_scp_log}"
+    cat > "${_fake_scp}" <<'FAKESCP'
+#!/bin/sh
+fix="${GROK_CLI_REMOTE_FIXTURE:-}"
+log="${GROK_CLI_SCP_LOG:-}"
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -o) shift 2; continue ;;
+        -*) shift; continue ;;
+        *) break ;;
+    esac
+done
+src="${1:-}"
+dest="${2:-}"
+[ -n "${src}" ] && [ -n "${dest}" ] || exit 1
+if [ -n "${log}" ]; then
+    printf '%s\n' "${src}" >> "${log}"
+fi
+base="${src##*:}"
+base="${base##*/}"
+if [ -z "${fix}" ] || [ ! -f "${fix}/${base}" ]; then
+    exit 1
+fi
+cp "${fix}/${base}" "${dest}" || exit 1
+exit 0
+FAKESCP
+    chmod 0755 "${_fake_scp}"
+
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-remote" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        GROK_CLI_SCP_LOG="${_scp_log}" \
+        sh "${SCRIPT}" sync-auth-from-remote 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-30 missing spec exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-30 next SPEC" "${_err}" "sync-auth-from-remote USER@HOST"
+
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-remote" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        sh "${SCRIPT}" sync-auth-from-remote 'bad;rm' 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-30b invalid spec exit 1" 1 "$?"
+
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-remote" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        sh "${SCRIPT}" sync-auth-from-remote 'a@b@c' 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-30b extra @ exit 1" 1 "$?"
+
+    : > "${_scp_log}"
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-ip" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
+        sh "${SCRIPT}" sync-auth-from-remote 192.0.2.10 2>/dev/null)
+    assert_eq "TP-GROK-CLI-31 IPv4 exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-31 complete" "${_out}" "sync-auth-from-remote complete"
+    assert_file_exists "TP-GROK-CLI-31 dest auth.json" "${CI_HOME}/.grok-ip/auth.json"
+    assert_contains "TP-GROK-CLI-31 IPv4 scp src" "$(cat "${_scp_log}")" "192.0.2.10:/var/grok-cli/auth.json"
+    _mode=$(stat -c '%a' "${CI_HOME}/.grok-ip/auth.json" 2>/dev/null || stat -f '%OLp' "${CI_HOME}/.grok-ip/auth.json" 2>/dev/null || echo "")
+    assert_eq "TP-GROK-CLI-32 dest auth.json mode 0600" "600" "${_mode}"
+    assert_contains "TP-GROK-CLI-31 dest token" "$(cat "${CI_HOME}/.grok-ip/auth.json")" "test-refresh-token"
+
+    : > "${_scp_log}"
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-userip" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
+        sh "${SCRIPT}" sync-auth-from-remote operator@192.0.2.10 2>/dev/null)
+    assert_eq "TP-GROK-CLI-31b user@IPv4 exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-31b scp src" "$(cat "${_scp_log}")" "operator@192.0.2.10:/var/grok-cli/auth.json"
+
+    : > "${_scp_log}"
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-dom" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
+        sh "${SCRIPT}" sync-auth-from-remote host.example.com 2>/dev/null)
+    assert_eq "TP-GROK-CLI-31c domain exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-31c scp src" "$(cat "${_scp_log}")" "host.example.com:/var/grok-cli/auth.json"
+
+    : > "${_scp_log}"
+    _j=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-udom" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
+        sh "${SCRIPT}" --json sync-auth-from-remote operator@host.example.com 2>/dev/null)
+    assert_eq "TP-GROK-CLI-31d user@domain exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-31d json type" "${_j}" '"type":"sync-auth-from-remote"'
+    assert_contains "TP-GROK-CLI-31d json host" "${_j}" '"host":"host.example.com"'
+    assert_contains "TP-GROK-CLI-31d json user" "${_j}" '"user":"operator"'
+    assert_contains "TP-GROK-CLI-31d scp src" "$(cat "${_scp_log}")" "operator@host.example.com:/var/grok-cli/auth.json"
+    assert_not_contains "TP-GROK-CLI-31d json no token" "${_j}" "test-refresh-token"
+
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-miss" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/empty-remote" \
+        sh "${SCRIPT}" sync-auth-from-remote 192.0.2.10 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-33 missing remote auth exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-33 next ssh or backup" "${_err}" "Next:"
+
     ci_cleanup_env
 }

@@ -46,6 +46,8 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help backup" "$_out" "backup"
     assert_contains "TP-CLI-04 help check-session" "$_out" "check-session"
     assert_contains "TP-CLI-04 help sync-auth" "$_out" "sync-auth"
+    assert_contains "TP-CLI-04 help sync-auth-from-remote" "$_out" "sync-auth-from-remote"
+    assert_contains "TP-CLI-04 help add-crontab" "$_out" "add-crontab"
     assert_not_contains "TP-CLI-04 help no restore" "$_out" "restore <"
     assert_contains "TP-CLI-04 help print-sudoers" "$_out" "print-sudoers"
     assert_contains "TP-CLI-04 help install-script" "$_out" "print-sudoers-install-script"
@@ -285,7 +287,9 @@ PY
 )
         assert_contains "TP-CLI-13 TTY menu check-session first" "$_out" "1. check-session:"
         assert_contains "TP-CLI-13 TTY menu backup second" "$_out" "2. backup:"
-        assert_contains "TP-CLI-13 TTY menu family sudoers" "$_out" "4. sudoers:"
+        assert_contains "TP-CLI-13 TTY menu sync-auth-from-remote fourth" "$_out" "4. sync-auth-from-remote:"
+        assert_contains "TP-CLI-13 TTY menu add-crontab fifth" "$_out" "5. add-crontab:"
+        assert_contains "TP-CLI-13 TTY menu family sudoers" "$_out" "6. sudoers:"
         assert_contains "TP-CLI-13 TTY menu Exit 9" "$_out" "9. Exit"
         assert_not_contains "TP-CLI-13 TTY menu no install row" "$_out" "1. Install"
         assert_not_contains "TP-CLI-13 TTY menu no setup row" "$_out" "setup:"
@@ -365,7 +369,7 @@ sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
 PY
 )
         assert_contains "TP-CLI-13 TTY pick 12 not a menu choice" "$_out" "Not a menu choice"
-        _out=$(PTY_IN="4
+        _out=$(PTY_IN="6
 8
 9" python3 - "${SCRIPT}" menu <<'PY'
 import os, pty, select, sys, time
