@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-output-requirements.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.0.2)  
 **Area**: shell  
 **Key**: `requirement-shell-output-requirements`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -61,7 +61,7 @@ All grok-cli messages go through `out_*`. `--json` is machine stdout; errors sti
 | `out_error` | Error | stderr | Always show (human) | Prefer `out_json_error` / `out_die` |
 | `out_die` | Fatal + exit 1 | stderr (+ JSON error when JSON) | Always | Emits JSON error then exits |
 | `out_plain` | Plain text, no prefix | stdout | Suppress under quiet | Suppress under JSON |
-| `out_msg_n` | Prompt fragment without newline | stdout | Suppress under quiet/json | Never for machines |
+| `out_msg_n` | Prompt fragment without newline | stdout (current-shell prompts; **MUST NOT** `$()` `prompt_ask`) | Suppress under quiet/json | Never for machines |
 | `out_json` | Machine success/status object | stdout | N/A | Only when `JSON=1` |
 | `out_json_error` | Machine error object | as designed for fatal path | N/A | Only when `JSON=1` |
 
@@ -77,7 +77,8 @@ Rules:
 1. Fatal paths use `out_die` / `out_json_error`.  
 2. JSON mode: no colors, banners, or progress mixed into stdout JSON.  
 3. Capture pattern: `grok-cli --json <cmd> 2>err.log`.  
-4. **No secrets** on either channel (tokens, passwords, private keys, full private key material).
+4. **No secrets** on either channel (tokens, passwords, private keys, full private key material).  
+5. Class-B `$()` is for **pure data** helpers that never `read`. **MUST NOT** capture `prompt_ask` / `prompt_yes_no` / any `read` helper (INC-20260902-001).
 
 ### 2.4 Mode behavior
 
@@ -123,7 +124,8 @@ Rules:
 2. Print user-facing banners with raw `echo` outside allowed exceptions.  
 3. Mix human text into JSON stdout success paths.  
 4. Log secrets or private key material.  
-5. Remove quiet/json contracts for “simplicity.”
+5. Remove quiet/json contracts for “simplicity.”  
+6. Capture `prompt_ask` / any `read` helper with `$()` (INC-20260902-001).
 
 **Violating this rule is a critical output SSOT regression.**
 
@@ -137,6 +139,7 @@ Rules:
 | AC-2 | JSON mode produces structured success/error without human interleave |
 | AC-3 | Quiet still surfaces errors |
 | AC-4 | Domain backup messaging uses the same SSOT |
+| AC-5 | Ship unit does not `$()` `prompt_ask` (INC-20260902-001; TP-CLI-15) |
 
 ---
 
@@ -157,9 +160,11 @@ Rules:
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-03 | Active | Output SSOT for folder-backup |
+| 2026-09-02 | Active (1.0.1) | `prompt_ask` UI off class-B capture fd; INC-20260902-001 |
+| 2026-09-02 | Active (1.0.2) | Ban `$()` of `prompt_ask`; class B is data-only |
 
 ---
 
-**Last Updated**: 2026-08-03  
+**Last Updated**: 2026-09-02  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-interactive-vs-noninteractive.md  
-**Status**: Active (Version 1.0.1)  
+**Status**: Active (Version 1.0.3)  
 **Area**: shell  
 **Key**: `requirement-shell-interactive-vs-noninteractive`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -76,29 +76,34 @@ prompt_yes_no() {
 }
 ```
 
-**Complete `prompt_ask` sample** (same consume-`TTY` rule):
+**Complete `prompt_ask` sample** (same consume-`TTY` rule; **MUST NOT** `_x=$(prompt_ask …)` — INC-20260902-001):
 
 ```sh
 prompt_ask() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
     : "${TTY:=0}"
+    : "${PROMPT_ASK_VALUE:=}"
     message="${1-}"
     default="${2-}"
+    PROMPT_ASK_VALUE="${default}"
     if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || [ "${TTY}" -ne 1 ]; then
-        printf '%s' "${default}"
         return 0
     fi
     out_msg_n "${message}: "
     answer=""
     read -r answer || true
-    if [ -z "${answer}" ]; then
-        printf '%s' "${default}"
-    else
-        printf '%s' "${answer}"
+    if [ -n "${answer}" ]; then
+        PROMPT_ASK_VALUE="${answer}"
     fi
+    return 0
 }
+
+prompt_ask "Remote (user@host, IPv4, domain, or user@domain)" ""
+_spec="${PROMPT_ASK_VALUE}"
 ```
+
+Call in the current shell. Value is `PROMPT_ASK_VALUE`. **MUST NOT** `_x=$(prompt_ask …)`.
 
 ### 2.3 Behavioral matrix (this product)
 
@@ -145,7 +150,8 @@ prompt_ask() {
 2. Auto-yes destructive uninstall without `--force` in non-interactive mode.  
 3. Scatter unguarded `read` calls outside `prompt_*`.  
 4. Re-test live `[ -t 0 ]` / `[ -t 1 ]` inside `prompt_*` as the interactive-capability gate (helpers consume `TTY`).  
-4. Treat non-interactive as license to skip required validation.
+5. Treat non-interactive as license to skip required validation.  
+6. Capture `prompt_ask` / `prompt_yes_no` / any `read` helper with `$()` or backticks (`_var=$(prompt_ask …)` — INC-20260902-001 / T1-PROMPT-CAPTURE).
 
 **Violating this rule is a critical interaction-mode regression.**
 
@@ -158,6 +164,7 @@ prompt_ask() {
 | AC-1 | Non-interactive uninstall without force fails closed |
 | AC-2 | JSON mode never prompts |
 | AC-3 | Backup never hangs waiting for optional confirm by default |
+| AC-4 | TTY menu pick 4 shows a visible SPEC prompt via current-shell `prompt_ask` + `PROMPT_ASK_VALUE` (INC-20260902-001; TP-GROK-CLI-34; TP-CLI-15) |
 
 ---
 
@@ -177,9 +184,12 @@ prompt_ask() {
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-03 | Active | Interactive vs non-interactive for folder-backup |
+| 2026-08-23 | Active (1.0.1) | Consume `TTY`; no live `[ -t` in helpers |
+| 2026-09-02 | Active (1.0.2) | `prompt_ask` capture-safe (`>&2` + `/dev/tty`); INC-20260902-001 |
+| 2026-09-02 | Active (1.0.3) | Ban `$()` of `prompt_ask`; `PROMPT_ASK_VALUE` current-shell call |
 
 ---
 
-**Last Updated**: 2026-08-23  
+**Last Updated**: 2026-09-02  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -19,6 +19,11 @@ run_test_cli() {
     sh -n "${SCRIPT}"
     assert_eq "TP-CLI-01 sh -n ship unit" 0 "$?"
 
+    # TP-CLI-15 / TP-ELEV-10: no command-substitution of read helpers
+    _src=$(cat "${SCRIPT}")
+    assert_not_contains "TP-CLI-15 no \$(prompt_ask" "${_src}" '$(prompt_ask'
+    assert_not_contains "TP-CLI-15 no \$(prompt_yes_no" "${_src}" '$(prompt_yes_no'
+
     # TP-CLI-02 version human
     _out=$(sh "${SCRIPT}" version 2>/dev/null)
     _ec=$?

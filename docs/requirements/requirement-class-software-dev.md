@@ -1,110 +1,144 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.3.0 – dual-mode channel + selfmanaged hop)  
+**Status**: Active (Version 1.3.2 – everyday-English rewrite; dual-mode + self-managed install unchanged)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
-**Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
+**Philosophy**: CIAO **v2.10.2** / CIAO-Lite (CIAO = Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-Declare this workspace as a **software-development** project class and hold the **residual collection** of software-engineering stack facts **not already owned** by more specific Active peer requirements: primary language, toolchain policy, package/test tooling, and runtime OS family.
+This file says two things:
 
-This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycle, domain backup, output, or storage tables (those stay on peer requirements).
+1. This workspace is a **software-development** project: a real program people can install, named `grok-cli`.  
+2. It holds leftover software-stack facts that no other requirement file already owns.
+
+**SSOT** means **single source of truth**: the one official copy of a fact. This file is the class rulebook and the SSOT for those leftover stack facts.
+
+It covers:
+
+- The main programming language
+- The toolchain policy (how versions are handled)
+- Package / build / test tools
+- The runtime / OS (operating system) family
+
+It does **not** repeat details that already live in other requirement files (backup, install steps, sudoers rules, CLI commands, or online-install details).
+
+**CLI** means **command-line interface** (the program you run in a terminal).  
+**sudoers** means the system rules that say who may run which commands with `sudo`.
 
 ### 1.1 Human-facing
 
-This file says the workspace is a **shippable program** (grok-cli) and records leftover stack facts that no other requirement already owns.
+This file tells anyone (a person or an AI agent): this folder’s **project nature** is software-development — grok-cli is a finished program people can install — and here are the leftover stack facts that no other requirement owns.
+
+**Dest** (short for destination reviewer) means a dedicated account that reviews and approves inbound request files. This product has none.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Read this file to learn the project class and leftover stack (language, tools, “no dest approver”) | Peer requirements own backup ops, install, sudoers grant body, CLI verbs, and online channel | A dest approval machine or a second class file |
+| You (developer / maintainer) get the project nature and leftover stack (language, tools, “no dest approver”) | Agents and reviewers get clear ownership of stack facts until a more specific requirement takes them over | A dest approval machine, a second class file, or a place to invent new approver accounts |
 
-**Includes:** class membership, residual stack, honest “none” for dest approver and dest fences.  
-**Excludes:** inventing an approver account; inventing dest fence rows; duplicating peer backup/install tables.
+**Includes:** project-nature membership; leftover stack facts; an honest statement that there is no dest approver and no dest fence (no listed reasons for that reviewer to refuse a file).  
+**Excludes:** making up an approver account; inventing dest fence rows; copying full tables that already exist in other requirement files.
 
-| Step | What it means | What you type |
-|------|---------------|---------------|
-| Classify | Agents treat this tree as software-development, not a blank seed. | Open `docs/requirements/requirement-class-software-dev.md` |
-| Own-or-point | Stack facts live here until a peer requirement takes them. | Follow the residual ownership table in this file |
+| You open | What you get |
+|----------|----------------|
+| This file | Project nature + leftover stack |
+| A peer key in the leftover-ownership table below | The topic that peer file already owns |
+
+| Step | What it means | What you do |
+|------|---------------|-------------|
+| Classify | Agents treat this folder as software-development, not a blank starter kit. | Open `docs/requirements/requirement-class-software-dev.md` |
+| Own-or-point | Stack facts live here unless another requirement owns them. | Follow the leftover-ownership table in this file |
 
 ---
 
-## 2. Core Rules (Mandatory)
+## 2. Core Rules (Must Follow)
 
 ### 2.0 Project class membership
 
-1. **MUST** treat this workspace as **software-development** (shippable software), not genesis-template and not server-maintenance.  
-2. **MUST** use basename **`requirement-class-software-dev.md`** as the sole Active class-law file for this class.  
-3. **MUST NOT** register an Active `requirement-class-server-maintenance.md` while class is software-development.  
-4. **MUST** retain portable harness knowledge; specialized product knowledge lives in this and peer `requirement-*.md` files.  
-5. **MUST** apply software-development SSOT/gate posture when claimed (identity, ship unit, precommit when git is used — as applicable).  
-5a. When git is used on a **multi-vault host**, **MUST** treat forge push identity as **product repository-user SSOT** (Config `REPO_USER` / project-repository owner), not ambient default SSH face: agents **MUST** run precommit / SSH-profile gates (pre-git report; vault bind via activate or one-shot identity for push). Host vault basenames are **not** product law.  
-6. **MUST NOT** invent hollow product docs solely to look specialized; collect real values or defer explicitly.
+**Harness knowledge** means the reusable agent workshop (shared skills and wording), not this product’s own rules.
 
-### 2.1 Residual collection principle (SSOT hygiene)
+1. **MUST** treat this workspace as **software-development** (a finished program people can install), not a blank starter kit (genesis-template) and not a server-maintenance project.  
+2. **MUST** use the filename **`requirement-class-software-dev.md`** as the only Active class-law file for this class.  
+3. **MUST NOT** register an Active `requirement-class-server-maintenance.md` at the same time as this class.  
+4. **MUST** keep general harness knowledge portable (usable on the next project). Product-specific knowledge lives in this file and other `requirement-*.md` files.  
+5. **MUST** follow the software-development SSOT and gate rules when they apply: identity, what counts as the program file people install, and precommit checks when git is used.  
+5a. When git is used on a host that has more than one SSH (secure shell) identity (a **multi-vault host**), **MUST** treat the identity used to push to the forge (GitHub / GitLab) as the **product repository-user** SSOT (Config `REPO_USER` or the project repo owner), not the machine’s default SSH key. Agents **MUST** run precommit / SSH-profile checks before git pushes. Host vault folder names are **not** product law.  
+6. **MUST NOT** invent empty product docs just to look specialized. Collect real values or say “not defined yet”.
 
-7. **MUST** treat this file as the **default home** for software-stack facts **not owned** by another Active requirement.  
-8. **MUST NOT** duplicate full normative tables that already live in a more specific Active requirement. Prefer a **one-line pointer** to the peer requirement key.  
-9. When a new specialized requirement **takes ownership** of a topic previously only listed here, **MUST** update this file in the **same change**: remove or shrink the residual entry and point to the new owner.  
-10. **MUST NOT** leave contradictory stack facts across this file and peer requirements.
+### 2.1 Leftover facts (SSOT hygiene)
+
+7. **MUST** treat this file as the **default home** for any software-stack fact that is not owned by another Active requirement.  
+8. **MUST NOT** copy full tables that already live in a more specific Active requirement. Add a one-line pointer to that requirement’s key instead.  
+9. When a new, more specific requirement takes over a topic that used to live only here, **MUST** update this file in the **same change**: remove or shrink the old entry and point to the new owner.  
+10. **MUST NOT** leave contradictory stack facts between this file and other requirements.
 
 ### 2.2 Programming language(s)
 
-11. **MUST** declare at least one **primary programming language** for the ship unit.  
-12. **SHOULD** list secondary languages only when they are real product law.  
-13. **MUST** state whether the product is primarily: interpreted, compiled, polyglot, or package-multi-language.  
-14. **MUST NOT** freeze a marketing product name as if it were the language name.
+11. **MUST** declare at least one **primary programming language** for the program file people install.  
+12. **SHOULD** list secondary languages only if they are truly part of the product rules.  
+13. **MUST** state whether the product is mainly: **interpreted** (run as source, no compile step), **compiled**, **polyglot** (more than one language as product law), or uses multiple languages via packages.  
+14. **MUST NOT** treat a marketing product name as if it were the language name.
 
 ### 2.3 Compilers, interpreters, and toolchains
 
-15. **MUST** declare the **target toolchain class** used to build or run the product.  
-16. **MUST** state version policy as one of: unconstrained · minimum version · range · pinned.  
-17. **SHOULD** record whether cross-compilation is in scope.  
-18. **MUST** fail closed in CI/docs claims: do not claim “supports all compilers” without tests or explicit unconstrained policy.
+A **toolchain** is the compiler or interpreter used to build or run the product.  
+**Cross-compilation** means building on one computer for a different kind of computer.
+
+15. **MUST** declare the type of toolchain used to build or run the product.  
+16. **MUST** state the version policy as one of: unconstrained · minimum version · version range · pinned version.  
+17. **SHOULD** say whether cross-compilation is in scope.  
+18. **MUST NOT** claim “supports all compilers” in CI (continuous integration) or docs unless that is actually tested, or the policy is explicitly unconstrained.
 
 ### 2.4 Project / package / build tools
 
-19. **MUST** declare the **primary project or package tool** used for dependencies and builds.  
-20. **MUST** declare how dependencies are resolved when the ecosystem supports lockfiles.  
-21. **SHOULD** name the test runner and linter/formatter **classes** when they are project law.  
-22. **MUST NOT** require a secret token or private registry password in this file.
+A **lockfile** is a frozen list of dependency versions.
 
-### 2.5 Runtime and platform (residual)
+19. **MUST** declare the main project or package tool used for dependencies and builds.  
+20. **MUST** say how dependencies are resolved when the ecosystem supports lockfiles.  
+21. **SHOULD** name the test runner and linter/formatter types when they are part of the project rules.  
+22. **MUST NOT** store secret tokens or private registry passwords in this file.
 
-23. **MUST** declare the intended **primary runtime/OS family** when not fully owned by another architecture requirement.  
-24. **SHOULD** declare minimum CPU/arch support only when it is real product law.  
-25. **MUST** separate **developer machine** toolchain requirements from **end-user runtime** requirements when they differ.
+### 2.5 Runtime and platform (leftover facts)
 
-### 2.6 No-hardcode / dual policy (class file)
+23. **MUST** declare the intended main runtime / OS family when no other architecture requirement fully owns this.  
+24. **SHOULD** declare minimum CPU / architecture support only when it is a real product rule.  
+25. **MUST** separate developer-machine toolchain requirements from end-user runtime requirements when they differ.
 
-26. **MUST NOT** hard-code a single product/app brand, one org’s production hostname, or personal owner identity as universal core law.  
-27. **MUST** put live product name, repo slug, and concrete stack choices in **Implementation Notes** after collection — complete when Status is Active.  
-28. **MUST NOT** store secrets, PATs, or toy credentials in this file.
+### 2.6 Do not hard-code / two-layer policy (class file)
+
+**Hard-code** means freezing one live brand, hostname, or person into the reusable core rules.  
+**Two-layer policy** means: portable rules in the core; live product names and stack choices in Implementation Notes.
+
+26. **MUST NOT** hard-code a single product / app brand, one organization’s production hostname, or a personal owner identity as universal core law.  
+27. **MUST** put the live product name, repo slug, and concrete stack choices in the **Implementation Notes** section once the status is Active.  
+28. **MUST NOT** store secrets, PATs (personal access tokens), or test credentials in this file.
 
 ### 2.7 Implementation Notes (this project)
+
+**POSIX sh** means the portable Unix shell `/bin/sh` (a small subset that works on dash and on bash when it runs as `sh`).
 
 | Field | Value (grok-cli) |
 |-------|---------------------|
 | **Project display name** | `grok-cli` |
 | **Project class** | software-development |
-| **Class requirement basename** | `requirement-class-software-dev.md` |
+| **Class requirement filename** | `requirement-class-software-dev.md` |
 | **Primary language(s)** | `posix-sh` (`/bin/sh`) |
-| **Language role** | primary only — single-file shell ship unit under `src/` |
+| **Language role** | primary only — one shell script file under `src/` |
 | **Execution model** | **interpreted** — no compile step |
-| **Toolchain / interpreter** | POSIX `/bin/sh` (dash/bash-as-sh compatible subset); no compiler |
-| **Toolchain version policy** | **unconstrained** among POSIX sh implementations that pass product tests when present |
+| **Toolchain / interpreter** | POSIX `/bin/sh` (dash / bash-as-sh compatible subset); no compiler |
+| **Toolchain version policy** | **unconstrained** among POSIX sh implementations that pass product tests |
 | **Cross-compile in scope?** | no |
-| **Primary project/package tool** | **none** — no language module system; ship unit is the source |
+| **Primary project/package tool** | **none** — no language module system; the source file is the program people install |
 | **Lockfile policy** | not used |
-| **Test runner** | POSIX shell suite under `tests/` when present (`tests/run.sh` pattern) |
-| **Linter/formatter** | none as project law (shellcheck optional for maintainers) |
-| **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh` + `tar` + `gzip`/`tar -z` + `mktemp` exist) |
-| **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
-| **Git surface** | used when product is published |
-| **Ship unit / install** | yes — `src/grok-cli` → `${USER_BIN}/grok-cli`; **dual-mode** (channel `curl\|sh` primary; checkout `install` secondary) |
-| **Product version SSOT** | `VERSION=` hard-assign in `src/grok-cli` (do not pin a stale number here) |
-| **Bootstrap origin** | sibling product **folder-backup**; chain cli-template → folder-backup → grok-cli (domain retarget) |
+| **Test runner** | POSIX shell test suite under `tests/` when present (for example `tests/run.sh`) |
+| **Linter/formatter** | none as a project rule (shellcheck is optional for maintainers) |
+| **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh`, `tar`, `gzip` / `tar -z`, and `mktemp` exist) |
+| **Architectures supported** | any architecture with POSIX sh and the external tools the script uses |
+| **Git surface** | used when the product is published |
+| **Ship unit / install** | yes — the **ship unit** (the program file people install) is `src/grok-cli` → `${USER_BIN}/grok-cli`; **dual-mode** (two install methods: primary `curl \| sh`; secondary checkout + `install`) |
+| **Product version SSOT** | `VERSION=` hard-assigned in `src/grok-cli` (do not pin an old number here) |
+| **Bootstrap origin** | sibling product **folder-backup**; chain: cli-template → folder-backup → grok-cli (domain retarget: keep the shell framework, change the product’s job) |
 
-**Residual ownership table:**
+**Leftover-ownership table** (who owns each topic):
 
 | Topic | Owner | Notes |
 |-------|-------|--------|
@@ -112,86 +146,86 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 | Primary language + toolchain policy | **this file** | posix-sh, unconstrained |
 | Package/build tool + lockfile | **this file** | none / not used |
 | Bootstrap lineage / keep-extend | `requirement-bootstrap-chain` | A=cli-template → B + domain extend |
-| Project layout / ship path | `requirement-project-folder` | `src/` + bin targets |
-| Type 0 CLI surface / flags / dispatch | `requirement-shell-cli-interface` | Do not duplicate |
-| Empty argv TTY menu / off-TTY Type O | `requirement-shell-cli-zero-arguments` | Dual-mode |
-| Local self-managed lifecycle | `requirement-shell-local-self-management` | checkout install / uninstall / where-is-me |
-| Online channel + checksum + remote lifecycle | `requirement-shell-online-install` · `requirement-shell-automatic-checksum` · `requirement-shell-self-management` | Specialized from selfmanaged |
+| Project layout / install path | `requirement-project-folder` | `src/` + bin targets |
+| Commands you run as yourself / flags / dispatch | `requirement-shell-cli-interface` | **Type 0** = you run the command as yourself. Do not duplicate |
+| Empty argv: terminal numbered menu; off-terminal install-or-recheck | `requirement-shell-cli-zero-arguments` | **argv** = the words after the program name. Dual-mode. **Type O** = with no arguments, off a terminal, install or re-check install (not help) |
+| Local self-managed lifecycle | `requirement-shell-local-self-management` | checkout `install` / `uninstall` / `where-is-me` |
+| Online channel + checksum + remote lifecycle | `requirement-shell-online-install` · `requirement-shell-automatic-checksum` · `requirement-shell-self-management` | Specialized from selfmanaged. A **checksum** is a fingerprint used to verify the download |
 | Output SSOT (`out_*`) | `requirement-shell-output-requirements` | Do not duplicate |
-| Operator-readable error wording | `requirement-operator-readable-error` | Human-intro-style `[ERROR]` copy; do not duplicate |
+| Operator-readable error wording | `requirement-operator-readable-error` | Human-style `[ERROR]` messages; do not duplicate |
 | Scratch/cache storage resolve | `requirement-shell-cli-storage` | Do not duplicate |
-| Idempotency / re-run safety | `requirement-shell-idempotency` | Do not duplicate |
+| Idempotency / re-run safety | `requirement-shell-idempotency` | **Idempotent** = safe to run again with the same result |
 | Interactive vs non-interactive | `requirement-shell-interactive-vs-noninteractive` | Do not duplicate |
 | Modular prefixes / single-file layout | `requirement-shell-modular-function-design` | Do not duplicate |
-| POSIX sh coding style | `requirement-shell-script-coding` | `set -u`, `out_*`, fail-closed elev; do not duplicate |
-| Privilege layers + sudoers **files** (emit/install/fail-closed) | `requirement-three-layer-privilege-model` | Type 0 + narrow Type 1 deposit; §2.3 sudoers workflow SSOT |
-| JSON sudoer file (grant body) | `requirement-sudoer-json-file` | `{{PRJ_NAME}}` only; no `cp`/`mkdir`/OS-tool commands |
-| Grok auth **backup operations** | `requirement-grok-auth-backup` | Session check / deposit / sync-auth (not domain) |
-| Domain surface (verbs, help, about) | `requirement-domain-grok-cli` | Four pillars only; ops pointer |
-| Actor / role / subject / approver | **this file** (residual) | **considered — no dest approver and no approval subject**. This product has no dest approval machine. **MUST NOT** invent an approver. |
-| Dest fence conditions | **this file** (residual) | **considered — no dest fence conditions**. No dest Fence table. **MUST NOT** invent a dest fence. |
-| Online install / remote self-management / companion checksum | peer REQs (Active 2026-09-02) | User-ordered specialize from selfmanaged |
+| POSIX sh coding style | `requirement-shell-script-coding` | `set -u`, `out_*`, stop rather than guess when extra privilege is needed; do not duplicate |
+| Privilege layers + sudoers files (print / install / stop if not allowed) | `requirement-three-layer-privilege-model` | Daily work as yourself + a narrow `sudo grok-cli backup` grant (**Type 0** + **Type 1** deposit: Type 1 = the command changes the computer). §2.3 sudoers workflow is the SSOT |
+| JSON sudoer file (grant body) | `requirement-sudoer-json-file` | **JSON** = a structured text format. `{{PRJ_NAME}}` only; no `cp` / `mkdir` / OS-tool commands |
+| Grok auth backup operations | `requirement-grok-auth-backup` | Session check / deposit / sync-auth (not domain) |
+| Domain surface (verbs, help, about) | `requirement-domain-grok-cli` | Four pillars only (the product’s own commands, features, help, and about); ops pointer |
+| Actor / role / subject / approver | **this file** (leftover) | **considered — no dest approver and no approval subject**. This product has no dest approval machine. **MUST NOT** invent an approver. |
+| Dest fence conditions | **this file** (leftover) | **considered — no dest fence conditions**. No dest Fence table. **MUST NOT** invent a dest fence. |
+| Online install / remote self-management / companion checksum | peer REQs (Active 2026-09-02) | **REQ** = requirement file. User-ordered specialization from selfmanaged |
 
 ---
 
-## 3. Why This Requirement Exists (Direct CIAO Alignment)
+## 3. Why This Requirement Exists (CIAO Alignment)
 
-- **CIAO Principle 2 – Intentional**: Class and stack choices are explicit, not assumed from folder names.  
-- **CIAO Principle 5 – SSOT**: Residual stack facts have one home until specialized requirements take ownership.  
+- **CIAO Principle 2 – Intentional**: The project nature and stack choices are written down, not guessed from folder names.  
+- **CIAO Principle 5 – SSOT**: Leftover stack facts have one home until more specific requirements take ownership.  
 - **CIAO Principle 1 – Caution**: Toolchain policies are declared; agents do not invent compilers.  
-- **CIAO Principle 21 – Dual Policies**: Portable core; filled Implementation Notes.  
-- **CIAO Principle 4 (O) + Principle 20**: Protection Rule against dual stack SSOTs and wrong-class pollution.
+- **CIAO Principle 21 – Dual Policies** (two-layer policy): Portable core rules; filled Implementation Notes.  
+- **CIAO Principle 4 (O) + Principle 20**: Protection against two conflicting stack copies, and against mixing up project natures.
 
 ---
 
 ## 4. Design Principles (CIAO / CIAO-Lite)
 
-- **Caution**: Assume toolchain and package tools are missing until declared and verified.  
-- **Intentional**: Residual collection is deliberate — not a dump of every possible tool.  
-- **Anti-fragile**: Unconstrained POSIX sh policy survives multi-env runs when tests pass.  
-- **Over-protect**: Protection rule prevents dual stack SSOTs and genesis/class confusion.
+- **Caution**: Assume toolchain and package tools are missing until they are declared and verified.  
+- **Intentional**: The leftover collection is deliberate — not a dump of every possible tool.  
+- **Anti-fragile**: The unconstrained POSIX sh policy survives multiple environments as long as tests pass.  
+- **Over-protect**: The protection rule prevents duplicate stack copies and confusion between a blank starter kit and a software project.
 
 ---
 
-## 5. Protection Rule (Sacred)
+## 5. Protection Rule (Do Not Break)
 
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
-1. Delete this file while the workspace remains **software-development** with other Active product requirements.  
-2. Rename the specialized basename away from `requirement-class-software-dev.md` without an explicit class-model change.  
-3. Hard-code secrets, personal owner identity, or production host FQDNs into core rules as universal law.  
-4. Duplicate full peer requirement bodies into this residual section.  
-5. Leave Implementation Notes as hollow stubs when Status claims Active.  
-6. Drop Active online-install / self-update / self-uninstall / checksum law without updating this residual and the dual-mode matrix.  
-7. Treat this file as server-maintenance allowlist law, or register an Active server-maintenance class file in parallel.  
-8. Invent a second primary language SSOT that contradicts peer modular/CLI requirements.
+1. Delete this file while the workspace is still software-development with other Active product requirements.  
+2. Rename the file away from `requirement-class-software-dev.md` without an explicit class-model change.  
+3. Hard-code secrets, personal owner identities, or production hostnames into core rules as universal law.  
+4. Copy full peer requirement bodies into this leftover section.  
+5. Leave the Implementation Notes as empty stubs when the status claims Active.  
+6. Remove Active rules for online install / self-update / self-uninstall / checksum without updating this leftover section and the dual-mode matrix.  
+7. Treat this file as server-maintenance allowlist law, or create an Active server-maintenance class file in parallel.  
+8. Invent a second primary-language SSOT that contradicts peer modular / CLI requirements.
 
-**Violating any of these is considered a critical regression.**
+**Breaking any of these is a critical regression** (a serious step backward).
 
 ---
 
-## 6. Acceptance criteria
+## 6. Acceptance Criteria
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | Active registered `requirement-class-software-dev.md` matches software-development class |
-| AC-2 | Primary language + toolchain policy + package tool declared in Implementation Notes (complete) |
-| AC-3 | Residual ownership table honest: no silent dual SSOT with peer REQs |
-| AC-4 | Core rules remain free of frozen secret/host hardcodes |
-| AC-5 | No class file conflict with `requirement-class-server-maintenance` |
-| AC-6 | Ship unit identity (posix-sh single-file, dual-mode install) consistent with peer shell REQs |
-| AC-7 | Online install package **Active**; residual points to peer REQs (do not duplicate channel tables here) |
+| AC-1 | An Active `requirement-class-software-dev.md` exists and matches the software-development class |
+| AC-2 | Primary language, toolchain policy, and package tool are declared and complete in Implementation Notes |
+| AC-3 | The leftover-ownership table is honest: no hidden duplicate SSOTs with peer requirements |
+| AC-4 | Core rules do not contain hardcoded secrets or hostnames |
+| AC-5 | No conflict with `requirement-class-server-maintenance` (only one Active class file) |
+| AC-6 | The program people install (single-file POSIX shell, dual-mode install) is consistent with other shell requirements |
+| AC-7 | The online install package is Active; leftover entries point to peer requirements (no duplicated channel tables here) |
 
 ---
 
-## 7. Related requirements (peer keys only)
+## 7. Related Requirements (Peer Keys Only)
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-bootstrap-chain` | Lineage A=cli-template → B=grok-cli (domain retarget) |
+| `requirement-bootstrap-chain` | Lineage: A=cli-template → B=grok-cli (domain retarget) |
 | `requirement-project-folder` | Layout and install locations |
 | `requirement-shell-cli-interface` | Command surface, flags, dispatch |
-| `requirement-shell-cli-zero-arguments` | TTY menu; off-TTY Type O |
+| `requirement-shell-cli-zero-arguments` | Terminal menu; off-terminal install-or-recheck |
 | `requirement-shell-local-self-management` | Checkout install lifecycle |
 | `requirement-shell-online-install` | Channel `SCRIPT_URL` + dual-mode |
 | `requirement-shell-self-management` | `version-check` / `self-update` / `self-uninstall` |
@@ -211,16 +245,18 @@ This file says the workspace is a **shippable program** (grok-cli) and records l
 
 ---
 
-## 8. Status history
+## 8. Status History
 
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-03 | Active | Specialized class law for folder-backup (left genesis; then named selfmanaged as origin) |
 | 2026-08-13 | Active | Origin retarget: A=cli-template → B=folder-backup |
-| 2026-08-15 | Active | Residual: JSON sudoer file → `requirement-sudoer-json-file` |
-| 2026-08-19 | Active (1.1.0) | Residual: **considered — no dest approver and no approval subject**; **considered — no dest fence conditions**. §1.1 Human-facing. Version SSOT note 1.9.0. |
-| 2026-08-22 | Active (1.2.0) | Identity retarget to grok-cli; ops residual → grok-auth-backup; domain → grok-cli. Version SSOT 1.0.0. |
-| 2026-09-02 | Active (1.3.0) | Dual-mode install; online package residual points to peer REQs |
+| 2026-08-15 | Active | Leftover: JSON sudoer file → `requirement-sudoer-json-file` |
+| 2026-08-19 | Active (1.1.0) | Leftover: **considered — no dest approver and no approval subject**; **considered — no dest fence conditions**. §1.1 Human-facing. Version SSOT note 1.9.0. |
+| 2026-08-22 | Active (1.2.0) | Identity retarget to grok-cli; ops leftover → grok-auth-backup; domain → grok-cli. Version SSOT 1.0.0. |
+| 2026-09-02 | Active (1.3.0) | Dual-mode install; online package leftover points to peer REQs |
+| 2026-09-02 | Active (1.3.1) | Same law in plainer English. Dest vocabulary kept. Numbered MUST rules kept. |
+| 2026-09-02 | Active (1.3.2) | Everyday-English pass: abbreviations expanded on first use; leftover jargon explained; no new rules. |
 
 ---
 

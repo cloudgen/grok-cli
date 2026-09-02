@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-script-coding.md  
-**Status**: Active (Version 1.0.1)  
+**Status**: Active (Version 1.0.2)  
 **Area**: shell  
 **Key**: `requirement-shell-script-coding`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -30,6 +30,7 @@ This file says how grok-cli’s ship unit must be written: one `/bin/sh` file, `
 2. **MUST** use defined prefixes (`out_`, `inst_`, `util_`, `app_`, `gc_`, `prompt_`).  
 3. **MUST NOT** print product messages with raw `echo`/`printf` outside `out_*`.  
 4. **MUST** measure `[ -t 0 ]` / `[ -t 1 ]` for TTY **outside** functions; helpers consume `TTY`.  
+4b. **MUST NOT** `_x=$(prompt_ask …)` / `$()` `prompt_yes_no` / `$()` any function that contains `read`. Call in the current shell; `prompt_ask` assigns `PROMPT_ASK_VALUE` (INC-20260902-001; **TP-ELEV-10** / TP-CLI-15).  
 5. **MUST NOT** use `sudo -n true` as the only elevation proof. Passwordless elev is the grant `sudo -n {{GLOBAL_BIN}}/grok-cli backup`.  
 6. **MUST** fail closed on missing session, missing grant, or unreadable store.  
 7. Temps **MUST** use `mktemp` under storage `TMPDIR`, not `$$` names.
@@ -62,7 +63,7 @@ This file says how grok-cli’s ship unit must be written: one `/bin/sh` file, `
 
 ## 4. Protection Rule
 
-**MUST NOT** add `set -e` as the only error policy, drop prefixes, or treat coding skills as product law in place of this file.
+**MUST NOT** add `set -e` as the only error policy, drop prefixes, treat coding skills as product law in place of this file, or capture `prompt_ask` / `read` helpers with `$()`.
 
 ---
 
@@ -73,18 +74,19 @@ This file says how grok-cli’s ship unit must be written: one `/bin/sh` file, `
 | AC-1 | `sh -n src/grok-cli` passes (TP-CLI-01) |
 | AC-2 | `set -u` survives unset HOME (TP-CLI-11) |
 | AC-3 | Domain functions use `gc_` |
+| AC-4 | Ship unit has no `$(prompt_ask` / `$(prompt_yes_no` (TP-CLI-15) |
 
 ## Design-time verification
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-CLI-01**, **TP-CLI-11** | `tests/test_cli.sh` | have |
+| **TP-CLI-01**, **TP-CLI-11**, **TP-CLI-15** | `tests/test_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
 ---
 
-**Last Updated**: 2026-08-23  
+**Last Updated**: 2026-09-02  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

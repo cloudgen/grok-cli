@@ -1,6 +1,6 @@
 # grok-cli - Grok auth backup to /var/grok-cli and unprivileged sync-auth
 
-![Version](https://img.shields.io/badge/Version-1.7.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.7.2-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -176,6 +176,8 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-02 — version **1.7.2**: `prompt_ask` sets `PROMPT_ASK_VALUE` in the current shell (no `$()` of `read` helpers).  
+2026-09-02 — version **1.7.1**: TTY menu pick 4 (`sync-auth-from-remote`) shows the SPEC prompt instead of hanging (INC-20260902-001).  
 2026-09-02 — version **1.7.0**: online `curl|sh` install; off-TTY empty argv is ensure, TTY empty argv stays the menu.  
 2026-09-02 — version **1.6.0**: `setup` installs peer `grok` by the studied xAI channel + artifact procedure (does not run `install.sh`).  
 2026-09-02 — version **1.5.0**: `sync-auth-from-remote` pulls `/var/grok-cli/auth.*` from another host via scp.  

@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.7.0  
+**Product VERSION:** 1.7.2  
 **Last plan update:** 2026-09-02  
-**Last suite run:** `./tests/run.sh` (1.7.0: PASS=360 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.7.2: PASS=366 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -32,7 +32,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Independent generate dest readable | have | TP-GROK-CLI-24* |
 | Operator-readable inbound-fidelity `[ERROR]` | have | TP-GROK-CLI-25* |
 | add-crontab grant gate + isolated jobs + idempotent | have | TP-GROK-CLI-26..29 |
-| sync-auth-from-remote four SPEC forms + fake scp | have | TP-GROK-CLI-30..33 |
+| sync-auth-from-remote four SPEC forms + fake scp; TTY menu pick 4 SPEC prompt | have | TP-GROK-CLI-30..34 |
 | Online curl / companion checksum / version-check / self-uninstall | have | TP-ONL-01..04 · TP-CLI-10 |
 | Folder tar.gz restore / retention | n/a | Superseded; TP-GROK-CLI-11 proves `restore` unknown |
 
@@ -57,6 +57,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-11 | env -u HOME version | test_cli | requirement-shell-script-coding | **have** |
 | TP-CLI-12 | preferred cache `/dev/shm/cache/cache-${APP_NAME}`; persistence `${HOME}/.local/${APP_NAME}`; live dirs exist; cache not APP-USERNAME shape; persistence not USER_BIN | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-13 | `menu`/`main`: TTY daily-work list (sync-auth-from-remote is 4; add-crontab is 5; sudoers family is 6) + submenu (Back 8 / Exit 9); ignore `--json` on TTY; off-TTY `menu` help; empty argv off-TTY is Type O ensure (not help); `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
+| TP-CLI-15 | Static: ship unit has no `$(prompt_ask` / `$(prompt_yes_no` (T1-PROMPT-CAPTURE; **TP-ELEV-10**) | `tests/test_cli.sh` | requirement-shell-script-coding · interactive-vs-noninteractive | **have** |
 
 ### TP-LC (local lifecycle)
 
@@ -136,3 +137,4 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-31 / 31b / 31c / 31d | four SPEC forms (IPv4, user@IPv4, domain, user@domain) via fake scp | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-32 | dest auth.json mode 0600 | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-33 | missing remote auth fail-closed with Next: | test_domain_grok_cli | grok-auth-backup · operator-readable-error | **have** |
+| TP-GROK-CLI-34 | TTY menu pick 4 shows SPEC prompt; typed SPEC is not mixed with prompt text; fake scp completes (INC-20260902-001) | test_domain_grok_cli | grok-auth-backup · interactive-vs-noninteractive · output | **have** |

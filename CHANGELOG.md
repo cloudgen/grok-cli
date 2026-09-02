@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.2] - 2026-09-02
+
+### Fixed
+
+- **`prompt_ask` call shape:** assign `PROMPT_ASK_VALUE` in the current shell. **MUST NOT** `_x=$(prompt_ask …)` (T1-PROMPT-CAPTURE). Menu pick 4 and draft chooser updated. Static **TP-CLI-15**. Law: `requirement-shell-script-coding` **1.0.2**.
+
+## [1.7.1] - 2026-09-02
+
+### Fixed
+
+- **Menu pick 4 (`sync-auth-from-remote`)** no longer freezes with no prompt. `prompt_ask` keeps UI off captured stdout (`>&2`) and reads `/dev/tty` when it opens, so `_spec=$(prompt_ask …)` shows `Remote (user@host, IPv4, domain, or user@domain):` instead of a silent hang (INC-20260902-001). Law: `requirement-grok-auth-backup` **1.1.1**. Suite **TP-GROK-CLI-34**.
+
 ## [1.7.0] - 2026-09-02
 
 ### Added

@@ -38,7 +38,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.7.0"
+# VERSION: hard-assign VERSION="1.7.2"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -54,8 +54,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.7.0"
-: "${VERSION:=1.7.0}"
+VERSION="1.7.2"
+: "${VERSION:=1.7.2}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
 : "${REPO_NAME:=grok-cli}"
@@ -68,6 +68,7 @@ VERSION="1.7.0"
 : "${FORCE_REINSTALL:=0}"
 : "${DEBUG:=0}"
 : "${TTY:=0}"
+: "${PROMPT_ASK_VALUE:=}"
 # Sudoers trust: local-only emit requires explicit test-mode allow (see three-layer privilege).
 : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
 
@@ -338,7 +339,7 @@ out_plain() {
 #
 # CRITICAL RULE:
 # This is the ONLY allowed way to produce non-newline product prompt text.
-# Return values from prompt_ask use class-B printf (data return), not this helper.
+# prompt_ask assigns PROMPT_ASK_VALUE in the current shell (not $() / class B).
 # All product output must respect --quiet and --json (never shown in those modes).
 #
 # INTENTIONAL DESIGN:
@@ -1101,59 +1102,55 @@ util_mktemp() {
 # Past AI assistants have repeatedly broken this by using raw printf/echo + read,
 # which violates the single output system, quiet/json handling, and TTY detection.
 #
-# PRINTF EXCEPTION (class B – function return-via-stdout only):
-# printf '%s' "${default|answer}" returns the chosen value for $(prompt_ask …)
-# capture. It is NOT the prompt UI. User-visible prompt text MUST stay on
-# out_info / out_msg_n. Do not replace those with raw printf + read.
-# See requirement-shell-output-requirements.md §2.1.1.
+# VALUE RETURN: assigns PROMPT_ASK_VALUE in the current shell.
+# MUST NOT wrap prompt_ask in command substitution (T1-PROMPT-CAPTURE / INC-20260902-001).
+# Prompt UI stays on out_info / out_msg_n. Do not replace those with raw printf + read.
+# See requirement-shell-interactive-vs-noninteractive.md and
+# requirement-shell-script-coding.md.
 #
-# Last reviewed: 2026-07-12
+# Last updated: 2026-09-02
 # =============================================================================
 
 prompt_ask() {
     # --- Safe Variable Defaults ---
     : "${JSON:=0}"
     : "${QUIET:=0}"
+    : "${PROMPT_ASK_VALUE:=}"
 
     # set -u safe: missing args become empty defaults (INC-20260713-001 class)
     local message="${1-}"
     local default="${2-}"
     local current="${3-}"
 
+    PROMPT_ASK_VALUE="${default}"
+
     # Never prompt in non-interactive modes
     if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ]; then
-        printf '%s' "${default}"
         return 0
     fi
 
     # Consume TTY SSOT (measured outside functions). Do not re-test [ -t.
     if [ "${TTY:-0}" -ne 1 ]; then
         if [ "${INTERACTIVE:-0}" -ne 1 ]; then
-            printf '%s' "${default}"
             return 0
         fi
     fi
 
-    # Show current value if present
     if [ -n "${current}" ]; then
         out_info "Current: ${current}"
     fi
-
-    # Show default
     if [ -n "${default}" ]; then
         out_info "Default: ${default}"
     fi
-
     out_msg_n "${message}: "
 
     local answer=""
     read -r answer || true
 
-    if [ -z "${answer}" ]; then
-        printf '%s' "${default}"
-    else
-        printf '%s' "${answer}"
+    if [ -n "${answer}" ]; then
+        PROMPT_ASK_VALUE="${answer}"
     fi
+    return 0
 }
 
 # =============================================================================
@@ -2909,7 +2906,8 @@ gc_sync_auth_from_remote() {
 
     _spec="${1-}"
     if [ -z "${_spec}" ] && [ "${TTY}" -eq 1 ] && [ "${JSON}" -ne 1 ]; then
-        _spec=$(prompt_ask "Remote (user@host, IPv4, domain, or user@domain)" "")
+        prompt_ask "Remote (user@host, IPv4, domain, or user@domain)" ""
+        _spec="${PROMPT_ASK_VALUE}"
     fi
     if [ -z "${_spec}" ]; then
         out_die "Cannot sync-auth-from-remote: missing remote. Next: ${APP_NAME} sync-auth-from-remote USER@HOST"
@@ -4457,7 +4455,8 @@ EOF
                 out_die "remove-project-sudoers: multiple drafts present; specify path argument (non-interactive)."
             fi
 
-            _choice=$(prompt_ask "Choose draft number to remove" "0")
+            prompt_ask "Choose draft number to remove" "0"
+            _choice="${PROMPT_ASK_VALUE}"
             case "${_choice}" in
                 ''|0|[Cc][Aa][Nn][Cc][Ee][Ll]*)
                     out_info "Remove cancelled"

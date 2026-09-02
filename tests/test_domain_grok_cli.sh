@@ -588,7 +588,7 @@ FAKECRON
 
     rm -f "${CI_SUDOERS_D}/grok-cli-${_user_cron}" "${_cron_store}" "${CI_GLOBAL_BIN}/grok-cli"
 
-    # TP-GROK-CLI-30..33 sync-auth-from-remote (isolated fake scp; never real SSH)
+    # TP-GROK-CLI-30..34 sync-auth-from-remote (isolated fake scp; never real SSH)
     mkdir -p "${CI_HOME}/bin" "${CI_HOME}/remote-store"
     gc_write_valid_auth "${CI_HOME}/remote-store"
     printf 'lock\n' > "${CI_HOME}/remote-store/auth.json.lock"
@@ -685,6 +685,68 @@ FAKESCP
         sh "${SCRIPT}" sync-auth-from-remote 192.0.2.10 2>&1 >/dev/null)
     assert_eq "TP-GROK-CLI-33 missing remote auth exit 1" 1 "$?"
     assert_contains "TP-GROK-CLI-33 next ssh or backup" "${_err}" "Next:"
+
+    # TP-GROK-CLI-34: TTY menu pick 4 must show the SPEC prompt (INC-20260902-001).
+    # Fake scp only; never real SSH. Kill the child if it still hangs after timeout.
+    if command -v python3 >/dev/null 2>&1; then
+        _pty_out=$(
+            HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-menu-remote" \
+            GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+            GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
+            PTY_IN="4
+192.0.2.10
+" python3 - "${SCRIPT}" menu <<'PY'
+import os, pty, select, signal, sys, time
+script = sys.argv[1]
+cmd = sys.argv[2:]
+payload = os.environ.get("PTY_IN", "9\n").encode()
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv("/bin/sh", ["sh", script] + cmd)
+time.sleep(0.2)
+try:
+    os.write(fd, payload)
+except OSError:
+    pass
+out = bytearray()
+end = time.time() + 6
+exited = False
+while time.time() < end:
+    r, _, _ = select.select([fd], [], [], 0.2)
+    if fd in r:
+        try:
+            chunk = os.read(fd, 4096)
+        except OSError:
+            break
+        if not chunk:
+            break
+        out += chunk
+    wpid, _st = os.waitpid(pid, os.WNOHANG)
+    if wpid:
+        exited = True
+        break
+if not exited:
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        pass
+try:
+    os.waitpid(pid, 0)
+except ChildProcessError:
+    pass
+sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
+PY
+        )
+        assert_contains "TP-GROK-CLI-34 menu pick 4 shows SPEC prompt" "${_pty_out}" \
+            "Remote (user@host, IPv4, domain, or user@domain):"
+        assert_contains "TP-GROK-CLI-34 menu pick 4 completes" "${_pty_out}" \
+            "sync-auth-from-remote complete"
+        assert_not_contains "TP-GROK-CLI-34 SPEC not mixed with prompt text" "${_pty_out}" \
+            "is not user@host"
+        assert_file_exists "TP-GROK-CLI-34 dest auth.json" "${CI_HOME}/.grok-menu-remote/auth.json"
+    else
+        t_skip "TP-GROK-CLI-34 (python3 not available for PTY)"
+    fi
 
     ci_cleanup_env
 }
