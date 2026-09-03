@@ -282,6 +282,8 @@ run_test_cli() {
         assert_contains "TP-CLI-17 TTY header bold APP_NAME" "$_out" "${_bold}"
         assert_contains "TP-CLI-17 TTY header italic APP_VERSION" "$_out" "${_italic}"
         assert_contains "TP-CLI-17 TTY header nametag APP_NAME(APP_VERSION)" "$_out" "${_ident}"
+        assert_contains "TP-CLI-17 TTY header short desc" "$_out" "Alternative online installer for xAI grok"
+        assert_not_contains "TP-CLI-17 TTY header not generic board title" "$_out" "numbered list of live commands"
         assert_not_contains "TP-CLI-17 TTY nametag ignores inherited APP_VERSION" "$_out" "9.9.9"
         assert_contains "TP-CLI-17 TTY logged out when no session" "$_out" "logged out"
         assert_not_contains "TP-CLI-17 TTY no check-session row" "$_out" "check-session:"
@@ -289,7 +291,7 @@ run_test_cli() {
         assert_contains "TP-CLI-17 TTY desc is italic + light gray (SGR 3+37)" "$_out" "${_gray_italic}"
         assert_contains "TP-CLI-17 TTY backup explain is gray italic" "$_out" "${_backup_desc}"
         assert_not_contains "TP-CLI-17 TTY not SGR 90 house look" "$_out" "${_sgr90}"
-        _after_header=$(printf '%s\n' "$_out" | grep -A1 "numbered list of live commands" | tail -n1)
+        _after_header=$(printf '%s\n' "$_out" | grep -A1 "Alternative online installer for xAI grok" | tail -n1)
         assert_contains "TP-CLI-17 TTY session line under header" "${_after_header}" "logged out"
         mkdir -p "${CI_HOME}/.grok"
         cat > "${CI_HOME}/.grok/auth.json" <<'AUTH'

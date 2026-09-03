@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.2] - 2026-09-03
+
+### Changed
+
+- **Main menu short desc:** header board title is **Alternative online installer for xAI grok** (`APP_DESC` / `SHORT_DESCRIPTION`). No longer the generic “numbered list of live commands”. Law: `requirement-shell-cli-default-interaction` **2.3.0**. Suite **TP-CLI-17**.
+- **README pitch:** product is an alternative online installer for xAI grok (vs `https://x.ai/cli/install.sh`); Termux-friendly `setup`; auth backup/sync is optional later work.
+
 ## [1.8.1] - 2026-09-03
 
 ### Changed

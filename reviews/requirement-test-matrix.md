@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
 **Updated:** 2026-09-03  
-**Product VERSION:** 1.8.1  
+**Product VERSION:** 1.8.2  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -16,7 +16,7 @@
 | requirement-grok-crontab | domain | TP-GROK-CLI-26..29 · TP-CLI-04 · TP-CLI-13 | Per-login crontab jobs; grant gate is this `id -un` |
 | requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* | Commands, flags, dispatch; `setup`; online verbs |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure |
-| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 | Case 3 `menu`/`main` + TTY empty argv; default CLI main menu style (header + SGR 3+37 explain); session line; off-TTY `menu` help |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 | Case 3 `menu`/`main` + TTY empty argv; default CLI main menu style (header short desc + SGR 3+37 explain); session line; off-TTY `menu` help |
 | requirement-shell-local-self-management | shell | TP-LC-* | checkout install/uninstall/where-is-me; 0755 |
 | requirement-shell-online-install | shell | TP-ONL-01 · TP-CLI-07 | Channel `SCRIPT_URL`; pipe place |
 | requirement-shell-self-management | shell | TP-ONL-03 · 04 · TP-CLI-04 · 10 | version-check / self-update / self-uninstall |

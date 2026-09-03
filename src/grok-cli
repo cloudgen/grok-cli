@@ -1,6 +1,6 @@
 #!/bin/sh
 # =============================================================================
-# grok-cli - Local grok auth backup/sync with narrow sudo deposit
+# grok-cli - Alternative online installer for xAI grok
 # =============================================================================
 #
 # FULL FEATURED LOCAL TYPE 0 + DOMAIN GROK AUTH (CIAO / CIAO-Lite Compliant)
@@ -38,7 +38,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.1"
+# VERSION: hard-assign VERSION="1.8.2"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -50,12 +50,12 @@ set -u  # Treat unset variables as error (defensive)
 # Product identity SSOT (extractors use: grep '^APP_NAME="' / '^VERSION="').
 APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
-: "${APP_DESC:=Local grok auth backup to /var/grok-cli and unprivileged sync-auth}"
+: "${APP_DESC:=Alternative online installer for xAI grok}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.1"
-: "${VERSION:=1.8.1}"
+VERSION="1.8.2"
+: "${VERSION:=1.8.2}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -4889,9 +4889,10 @@ app_about() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Print the grok-cli daily-work list: APP_NAME(APP_VERSION) header, login
-# status, then backup, sync-auth, sync-auth-from-remote, add-crontab,
-# sudoers family, then Exit 9. Session status is under the title (not a row).
+# Print the grok-cli daily-work list: APP_NAME(APP_VERSION) header plus
+# SHORT_DESCRIPTION, login status, then backup, sync-auth,
+# sync-auth-from-remote, add-crontab, sudoers family, then Exit 9.
+# Session status is under the title (not a row).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -4903,8 +4904,9 @@ app_default_print_menu() {
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
+    : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
 
-    out_info "$(util_app_ident) — numbered list of live commands"
+    out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"
     _st=$(gc_session_status_word) || true
     if [ "${_st}" = "valid" ]; then
         out_plain "logged in"
@@ -5180,7 +5182,7 @@ app_default() {
 # Last updated: 2026-09-02
 # =============================================================================
 app_help() {
-    : "${SHORT_DESCRIPTION:=${APP_DESC:-Local grok auth backup to /var/grok-cli and unprivileged sync-auth}}"
+    : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
     : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 

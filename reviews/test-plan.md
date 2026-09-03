@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.1  
+**Product VERSION:** 1.8.2  
 **Last plan update:** 2026-09-03  
-**Last suite run:** `./tests/run.sh` (1.8.1: PASS=401 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.8.2: PASS=403 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 

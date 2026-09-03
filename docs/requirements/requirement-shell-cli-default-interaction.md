@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 2.2.0)  
+**Status**: Active (Version 2.3.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -14,7 +14,7 @@ Empty-argv type and the TTY vs off-TTY split for **no command token** stay on `r
 
 ### 1.1 Human-facing
 
-Typing only `grok-cli` at a real terminal shows the numbered start list. In a script, bare `grok-cli` installs or reports already installed (not this menu). `grok-cli menu` (or `grok-cli main`) still opens the list on a TTY and prints help in a script. The list header is **grok-cli**(*version*) and the next line is **logged in** or **logged out**. Numbered rows are backup, sync-auth, sync-auth-from-remote, add-crontab, then **sudoers**. On a real terminal the “what it does” text after the colon is gray and italic (default CLI main menu style). `check-session` is not a row — login status is already under the title. Install, uninstall, self-update, where-is-me, version, and about stay off this list. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`.
+Typing only `grok-cli` at a real terminal shows the numbered start list. In a script, bare `grok-cli` installs or reports already installed (not this menu). `grok-cli menu` (or `grok-cli main`) still opens the list on a TTY and prints help in a script. The list header is **grok-cli**(*version*) — **Alternative online installer for xAI grok** and the next line is **logged in** or **logged out**. Numbered rows are backup, sync-auth, sync-auth-from-remote, add-crontab, then **sudoers**. On a real terminal the “what it does” text after the colon is gray and italic (default CLI main menu style). `check-session` is not a row — login status is already under the title. Install, uninstall, self-update, where-is-me, version, and about stay off this list. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
@@ -72,14 +72,14 @@ After flag parse, when the command token is `menu` or `main`, **or** when argv w
 7. **`sudoers` is not a live CLI command.** Choosing **5** or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). `grok-cli sudoers` **MUST** remain unknown.  
 8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut). Live verbs excluded from both lists **MUST NOT** run from the pick prompt (typed `check-session` **MAY** still run as a shortcut).  
 9. The choice **MUST** be read in the **current shell**. **MUST NOT** `$()` / backticks a helper whose body contains `read` (**do-not-capture-read** / **PP-A-22**; current-shell `PROMPT_ASK_VALUE`).  
-10. **Header (mandatory — default CLI main menu style):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the board title. Typical: `out_info "$(util_app_ident) — numbered list of live commands"`. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header.  
+10. **Header (mandatory — default CLI main menu style):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the product short description (`SHORT_DESCRIPTION` / `APP_DESC`). Typical: `out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"` which prints **Alternative online installer for xAI grok**. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header. **MUST NOT** the generic board title “numbered list of live commands”.  
 11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. **MUST NOT** make this a numbered row.
 
 Normative **main** order:
 
 | # | Token | Label |
 |---|-------|-------|
-| *(header)* | — | `**APP_NAME**(*APP_VERSION*) — numbered list of live commands` |
+| *(header)* | — | `**APP_NAME**(*APP_VERSION*) — Alternative online installer for xAI grok` |
 | *(status)* | — | `logged in` / `logged out` |
 | 1 | `backup` | `backup: Push ~/.grok/auth.* to /var/grok-cli` |
 | 2 | `sync-auth` | `sync-auth: Copy /var/grok-cli/auth.* into ~/.grok` |
@@ -162,7 +162,8 @@ Future agents **MUST NOT**:
 9. Replace TTY empty argv with the help dump while zero-arguments **1.3.0+** defers that path here.  
 10. Print a main-menu (or APP_NAME-led submenu) header as a bare `APP_NAME` without live `VERSION` / `APP_VERSION`, or unstyled on TTY.  
 11. Capture the menu choice with `$()` of a `read` helper.  
-12. Draw the numbered list off **default CLI main menu style** — **MUST NOT** print numbered-choice explain unstyled on a TTY (it **MUST** be *italic* and light gray, SGR **3** + **37**, via `out_menu_choice`). **MUST NOT** invent a second house look (SGR 90, italic-only, gray-only, styled number/name).
+12. Draw the numbered list off **default CLI main menu style** — **MUST NOT** print numbered-choice explain unstyled on a TTY (it **MUST** be *italic* and light gray, SGR **3** + **37**, via `out_menu_choice`). **MUST NOT** invent a second house look (SGR 90, italic-only, gray-only, styled number/name).  
+13. Print the generic board title “numbered list of live commands” instead of Config `SHORT_DESCRIPTION` / `APP_DESC` (**Alternative online installer for xAI grok**).
 
 ---
 
@@ -172,13 +173,13 @@ Future agents **MUST NOT**:
 |----------------|-------|--------|
 | **TP-CLI-07** | `tests/test_cli.sh` | have (TTY empty argv = this menu; off-TTY empty argv = Type O ensure) |
 | **TP-CLI-13** | `tests/test_cli.sh` | have (main list, family row, submenu Back/Exit, off-TTY help) |
-| **TP-CLI-17** | `tests/test_cli.sh` | have (default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; numbered explain italic + light gray SGR 3+37; number/name unstyled; logged in/out; no check-session row) |
+| **TP-CLI-17** | `tests/test_cli.sh` | have (default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; board title **Alternative online installer for xAI grok**; numbered explain italic + light gray SGR 3+37; number/name unstyled; logged in/out; no check-session row) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
 
 ---
 
-**Last Updated**: 2026-09-03 (2.2.0 — numbered list look is **default CLI main menu style**: SGR **3** + **37** via `out_menu_choice`; header nametag unchanged)  
+**Last Updated**: 2026-09-03 (2.3.0 — main-menu board title is product short description **Alternative online installer for xAI grok**)  
 **Owner**: product  
 **Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite
