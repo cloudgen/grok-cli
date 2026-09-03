@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.0  
+**Product VERSION:** 1.8.1  
 **Last plan update:** 2026-09-03  
-**Last suite run:** `./tests/run.sh` (1.8.0: PASS=399 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.8.1: PASS=401 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -58,7 +58,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-12 | preferred cache `/dev/shm/cache/cache-${APP_NAME}`; persistence `${HOME}/.local/${APP_NAME}`; live dirs exist; cache not APP-USERNAME shape; persistence not USER_BIN | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-13 | `menu`/`main`: TTY daily-work list (backup is 1; sync-auth-from-remote is 3; add-crontab is 4; sudoers family is 5) + submenu (Back 8 / Exit 9); ignore `--json` on TTY; off-TTY `menu` help; empty argv off-TTY is Type O ensure (not help); `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
 | TP-CLI-15 | Static: ship unit has no `$(prompt_ask` / `$(prompt_yes_no` (T1-PROMPT-CAPTURE; **TP-ELEV-10**) | `tests/test_cli.sh` | requirement-shell-script-coding · interactive-vs-noninteractive | **have** |
-| TP-CLI-17 | TTY menu header adjacent `APP_NAME(APP_VERSION)` bold/italic; session line under title; no `check-session` row; backup explain gray italic; submenu nametag; inherited `APP_VERSION` ignored | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-17 | Default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; numbered explain italic + light gray SGR 3+37; number/name unstyled; not SGR 90; session line under title; no `check-session` row; submenu nametag; inherited `APP_VERSION` ignored | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-output-requirements | **have** |
 
 ### TP-LC (local lifecycle)
 

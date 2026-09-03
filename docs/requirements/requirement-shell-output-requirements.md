@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-output-requirements.md  
-**Status**: Active (Version 1.0.3)  
+**Status**: Active (Version 1.1.0)  
 **Area**: shell  
 **Key**: `requirement-shell-output-requirements`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -62,7 +62,7 @@ All grok-cli messages go through `out_*`. `--json` is machine stdout; errors sti
 | `out_error` | Error | stderr | Always show (human) | Prefer `out_json_error` / `out_die` |
 | `out_die` | Fatal + exit 1 | stderr (+ JSON error when JSON) | Always | Emits JSON error then exits |
 | `out_plain` | Plain text, no prefix | stdout | Suppress under quiet | Suppress under JSON |
-| `out_menu_row` | Numbered menu line; explain text light gray italic (SGR 90;3) on TTY | stdout | Suppress under quiet | Suppress under JSON |
+| `out_menu_choice` | Numbered menu row; TTY explain *italic* + light gray (SGR 3+37; default CLI main menu style) | stdout | Suppress under quiet | Suppress under JSON |
 | `out_msg_n` | Prompt fragment without newline | stdout (current-shell prompts; **MUST NOT** `$()` `prompt_ask`) | Suppress under quiet/json | Never for machines |
 | `out_json` | Machine success/status object | stdout | N/A | Only when `JSON=1` |
 | `out_json_error` | Machine error object | as designed for fatal path | N/A | Only when `JSON=1` |
@@ -127,7 +127,8 @@ Rules:
 3. Mix human text into JSON stdout success paths.  
 4. Log secrets or private key material.  
 5. Remove quiet/json contracts for “simplicity.”  
-6. Capture `prompt_ask` / any `read` helper with `$()` (INC-20260902-001).
+6. Capture `prompt_ask` / any `read` helper with `$()` (INC-20260902-001).  
+7. Draw a claimed numbered menu off **default CLI main menu style** — **MUST NOT** print numbered-menu explain unstyled on a TTY (it **MUST** be *italic* and light gray via `out_menu_choice`, SGR **3** + **37**). **MUST NOT** a second house look (`out_menu_row`, SGR 90).
 
 **Violating this rule is a critical output SSOT regression.**
 
@@ -142,6 +143,7 @@ Rules:
 | AC-3 | Quiet still surfaces errors |
 | AC-4 | Domain backup messaging uses the same SSOT |
 | AC-5 | Ship unit does not `$()` `prompt_ask` (INC-20260902-001; TP-CLI-15) |
+| AC-6 | Numbered TTY menu explain is italic + light gray via `out_menu_choice` (SGR 3+37; TP-CLI-17) |
 
 ---
 
@@ -150,6 +152,7 @@ Rules:
 | Key | Relationship |
 |-----|--------------|
 | `requirement-shell-cli-interface` | Modes and flags |
+| `requirement-shell-cli-default-interaction` | Numbered TTY menu look (`out_menu_choice`) |
 | `requirement-shell-interactive-vs-noninteractive` | Prompt vs auto |
 | `requirement-domain-grok-cli` | Domain message payloads |
 | `requirement-operator-readable-error` | Operator error **wording** (human-intro style) |
@@ -165,9 +168,10 @@ Rules:
 | 2026-09-02 | Active (1.0.1) | `prompt_ask` UI off class-B capture fd; INC-20260902-001 |
 | 2026-09-02 | Active (1.0.2) | Ban `$()` of `prompt_ask`; class B is data-only |
 | 2026-09-03 | Active (1.0.3) | `out_menu_row`: numbered list explain text is light gray italic on TTY |
+| 2026-09-03 | Active (1.1.0) | `out_menu_choice` (replaces `out_menu_row`); TTY explain SGR **3** + **37**; default CLI main menu style |
 
 ---
 
-**Last Updated**: 2026-09-03  
+**Last Updated**: 2026-09-03 (1.1.0 — `out_menu_choice`; SGR 3+37)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

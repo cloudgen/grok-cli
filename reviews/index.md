@@ -2,6 +2,8 @@
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-09-03 | `reports/2026-09-03-checklist-cli-default-interaction-menu-style.md` | Filled `CL-CLI-DEFAULT-INTERACTION` for default CLI main menu style (SGR 3+37 / `out_menu_choice`) | **Pass** | 1.8.1 |
+| 2026-09-03 | `reports/2026-09-03-implementation-ciao-menu-style.md` | Filled `CL-IMPLEMENTATION-CIAO` | **Pass** | 1.8.1 |
 | 2026-09-03 | `reports/2026-09-03-menu-header-review.md` | 1.8.0 menu header/session line + setup smoke; human/REQ/checklist/test coverage | **Pass (findings closed)** | PASS=399 FAIL=0 SKIP=0 |
 | 2026-09-03 | `reports/2026-09-03-checklist-cli-default-interaction.md` | Filled `CL-CLI-DEFAULT-INTERACTION` | **Pass** | 1.8.0 |
 | 2026-09-03 | `reports/2026-09-03-checklist-operator-readable-error-setup-smoke.md` | Filled `CL-OPERATOR-READABLE-ERROR` (setup smoke) | **Pass** | TP-VCLI-16 |

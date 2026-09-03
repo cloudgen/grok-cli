@@ -16,12 +16,12 @@
 | requirement-grok-crontab | Cron-job law: Type 0 `add-crontab` — this login’s crontab jobs (backup every 30 min; sync-auth at :45) after **this** login’s backup grant | domain | Active (1.1.0) | `requirement-grok-crontab.md` | 2026-09-02 |
 | requirement-shell-cli-interface | Shell CLI interface; `setup`; auth verbs; `version-check` / `self-update` / `self-uninstall`; empty argv TTY menu / off-TTY ensure | shell | Active (2.7.0) | `requirement-shell-cli-interface.md` | 2026-09-02 |
 | requirement-shell-cli-zero-arguments | Empty argv: TTY numbered menu; off-TTY Type O install-ensure (not help) | shell | Active (2.0.0) | `requirement-shell-cli-zero-arguments.md` | 2026-09-02 |
-| requirement-shell-cli-default-interaction | Case 3 TTY empty argv + `menu`/`main` numbered list; header `APP_NAME(APP_VERSION)`; session line; off-TTY `menu` stays help; empty argv off-TTY is Type O | shell | Active (2.1.0) | `requirement-shell-cli-default-interaction.md` | 2026-09-03 |
+| requirement-shell-cli-default-interaction | Case 3 TTY empty argv + `menu`/`main` numbered list; default CLI main menu style; session line; off-TTY `menu` stays help; empty argv off-TTY is Type O | shell | Active (2.2.0) | `requirement-shell-cli-default-interaction.md` | 2026-09-03 |
 | requirement-shell-local-self-management | Checkout `install` / `uninstall` / `where-is-me`; **mode 0755**; dual-mode secondary | shell | Active (1.3.0) | `requirement-shell-local-self-management.md` | 2026-09-02 |
 | requirement-shell-online-install | Channel `SCRIPT_URL` + pipe place; dual-mode primary | shell | Active (1.0.0) | `requirement-shell-online-install.md` | 2026-09-02 |
 | requirement-shell-self-management | `version-check` / `self-update` / `self-uninstall` | shell | Active (1.0.0) | `requirement-shell-self-management.md` | 2026-09-02 |
 | requirement-shell-automatic-checksum | Companion `${SCRIPT_URL}.sha256` for channel downloads | shell | Active (1.0.0) | `requirement-shell-automatic-checksum.md` | 2026-09-02 |
-| requirement-shell-output-requirements | Central `out_*` output SSOT | shell | Active (1.0.3) | `requirement-shell-output-requirements.md` | 2026-09-03 |
+| requirement-shell-output-requirements | Central `out_*` output SSOT; `out_menu_choice` default CLI main menu style | shell | Active (1.1.0) | `requirement-shell-output-requirements.md` | 2026-09-03 |
 | requirement-operator-readable-error | Operator-facing error **wording** (human-intro style: what happened / next step) | shell | Active (1.0.0) | `requirement-operator-readable-error.md` | 2026-08-17 |
 | requirement-shell-modular-function-design | Single-file modular prefixes (`out_`/`inst_`/`app_`/`gc_`) | shell | Active (1.1.0) | `requirement-shell-modular-function-design.md` | 2026-08-22 |
 | requirement-shell-script-coding | POSIX sh coding style (`set -u`, `out_*`, `gc_*`, fail-closed elev; no `$()` of `read` helpers) | shell | Active (1.0.2) | `requirement-shell-script-coding.md` | 2026-09-02 |

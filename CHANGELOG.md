@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.1] - 2026-09-03
+
+### Changed
+
+- **Main menu look** is **default CLI main menu style**: explain text after `: ` is *italic* and light gray (SGR **3** + **37**) via `out_menu_choice` (replaces `out_menu_row` / SGR 90). Number and command name stay unstyled. Header **grok-cli**(*version*) is unchanged. Law: `requirement-shell-cli-default-interaction` **2.2.0** · `requirement-shell-output-requirements` **1.1.0**. Suite **TP-CLI-17**.
+
 ## [1.8.0] - 2026-09-03
 
 ### Changed

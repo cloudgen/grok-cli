@@ -269,23 +269,26 @@ run_test_cli() {
         t_skip "TP-CLI-13 TTY sudoers submenu (no python3 for PTY)"
     fi
 
-    # TP-CLI-17: header APP_NAME(APP_VERSION) bold/italic; session line; gray italic desc
+    # TP-CLI-17: default CLI main menu style (header nametag; explain SGR 3+37)
     if command -v python3 >/dev/null 2>&1; then
         ci_isolated_env
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" APP_VERSION="9.9.9" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         _bold=$(printf '\033[1m%s\033[0m' "${APP_NAME}")
         _italic=$(printf '\033[3m%s\033[0m' "${PRODUCT_VERSION}")
         _ident=$(printf '\033[1m%s\033[0m(\033[3m%s\033[0m)' "${APP_NAME}" "${PRODUCT_VERSION}")
-        _gray_italic=$(printf '\033[90;3m')
-        _backup_desc=$(printf '1. backup: \033[90;3mPush ~/.grok/auth.* to /var/grok-cli\033[0m')
+        _gray_italic=$(printf '\033[3;37m')
+        _sgr90=$(printf '\033[90;3m')
+        _backup_desc=$(printf '1. backup: \033[3;37mPush ~/.grok/auth.* to /var/grok-cli\033[0m')
         assert_contains "TP-CLI-17 TTY header bold APP_NAME" "$_out" "${_bold}"
         assert_contains "TP-CLI-17 TTY header italic APP_VERSION" "$_out" "${_italic}"
         assert_contains "TP-CLI-17 TTY header nametag APP_NAME(APP_VERSION)" "$_out" "${_ident}"
         assert_not_contains "TP-CLI-17 TTY nametag ignores inherited APP_VERSION" "$_out" "9.9.9"
         assert_contains "TP-CLI-17 TTY logged out when no session" "$_out" "logged out"
         assert_not_contains "TP-CLI-17 TTY no check-session row" "$_out" "check-session:"
-        assert_contains "TP-CLI-17 TTY desc is light gray italic" "$_out" "${_gray_italic}"
+        assert_contains "TP-CLI-17 TTY number and short-descript unstyled" "$_out" "1. backup: "
+        assert_contains "TP-CLI-17 TTY desc is italic + light gray (SGR 3+37)" "$_out" "${_gray_italic}"
         assert_contains "TP-CLI-17 TTY backup explain is gray italic" "$_out" "${_backup_desc}"
+        assert_not_contains "TP-CLI-17 TTY not SGR 90 house look" "$_out" "${_sgr90}"
         _after_header=$(printf '%s\n' "$_out" | grep -A1 "numbered list of live commands" | tail -n1)
         assert_contains "TP-CLI-17 TTY session line under header" "${_after_header}" "logged out"
         mkdir -p "${CI_HOME}/.grok"

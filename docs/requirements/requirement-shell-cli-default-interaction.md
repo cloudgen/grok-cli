@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 2.1.0)  
+**Status**: Active (Version 2.2.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -14,13 +14,13 @@ Empty-argv type and the TTY vs off-TTY split for **no command token** stay on `r
 
 ### 1.1 Human-facing
 
-Typing only `grok-cli` at a real terminal shows the numbered start list. In a script, bare `grok-cli` installs or reports already installed (not this menu). `grok-cli menu` (or `grok-cli main`) still opens the list on a TTY and prints help in a script. The list header is **grok-cli**(*version*) and the next line is **logged in** or **logged out**. Numbered rows are backup, sync-auth, sync-auth-from-remote, add-crontab, then **sudoers**. `check-session` is not a row — login status is already under the title. Install, uninstall, self-update, where-is-me, version, and about stay off this list. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`.
+Typing only `grok-cli` at a real terminal shows the numbered start list. In a script, bare `grok-cli` installs or reports already installed (not this menu). `grok-cli menu` (or `grok-cli main`) still opens the list on a TTY and prints help in a script. The list header is **grok-cli**(*version*) and the next line is **logged in** or **logged out**. Numbered rows are backup, sync-auth, sync-auth-from-remote, add-crontab, then **sudoers**. On a real terminal the “what it does” text after the colon is gray and italic (default CLI main menu style). `check-session` is not a row — login status is already under the title. Install, uninstall, self-update, where-is-me, version, and about stay off this list. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
 | Type `grok-cli` or `grok-cli menu`, pick a number | CI / pipe: empty argv ensures install; `menu` prints help; `--json` with no command gets JSON help | A menu that hangs a pipeline; `restore` on the list; install/version on the list; `sudoers` as a typed CLI command |
 
-**Includes:** TTY empty argv numbered list; `menu`/`main` numbered TTY main list; header `APP_NAME(APP_VERSION)`; session line under the title; family row **sudoers** + submenu; Exit **9**; Back **8**; off-TTY `menu` help. **Excludes:** off-TTY empty argv (Type O); `help` as a list row; `check-session` as a numbered row; install / uninstall / self-update / where-is-me / version / about on either list; a live `sudoers` dispatcher token.
+**Includes:** TTY empty argv numbered list; `menu`/`main` numbered TTY main list; default CLI main menu style (header `APP_NAME(APP_VERSION)`; TTY explain italic + light gray); session line under the title; family row **sudoers** + submenu; Exit **9**; Back **8**; off-TTY `menu` help. **Excludes:** off-TTY empty argv (Type O); `help` as a list row; `check-session` as a numbered row; install / uninstall / self-update / where-is-me / version / about on either list; a live `sudoers` dispatcher token; a second TTY look (unstyled explain, SGR 90, styled number/name).
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
@@ -65,14 +65,14 @@ After flag parse, when the command token is `menu` or `main`, **or** when argv w
 
 1. Print a **numbered list** of **daily auth work** plus one **family** row, then **Exit**.  
 2. **MUST NOT** list **install / setup**, **self-managed** commands (`install`, `uninstall`, `where-is-me`), **diagnostics** (`version`, `about`), or **test-purpose** verbs.  
-3. Command-row text **MUST** be `command: what it does`. On a TTY the **explain** text after `: ` **MUST** be light gray *italic* (SGR 90;3 via `out_menu_row`). Off-TTY: plain.  
+3. Command-row text **MUST** be `command: what it does`. The numbered list **MUST** follow **default CLI main menu style**: header as in rule 10; each numbered row `command: what it does` with the number and command name **unstyled**; on a TTY the **explain** text after `: ` **MUST** be *italic* **and** light gray (SGR **3** + **37**, CSI `ESC[3;37m` … `ESC[0m` via `out_menu_choice`). Off-TTY: plain. **MUST NOT** print explain unstyled on a TTY. **MUST NOT** a second house look (SGR 90, italic-only, gray-only, styled number/name).  
 4. **MUST NOT** list `help`, `restore`, `menu`/`main`, `check-session`, or the five sudoers verbs on the **main** list (sudoers verbs live on the submenu; session status is under the title).  
 5. Main command rows **N = 5** (four verbs + one family). Exit **MUST** be **9**. Unused integers **6–8** are omitted.  
 6. Accept a **number** or a **listed verb**. **9** / `exit` / `quit` returns 0.  
 7. **`sudoers` is not a live CLI command.** Choosing **5** or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). `grok-cli sudoers` **MUST** remain unknown.  
 8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut). Live verbs excluded from both lists **MUST NOT** run from the pick prompt (typed `check-session` **MAY** still run as a shortcut).  
-9. The choice **MUST** be read in the **current shell**. **MUST NOT** `$()` / backticks a helper whose body contains `read`.  
-10. **Header (mandatory):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the board title. Typical: `out_info "$(util_app_ident) — numbered list of live commands"`. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header.  
+9. The choice **MUST** be read in the **current shell**. **MUST NOT** `$()` / backticks a helper whose body contains `read` (**do-not-capture-read** / **PP-A-22**; current-shell `PROMPT_ASK_VALUE`).  
+10. **Header (mandatory — default CLI main menu style):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the board title. Typical: `out_info "$(util_app_ident) — numbered list of live commands"`. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header.  
 11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. **MUST NOT** make this a numbered row.
 
 Normative **main** order:
@@ -90,7 +90,7 @@ Normative **main** order:
 
 ### 2.4 Sudoers submenu
 
-Choosing main **5** / `sudoers` **MUST** print a second numbered list of the grouped live verbs. Submenu header **MUST** use the same `APP_NAME(APP_VERSION)` nametag. Explain text **MUST** be light gray *italic* on a TTY (same as the main list). **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
+Choosing main **5** / `sudoers` **MUST** print a second numbered list of the grouped live verbs. Submenu header **MUST** use the same `APP_NAME(APP_VERSION)` nametag. Explain text **MUST** follow the same default CLI main menu style as the main list (*italic* + light gray SGR **3** + **37** on a TTY via `out_menu_choice`). **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
 
 | # | Command | Label |
 |---|---------|-------|
@@ -124,6 +124,7 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 | **Label source** | `reviews/cli-routed-verb-table.md` **human-readable** for command rows; family explain is this file’s table |
 | **Interactive + `--json`** | Ignore json on `menu`/`main`; still the menu |
 | **Non-interactive** | `app_help` (human; `--quiet` still prints help) |
+| **Look** | **default CLI main menu style** — header `APP_NAME(APP_VERSION)`; TTY explain *italic* + light gray (SGR 3+37) via `out_menu_choice`; number and name unstyled |
 | **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title; main **N = 5**; submenu **N = 5**; Exit **9**; Back **8**. |
 
 ### 2.6 Why this requirement exists (CIAO)
@@ -160,7 +161,8 @@ Future agents **MUST NOT**:
 8. Invent command-row labels that are not `command: what it does`.  
 9. Replace TTY empty argv with the help dump while zero-arguments **1.3.0+** defers that path here.  
 10. Print a main-menu (or APP_NAME-led submenu) header as a bare `APP_NAME` without live `VERSION` / `APP_VERSION`, or unstyled on TTY.  
-11. Capture the menu choice with `$()` of a `read` helper.
+11. Capture the menu choice with `$()` of a `read` helper.  
+12. Draw the numbered list off **default CLI main menu style** — **MUST NOT** print numbered-choice explain unstyled on a TTY (it **MUST** be *italic* and light gray, SGR **3** + **37**, via `out_menu_choice`). **MUST NOT** invent a second house look (SGR 90, italic-only, gray-only, styled number/name).
 
 ---
 
@@ -170,13 +172,13 @@ Future agents **MUST NOT**:
 |----------------|-------|--------|
 | **TP-CLI-07** | `tests/test_cli.sh` | have (TTY empty argv = this menu; off-TTY empty argv = Type O ensure) |
 | **TP-CLI-13** | `tests/test_cli.sh` | have (main list, family row, submenu Back/Exit, off-TTY help) |
-| **TP-CLI-17** | `tests/test_cli.sh` | have (header `APP_NAME(APP_VERSION)` bold/italic; logged in/out; no check-session row; light-gray italic desc) |
+| **TP-CLI-17** | `tests/test_cli.sh` | have (default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; numbered explain italic + light gray SGR 3+37; number/name unstyled; logged in/out; no check-session row) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
 
 ---
 
-**Last Updated**: 2026-09-03 (2.1.0 — header `APP_NAME(APP_VERSION)`; session line under the title; drop check-session row; light-gray italic explain text; main **N = 5**)  
+**Last Updated**: 2026-09-03 (2.2.0 — numbered list look is **default CLI main menu style**: SGR **3** + **37** via `out_menu_choice`; header nametag unchanged)  
 **Owner**: product  
-**Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite
+**Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite
