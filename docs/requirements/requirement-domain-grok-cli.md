@@ -258,7 +258,7 @@ grok-cli add-crontab
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-04**, **TP-CLI-06** | `tests/test_cli.sh` | have |
-| **TP-VCLI-01**–**09**, **11**–**14** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01**–**09**, **11**–**16** | `tests/test_grok_setup.sh` | have |
 | **TP-GROK-CLI-01**, **01b**, **02**, **11**, **14**, **15**, **15b**, **19**–**25** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-26**–**29** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-30**–**34** | `tests/test_domain_grok_cli.sh` | have |

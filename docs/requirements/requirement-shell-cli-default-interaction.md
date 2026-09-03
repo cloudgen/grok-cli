@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 2.0.0)  
+**Status**: Active (Version 2.1.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -14,21 +14,21 @@ Empty-argv type and the TTY vs off-TTY split for **no command token** stay on `r
 
 ### 1.1 Human-facing
 
-Typing only `grok-cli` at a real terminal shows the numbered start list. In a script, bare `grok-cli` installs or reports already installed (not this menu). `grok-cli menu` (or `grok-cli main`) still opens the list on a TTY and prints help in a script. The list shows check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, then **sudoers**. Install, uninstall, self-update, where-is-me, version, and about stay off this list. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`.
+Typing only `grok-cli` at a real terminal shows the numbered start list. In a script, bare `grok-cli` installs or reports already installed (not this menu). `grok-cli menu` (or `grok-cli main`) still opens the list on a TTY and prints help in a script. The list header is **grok-cli**(*version*) and the next line is **logged in** or **logged out**. Numbered rows are backup, sync-auth, sync-auth-from-remote, add-crontab, then **sudoers**. `check-session` is not a row — login status is already under the title. Install, uninstall, self-update, where-is-me, version, and about stay off this list. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
 | Type `grok-cli` or `grok-cli menu`, pick a number | CI / pipe: empty argv ensures install; `menu` prints help; `--json` with no command gets JSON help | A menu that hangs a pipeline; `restore` on the list; install/version on the list; `sudoers` as a typed CLI command |
 
-**Includes:** TTY empty argv numbered list; `menu`/`main` numbered TTY main list; family row **sudoers** + submenu; Exit **9**; Back **8**; off-TTY `menu` help. **Excludes:** off-TTY empty argv (Type O); `help` as a list row; install / uninstall / self-update / where-is-me / version / about on either list; a live `sudoers` dispatcher token.
+**Includes:** TTY empty argv numbered list; `menu`/`main` numbered TTY main list; header `APP_NAME(APP_VERSION)`; session line under the title; family row **sudoers** + submenu; Exit **9**; Back **8**; off-TTY `menu` help. **Excludes:** off-TTY empty argv (Type O); `help` as a list row; `check-session` as a numbered row; install / uninstall / self-update / where-is-me / version / about on either list; a live `sudoers` dispatcher token.
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Start at a prompt | Daily auth work; **check-session** is **1** | `grok-cli` then `1` |
-| Push auth to the store | Second row | `grok-cli` then `2` |
-| Pull from another host | Fourth row (prompts for SPEC on TTY) | `grok-cli` then `4` |
-| Install the timers | Fifth row | `grok-cli` then `5` |
-| Open grant/drafts | Family row **6**, then a number | `grok-cli` then `6` then `1` |
+| Start at a prompt | Daily auth work; **backup** is **1**; login status is under the title | `grok-cli` then `1` |
+| Push auth to the store | First row | `grok-cli` then `1` |
+| Pull from another host | Third row (prompts for SPEC on TTY) | `grok-cli` then `3` |
+| Install the timers | Fourth row | `grok-cli` then `4` |
+| Open grant/drafts | Family row **5**, then a number | `grok-cli` then `5` then `1` |
 | Leave the grant list | Back to the start list | `8` |
 | Leave the menu | Exit | `9` |
 | Install the program | Not on this list | `grok-cli install` |
@@ -65,28 +65,32 @@ After flag parse, when the command token is `menu` or `main`, **or** when argv w
 
 1. Print a **numbered list** of **daily auth work** plus one **family** row, then **Exit**.  
 2. **MUST NOT** list **install / setup**, **self-managed** commands (`install`, `uninstall`, `where-is-me`), **diagnostics** (`version`, `about`), or **test-purpose** verbs.  
-3. Command-row text **MUST** be `command: what it does`.  
-4. **MUST NOT** list `help`, `restore`, `menu`/`main`, or the five sudoers verbs on the **main** list (they live on the submenu).  
-5. Main command rows **N = 6** (five verbs + one family). Exit **MUST** be **9**. Unused integers **7–8** are omitted.  
+3. Command-row text **MUST** be `command: what it does`. On a TTY the **explain** text after `: ` **MUST** be light gray *italic* (SGR 90;3 via `out_menu_row`). Off-TTY: plain.  
+4. **MUST NOT** list `help`, `restore`, `menu`/`main`, `check-session`, or the five sudoers verbs on the **main** list (sudoers verbs live on the submenu; session status is under the title).  
+5. Main command rows **N = 5** (four verbs + one family). Exit **MUST** be **9**. Unused integers **6–8** are omitted.  
 6. Accept a **number** or a **listed verb**. **9** / `exit` / `quit` returns 0.  
-7. **`sudoers` is not a live CLI command.** Choosing **6** or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). `grok-cli sudoers` **MUST** remain unknown.  
-8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut). Live verbs excluded from both lists **MUST NOT** run from the pick prompt.
+7. **`sudoers` is not a live CLI command.** Choosing **5** or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). `grok-cli sudoers` **MUST** remain unknown.  
+8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut). Live verbs excluded from both lists **MUST NOT** run from the pick prompt (typed `check-session` **MAY** still run as a shortcut).  
+9. The choice **MUST** be read in the **current shell**. **MUST NOT** `$()` / backticks a helper whose body contains `read`.  
+10. **Header (mandatory):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the board title. Typical: `out_info "$(util_app_ident) — numbered list of live commands"`. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header.  
+11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. **MUST NOT** make this a numbered row.
 
 Normative **main** order:
 
 | # | Token | Label |
 |---|-------|-------|
-| 1 | `check-session` | `check-session: Confirm grok is logged in` |
-| 2 | `backup` | `backup: Push ~/.grok/auth.* to /var/grok-cli` |
-| 3 | `sync-auth` | `sync-auth: Copy /var/grok-cli/auth.* into ~/.grok` |
-| 4 | `sync-auth-from-remote` | `sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok` |
-| 5 | `add-crontab` | `add-crontab: Add backup and sync-auth jobs to this login's crontab` |
-| 6 | family `sudoers` | `sudoers: Grant and drafts` |
+| *(header)* | — | `**APP_NAME**(*APP_VERSION*) — numbered list of live commands` |
+| *(status)* | — | `logged in` / `logged out` |
+| 1 | `backup` | `backup: Push ~/.grok/auth.* to /var/grok-cli` |
+| 2 | `sync-auth` | `sync-auth: Copy /var/grok-cli/auth.* into ~/.grok` |
+| 3 | `sync-auth-from-remote` | `sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok` |
+| 4 | `add-crontab` | `add-crontab: Add backup and sync-auth jobs to this login's crontab` |
+| 5 | family `sudoers` | `sudoers: Grant and drafts` |
 | **9** | **Exit** | leave the menu |
 
 ### 2.4 Sudoers submenu
 
-Choosing main **6** / `sudoers` **MUST** print a second numbered list of the grouped live verbs. **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
+Choosing main **5** / `sudoers` **MUST** print a second numbered list of the grouped live verbs. Submenu header **MUST** use the same `APP_NAME(APP_VERSION)` nametag. Explain text **MUST** be light gray *italic* on a TTY (same as the main list). **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
 
 | # | Command | Label |
 |---|---------|-------|
@@ -120,7 +124,7 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 | **Label source** | `reviews/cli-routed-verb-table.md` **human-readable** for command rows; family explain is this file’s table |
 | **Interactive + `--json`** | Ignore json on `menu`/`main`; still the menu |
 | **Non-interactive** | `app_help` (human; `--quiet` still prints help) |
-| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Main **N = 6**; submenu **N = 5**; Exit **9**; Back **8**. |
+| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title; main **N = 5**; submenu **N = 5**; Exit **9**; Back **8**. |
 
 ### 2.6 Why this requirement exists (CIAO)
 
@@ -147,13 +151,16 @@ Future agents **MUST NOT**:
 
 1. Put `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`/`main`, or `restore` on the main list or the sudoers submenu.  
 2. Put the five sudoers verbs on the **main** list.  
+2b. Put `check-session` on the numbered main list (login status **MUST** stay under the title).  
 3. Drop a grouped sudoers verb from the submenu.  
 4. Number main Exit as **5** or submenu Exit as **6** (Exit **MUST** be **9**; Back **MUST** be **8** on the submenu).  
 5. Wire `sudoers` as a live `app_main` command.  
 6. Draw this menu on **off-TTY** empty argv, or hang a pipe on empty argv / `menu` / `main`.  
 7. Steal Type O install-ensure onto **TTY** empty argv (menu stolen).  
 8. Invent command-row labels that are not `command: what it does`.  
-9. Replace TTY empty argv with the help dump while zero-arguments **1.3.0+** defers that path here.
+9. Replace TTY empty argv with the help dump while zero-arguments **1.3.0+** defers that path here.  
+10. Print a main-menu (or APP_NAME-led submenu) header as a bare `APP_NAME` without live `VERSION` / `APP_VERSION`, or unstyled on TTY.  
+11. Capture the menu choice with `$()` of a `read` helper.
 
 ---
 
@@ -163,12 +170,13 @@ Future agents **MUST NOT**:
 |----------------|-------|--------|
 | **TP-CLI-07** | `tests/test_cli.sh` | have (TTY empty argv = this menu; off-TTY empty argv = Type O ensure) |
 | **TP-CLI-13** | `tests/test_cli.sh` | have (main list, family row, submenu Back/Exit, off-TTY help) |
+| **TP-CLI-17** | `tests/test_cli.sh` | have (header `APP_NAME(APP_VERSION)` bold/italic; logged in/out; no check-session row; light-gray italic desc) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
 
 ---
 
-**Last Updated**: 2026-09-02 (2.0.0 — TTY empty argv still this menu; off-TTY empty argv is Type O, not help; off-TTY `menu` stays help)  
+**Last Updated**: 2026-09-03 (2.1.0 — header `APP_NAME(APP_VERSION)`; session line under the title; drop check-session row; light-gray italic explain text; main **N = 5**)  
 **Owner**: product  
 **Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

@@ -1,6 +1,6 @@
 # grok-cli - Grok auth backup to /var/grok-cli and unprivileged sync-auth
 
-![Version](https://img.shields.io/badge/Version-1.7.2-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -81,11 +81,27 @@ This product is **dual-mode**: primary install is the curl one-liner; `sh src/gr
 **Source repository:** [cloudgen/grok-cli](https://github.com/cloudgen/grok-cli)  
 Config identity: `REPO_USER=cloudgen`, `REPO_NAME=grok-cli`. Default channel: `SCRIPT_URL=https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli`.
 
+After install, on a terminal:
+
+```text
+$ grok-cli menu
+[INFO] **grok-cli**(*1.8.0*) — numbered list of live commands
+logged out
+1. backup: Push ~/.grok/auth.* to /var/grok-cli
+2. sync-auth: Copy /var/grok-cli/auth.* into ~/.grok
+3. sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok
+4. add-crontab: Add backup and sync-auth jobs to this login's crontab
+5. sudoers: Grant and drafts
+9. Exit
+```
+
+Choose a number, or type the command name. `9` exits. The line under the title is **logged in** or **logged out**.
+
 ## Starting grok-cli
 
 | How you run it | What you get |
 |----------------|--------------|
-| `grok-cli` at a real terminal | Numbered start list (`check-session` is **1**; **9** leaves). Same as `grok-cli menu`. |
+| `grok-cli` at a real terminal | Numbered start list (`backup` is **1**; login status is under the title; **9** leaves). Same as `grok-cli menu`. |
 | `curl -fsSL … \| sh` or `grok-cli` in a script (no args) | Install-ensure: places `~/.local/bin/grok-cli` or reports already installed. **Not** help. **Not** the menu. |
 | `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help |
 | `grok-cli menu` in a script | Help (the list is TTY-only) |
@@ -176,6 +192,8 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-03 — version **1.8.0**: main menu header **grok-cli**(*version*); **logged in** / **logged out** under the title; `check-session` is no longer a numbered row.  
+2026-09-02 — version **1.7.3**: `setup` smokes grok from `~/.grok/downloads` (Termux/Android `noexec` tmp) and prints the exec error.  
 2026-09-02 — version **1.7.2**: `prompt_ask` sets `PROMPT_ASK_VALUE` in the current shell (no `$()` of `read` helpers).  
 2026-09-02 — version **1.7.1**: TTY menu pick 4 (`sync-auth-from-remote`) shows the SPEC prompt instead of hanging (INC-20260902-001).  
 2026-09-02 — version **1.7.0**: online `curl|sh` install; off-TTY empty argv is ensure, TTY empty argv stays the menu.  

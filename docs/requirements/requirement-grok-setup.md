@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-grok-setup.md  
-**Status**: Active (Version 2.0.0)  
+**Status**: Active (Version 2.1.0)  
 **Area**: domain  
 **Key**: `requirement-grok-setup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -14,7 +14,7 @@ This does **not** install grok-cli itself (checkout `install` and channel `curl|
 
 ### 1.1 Human-facing
 
-**In one sentence:** you type `grok-cli setup` so this login downloads the matching `grok` program from xAI’s CLI channel and places it under `~/.grok`; then you `grok login`.
+**In one sentence:** you type `grok-cli setup` so this login downloads the matching `grok` program from xAI’s CLI channel and places it under `~/.grok`; setup runs `--version` on the file under `~/.grok/downloads` first, because some phones will not execute a file from `/tmp` or the cache folder; then you `grok login`.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
@@ -24,7 +24,7 @@ This does **not** install grok-cli itself (checkout `install` and channel `curl|
 
 | Includes | Excludes |
 |----------|----------|
-| Detect OS/arch; fetch channel version; fetch artifact; smoke `--version`; place `~/.grok/downloads` + `~/.grok/bin`; skip if `grok` already works; `--force` | Downloading or running `install.sh`; installing grok-cli; `self-update`; empty-argv install-ensure; sudo; byte-patching DNS |
+| Detect OS/arch; fetch channel version; fetch artifact; smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder); place `~/.grok/downloads` + `~/.grok/bin`; skip if `grok` already works; `--force` | Downloading or running `install.sh`; installing grok-cli; `self-update`; empty-argv install-ensure; sudo; byte-patching DNS; smoking a file that lives only in cache/`/tmp`/`/dev/shm` |
 | Fail closed if curl/uname/download/smoke fails | Hitting the public network from Core tests |
 
 | Surface | What you open | What for |
@@ -81,7 +81,7 @@ Studied installer behavior that this procedure **MUST** keep:
 | Version pointer | GET `{{base}}/{{channel}}`; first line is `X.Y.Z` or `X.Y.Z-suffix` | Same; optional pin `GROK_SETUP_VERSION` skips the pointer |
 | Base URL | Primary `https://x.ai/cli`; fallback GCS `https://storage.googleapis.com/grok-build-public-artifacts/cli` | Same (`GROK_VENDOR_BASE_URL` / `GROK_VENDOR_FALLBACK_URL`) |
 | Artifact | `{{base}}/grok-{{version}}-{{os}}-{{arch}}`; try `.zst` if `zstd`, then `.gz` if `gzip`, then uncompressed | Same |
-| Place | `$HOME/.grok/downloads/grok-{{os}}-{{arch}}`; `chmod +x`; smoke `--version`; relative symlink `$HOME/.grok/bin/grok` and `agent` | Same (`GROK_HOME` / `GROK_BIN_DIR`) |
+| Place | `$HOME/.grok/downloads/grok-{{os}}-{{arch}}` (download + smoke a `mktemp` sibling **in that directory**, not cache/`/tmp`/`/dev/shm`); `chmod +x`; smoke `--version`; relative symlink `$HOME/.grok/bin/grok` and `agent` | Same (`GROK_HOME` / `GROK_BIN_DIR`). Cache folder **MUST NOT** be the smoke path (Termux/Android `noexec`) |
 | PATH now | If a dir already on PATH is writable: `$HOME/.local/bin` then `/usr/local/bin` | Same (`USER_BIN` then `GLOBAL_BIN`); **also** `${PREFIX}/bin` when `PREFIX` is set (Termux) |
 | PATH later | Append `# >>> grok installer >>>` block to bash/zsh/fish rc | **MUST** for bash (`~/.bashrc`); **SHOULD** for zsh/fish |
 | Completions / `config.toml` | Best-effort | **SHOULD** (must not fail setup if they fail) |
@@ -89,12 +89,12 @@ Studied installer behavior that this procedure **MUST** keep:
 | Auth for install | Optional | Optional; runtime login is `grok login` / `XAI_API_KEY` |
 
 12. Default **base** **MUST** be `https://x.ai/cli` (`GROK_VENDOR_BASE_URL` override for tests). Fallback **MUST** be `https://storage.googleapis.com/grok-build-public-artifacts/cli` (`GROK_VENDOR_FALLBACK_URL`).  
-13. **MUST** `curl -fsSL` the **version pointer** (`{{base}}/{{channel}}`) and the **artifact** into temp files under product storage. **MUST NOT** pipe a failed or empty download into a decoder or into `exec`.  
+13. **MUST** `curl -fsSL` the **version pointer** (`{{base}}/{{channel}}`) into a temp file under product storage (cache/persistence). **MUST** write the **artifact** (the file that is chmod’d and smoked) as a `mktemp` sibling under `{{GROK_HOME}}/downloads`. **MUST NOT** pipe a failed or empty download into a decoder or into `exec`. **MUST NOT** place the chmod’d/smoked artifact only in the cache folder, `/tmp`, or `/dev/shm`.  
 14. Curl non-zero or empty pointer/artifact → fail closed **before** placing links.  
 15. Missing `curl` or `uname` → fail closed. Missing `bash` is **not** a failure.  
 16. After a successful place, re-probe using rule 7 (PATH **and** well-known dirs). Binary present on disk → exit 0. If this session cannot `command -v grok`, that is expected: a PATH line in `~/.bashrc` does not apply until a new session. **MUST** say so as INFO (open a new terminal, then `grok login`). **MUST NOT** print `[ERROR]` for that stale-PATH case. **MUST NOT** tell the operator to add `${USER_BIN}` (`~/.local/bin`) when grok was placed under `~/.grok/bin`. Binary absent on disk → fail closed.  
 17. **MUST NOT** copy `src/grok-cli` or write `grok-cli` as the peer binary.  
-18. Smoke: the downloaded file **MUST** run `--version` successfully before it replaces the previous download. Failure → keep the existing install, fail closed.  
+18. Smoke: the downloaded file **MUST** run `--version` successfully before it replaces the previous download. Failure → keep the existing install, fail closed. The smoke path **MUST** be under `{{GROK_HOME}}/downloads` (or a `mktemp` sibling there). **MUST NOT** smoke a file that lives only in the cache folder, `/tmp`, or `/dev/shm` — those mounts may be `noexec` (common on Termux/Android). The blocking error **MUST** include the smoke exit status and a short captured stderr snippet when present (same `Next:` as the error table).  
 19. Version string **MUST** match `X.Y.Z` or `X.Y.Z-suffix` (`[A-Za-z0-9._]+`). Invalid pointer → fail closed.  
 20. Relative symlink **MUST** be used when `bin` and `downloads` share a parent (default `~/.grok/bin` → `../downloads/grok-{{os}}-{{arch}}`).  
 21. **MUST NOT** byte-patch the vendor binary (including the 16-byte `/etc/resolv.conf` string). If `/etc/resolv.conf` is missing or has no `nameserver` line (common on Termux, where `/etc` is a read-only system tree), **MUST** print INFO that DNS may fail and that `XAI_API_KEY` or a host with working DNS is the next step — **MUST NOT** treat that as an install failure when `--version` succeeded.  
@@ -112,7 +112,7 @@ Blocking copy **MUST** say what happened and **`Next:`**.
 | Invalid channel | set `GROK_CHANNEL` to stable, alpha, or enterprise, then `grok-cli setup` |
 | Version pointer failed | check network to x.ai, then `grok-cli setup` |
 | Binary download failed | check network to x.ai, then `grok-cli setup` |
-| Smoke `--version` failed | check the download, then `grok-cli setup` |
+| Smoke `--version` failed | check the download, then `grok-cli setup` (happened sentence **MAY** include `exit N` and stderr; Android **MAY** add that the vendor `{{os}}-{{arch}}` binary must execute as-is) |
 | Place finished, `grok` missing on disk | check disk under `~/.grok`, then `grok-cli setup` |
 | `grok` on disk, this session PATH stale | not an error: open a new terminal, then `grok login` |
 
@@ -139,7 +139,7 @@ grok-cli setup --json
 | Channel | `GROK_CHANNEL` default `stable` |
 | Version pin | `GROK_SETUP_VERSION` optional |
 | Artifact | `{{base}}/grok-{{version}}-{{os}}-{{arch}}` (optional `.zst` / `.gz`) |
-| Place | `{{GROK_HOME}}/downloads/grok-{{os}}-{{arch}}` → `{{GROK_HOME}}/bin/grok` and `agent` |
+| Place | `{{GROK_HOME}}/downloads` `mktemp` sibling → smoke `--version` → `{{GROK_HOME}}/downloads/grok-{{os}}-{{arch}}` → `{{GROK_HOME}}/bin/grok` and `agent` |
 | PATH candidates | `USER_BIN` (`{{HOME}}/.local/bin`), `GLOBAL_BIN` (`/usr/local/bin`), `${PREFIX}/bin` when `PREFIX` is set |
 | Overrides | `GROK_VENDOR_BASE_URL`, `GROK_VENDOR_FALLBACK_URL`, `GROK_CHANNEL`, `GROK_SETUP_VERSION`, `GROK_BIN`, `GROK_BIN_DIR`, `GROK_HOME` |
 | Privilege | Type 0 |
@@ -181,7 +181,8 @@ grok-cli setup --json
 9. Freeze a session Unix login or `/home/<login>/…` in this file.  
 10. Print `[ERROR]` when grok is on disk but this session has not yet read a PATH line from `~/.bashrc`.  
 11. Tell the operator to add `~/.local/bin` to PATH when grok was placed under `~/.grok/bin`.  
-12. Byte-patch the vendor binary (including swapping `/etc/resolv.conf` for another 16-byte path).
+12. Byte-patch the vendor binary (including swapping `/etc/resolv.conf` for another 16-byte path).  
+13. Smoke `--version` from the cache folder, `/tmp`, or `/dev/shm` instead of a file under `{{GROK_HOME}}/downloads`.
 
 **Violating this rule is a critical setup / install-class regression.**
 
@@ -201,6 +202,8 @@ grok-cli setup --json
 | AC-8 | Vendor dir install with stale session PATH is exit 0, not `[ERROR]` |
 | AC-9 | Curl log **MUST NOT** contain `install.sh` |
 | AC-10 | Missing `bash` **MUST NOT** fail setup |
+| AC-11 | Smoke `--version` runs a file under `{{GROK_HOME}}/downloads`, not the cache folder |
+| AC-12 | Smoke `--version` failure is operator-readable (`Next:` + happened sentence; captured exit/stderr when present) |
 
 ---
 
@@ -224,6 +227,7 @@ grok-cli setup --json
 | 2026-08-25 | Active (1.0.0) | `setup` curled xAI `install.sh` |
 | 2026-08-30 | Active (1.1.0) | Stale session PATH after vendor `.bashrc` update is INFO, not ERROR; probe `~/.grok/bin` |
 | 2026-09-02 | Active (2.0.0) | Inlined studied installer procedure; **MUST NOT** fetch or exec `install.sh`; no bash required |
+| 2026-09-02 | Active (2.1.0) | Smoke `--version` from `{{GROK_HOME}}/downloads` (not cache/`noexec` tmp); captured exec text on failure (Termux/Android); rule 13 pointer vs artifact split |
 
 ---
 
@@ -231,13 +235,13 @@ grok-cli setup --json
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-VCLI-01**–**09**, **11**–**14** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01**–**09**, **11**–**16** | `tests/test_grok_setup.sh` | have |
 | **TP-CLI-04** (help lists setup) | `tests/test_cli.sh` | have |
 | **TP-CLI-13** (menu excludes setup) | `tests/test_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-02  
+**Last Updated**: 2026-09-03  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

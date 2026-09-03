@@ -30,7 +30,7 @@
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
 # - requirement-grok-crontab.md      (add-crontab: per-login backup/sync-auth jobs)
-# - requirement-grok-setup.md        (setup: xAI channel + artifact; MUST NOT exec install.sh)
+# - requirement-grok-setup.md        (setup: xAI channel + artifact; smoke from GROK_HOME/downloads; MUST NOT exec install.sh)
 # - requirement-domain-grok-cli.md   (domain surface four pillars)
 # Plus CIAO Protection Zones and "DO NOT MODIFY" rules.
 #
@@ -38,7 +38,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.7.2"
+# VERSION: hard-assign VERSION="1.8.0"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -54,8 +54,9 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.7.2"
-: "${VERSION:=1.7.2}"
+VERSION="1.8.0"
+: "${VERSION:=1.8.0}"
+APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
 : "${REPO_NAME:=grok-cli}"
@@ -195,9 +196,11 @@ out_text() {
             ;;
     esac
 
-    local RED='' GREEN='' YELLOW='' BLUE='' NC=''
+    local extra="${3-}"
+    local RED='' GREEN='' YELLOW='' BLUE='' GRAY_ITALIC='' NC=''
     [ "${TTY:-0}" -eq 1 ] && [ "${QUIET}" -eq 0 ] && [ "${JSON}" -eq 0 ] && {
-        RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+        RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'
+        GRAY_ITALIC='\033[90;3m'; NC='\033[0m'
     }
 
     case "${level}" in
@@ -206,6 +209,7 @@ out_text() {
         out_debug)   printf >&2 "${BLUE}[DEBUG]${NC} %s\n" "${msg}" ;;
         out_info)    printf "${GREEN}[INFO]${NC} %s\n" "${msg}" ;;
         out_success) printf "${GREEN}[OK]${NC} %s\n" "${msg}" ;;
+        menu_item)   printf "%s${GRAY_ITALIC}%s${NC}\n" "${msg}" "${extra}" ;;
         plain)       printf "%s\n" "${msg}" ;;
         plain_n)     printf "%s" "${msg}" ;;
         *)           printf "%s\n" "${msg}" ;;
@@ -391,6 +395,58 @@ out_msg_n() { out_text plain_n "$*"; }
 # Last reviewed: 29 April 2026
 # =============================================================================
 out_empty_line() { out_text plain ""; }
+
+# =============================================================================
+# out_menu_row() - Numbered menu line; description is light gray italic on TTY
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Print one numbered list row as "N. command: desc". The explain text is
+# light gray italic (SGR 90;3) on a TTY and plain off-TTY. Rows with no desc
+# (Exit / Back) print "N. label" only.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+# - requirement-shell-output-requirements.md
+#
+# Last updated: 2026-09-03
+# =============================================================================
+out_menu_row() {
+    _n="${1-}"
+    _label="${2-}"
+    _desc="${3-}"
+    if [ -n "${_desc}" ]; then
+        out_text menu_item "${_n}. ${_label}: " "${_desc}"
+    else
+        out_plain "${_n}. ${_label}"
+    fi
+}
+
+# =============================================================================
+# util_app_ident() - Class B: APP_NAME(APP_VERSION) nametag
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Return the identity token for human banners: live APP_NAME immediately
+# followed by parenthesized APP_VERSION (Config VERSION). TTY: bold name
+# (SGR 1), italic version (SGR 3). Off-TTY: plain. Not a product UI line.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md (menu header)
+#
+# Last updated: 2026-09-03
+# =============================================================================
+util_app_ident() {
+    : "${APP_NAME:=grok-cli}"
+    : "${VERSION:=0}"
+    APP_VERSION="${VERSION}"
+    : "${TTY:=0}"
+    if [ "${TTY}" -eq 1 ]; then
+        printf '\033[1m%s\033[0m(\033[3m%s\033[0m)' "${APP_NAME}" "${APP_VERSION}"
+    else
+        printf '%s(%s)' "${APP_NAME}" "${APP_VERSION}"
+    fi
+}
 
 
 # =============================================================================
@@ -2153,6 +2209,56 @@ gc_setup_path_symlink() {
 }
 
 # =============================================================================
+# gc_setup_host_is_android() - 0 when uname reports Android (Termux)
+# =============================================================================
+gc_setup_host_is_android() {
+    case "$(uname -a 2>/dev/null) $(uname -o 2>/dev/null)" in
+        *Android*) return 0 ;;
+    esac
+    return 1
+}
+
+# =============================================================================
+# gc_setup_smoke_version() - exec downloaded grok --version (class B)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Smoke the artifact in place. On failure, set GC_SETUP_SMOKE_DETAIL to a
+# short "exit N: stderr" line for the operator error. Cache/tmp may be
+# noexec; the caller MUST pass a path under GROK_HOME/downloads.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# =============================================================================
+gc_setup_smoke_version() {
+    _gsv_bin="${1:-}"
+    GC_SETUP_SMOKE_DETAIL=""
+    if [ -z "${_gsv_bin}" ] || [ ! -f "${_gsv_bin}" ]; then
+        GC_SETUP_SMOKE_DETAIL="file missing"
+        return 1
+    fi
+    _gsv_out=$(util_mktemp smokeout)
+    if [ -z "${_gsv_out}" ]; then
+        GC_SETUP_SMOKE_DETAIL="could not capture smoke output"
+        return 1
+    fi
+    "${_gsv_bin}" --version </dev/null >"${_gsv_out}" 2>&1
+    _gsv_ec=$?
+    if [ "${_gsv_ec}" -eq 0 ]; then
+        rm -f "${_gsv_out}"
+        unset _gsv_bin _gsv_out _gsv_ec
+        return 0
+    fi
+    _gsv_txt=$(tr '\n' ' ' < "${_gsv_out}" 2>/dev/null | cut -c1-200)
+    rm -f "${_gsv_out}"
+    GC_SETUP_SMOKE_DETAIL="exit ${_gsv_ec}"
+    if [ -n "${_gsv_txt}" ]; then
+        GC_SETUP_SMOKE_DETAIL="${GC_SETUP_SMOKE_DETAIL}: ${_gsv_txt}"
+    fi
+    unset _gsv_bin _gsv_out _gsv_ec _gsv_txt
+    return 1
+}
+
+# =============================================================================
 # gc_setup_maybe_bashrc() - append vendor-style PATH block when SHELL is bash
 # =============================================================================
 gc_setup_maybe_bashrc() {
@@ -2173,17 +2279,18 @@ gc_setup_maybe_bashrc() {
 #
 # GENERAL PURPOSE:
 # Detect platform, fetch the channel version pointer, download
-# grok-{version}-{os}-{arch}, smoke --version, and link ~/.grok/bin/grok
-# (and agent). MUST NOT download or exec install.sh. MUST NOT require bash.
-# Skip if grok is already present unless --force. grok on disk is success
-# even when this session's PATH is stale.
+# grok-{version}-{os}-{arch} into GROK_HOME/downloads (not cache/tmp),
+# smoke --version there, and link ~/.grok/bin/grok (and agent). MUST NOT
+# download or exec install.sh. MUST NOT require bash. Skip if grok is
+# already present unless --force. grok on disk is success even when this
+# session's PATH is stale.
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
 # - requirement-shell-cli-interface.md
 # - requirement-operator-readable-error.md
 #
-# Last updated: 2026-09-02
+# Last updated: 2026-09-03
 # =============================================================================
 gc_setup() {
     : "${APP_NAME:=grok-cli}"
@@ -2245,27 +2352,42 @@ gc_setup() {
         fi
     fi
 
-    _tmp=$(util_mktemp setupbin)
-    if [ -z "${_tmp}" ] || [ ! -f "${_tmp}" ]; then
-        out_die "Could not create a temp file for the grok binary. Next: check disk space under ${EFFECTIVE_STORAGE_DIR:-/tmp}, then ${APP_NAME} setup."
-    fi
-    out_info "Downloading grok ${_version} (${_platform})"
-    if ! gc_setup_fetch_artifact "${_version}" "${_platform}" "${_tmp}"; then
-        rm -f "${_tmp}"
-        out_die "Download of the grok binary failed (grok-${_version}-${_platform}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
-    fi
-    chmod 0755 "${_tmp}" 2>/dev/null || true
-    if ! "${_tmp}" --version </dev/null >/dev/null 2>&1; then
-        rm -f "${_tmp}"
-        out_die "The downloaded grok failed to run --version. This did not install ${APP_NAME}. Next: check the download, then ${APP_NAME} setup."
-    fi
-
     _home_grok=$(gc_resolve_grok_home)
     _download_dir="${_home_grok}/downloads"
     if [ -n "${GROK_BIN_DIR:-}" ]; then
         _bin_dir="${GROK_BIN_DIR}"
     else
         _bin_dir="${_home_grok}/bin"
+    fi
+    if ! mkdir -p "${_download_dir}"; then
+        out_die "Could not create ${_download_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
+    fi
+    # Studied installer smokes from ~/.grok/downloads (exec-capable). Cache
+    # /tmp /dev/shm may be noexec (Termux/Android). Do not use util_mktemp.
+    _tmp=$(mktemp "${_download_dir}/grok-${_platform}.XXXXXX" 2>/dev/null || true)
+    if [ -z "${_tmp}" ] || [ ! -f "${_tmp}" ]; then
+        out_die "Could not create a temp file for the grok binary. Next: check disk under ${_download_dir}, then ${APP_NAME} setup."
+    fi
+    out_info "Downloading grok ${_version} (${_platform})"
+    if ! gc_setup_fetch_artifact "${_version}" "${_platform}" "${_tmp}"; then
+        rm -f "${_tmp}"
+        out_die "Download of the grok binary failed (grok-${_version}-${_platform}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
+    fi
+    if ! chmod 0755 "${_tmp}"; then
+        rm -f "${_tmp}"
+        out_die "Could not chmod the downloaded grok under ${_download_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
+    fi
+    if ! gc_setup_smoke_version "${_tmp}"; then
+        _smoke_msg="The downloaded grok failed to run --version"
+        if [ -n "${GC_SETUP_SMOKE_DETAIL:-}" ]; then
+            _smoke_msg="${_smoke_msg} (${GC_SETUP_SMOKE_DETAIL})"
+        fi
+        _smoke_msg="${_smoke_msg}."
+        if gc_setup_host_is_android; then
+            _smoke_msg="${_smoke_msg} This Android host must execute the vendor ${_platform} binary as-is."
+        fi
+        rm -f "${_tmp}"
+        out_die "${_smoke_msg} This did not install ${APP_NAME}. Next: check the download, then ${APP_NAME} setup."
     fi
     if ! gc_setup_place_links "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}"; then
         rm -f "${_tmp}"
@@ -4766,13 +4888,14 @@ app_about() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Print the grok-cli daily-work list: check-session, backup, sync-auth,
-# sync-auth-from-remote, add-crontab, sudoers family, then Exit 9.
+# Print the grok-cli daily-work list: APP_NAME(APP_VERSION) header, login
+# status, then backup, sync-auth, sync-auth-from-remote, add-crontab,
+# sudoers family, then Exit 9. Session status is under the title (not a row).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-02
+# Last updated: 2026-09-03
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=grok-cli}"
@@ -4780,14 +4903,19 @@ app_default_print_menu() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
 
-    out_info "${APP_NAME} — numbered list of live commands"
-    out_plain "1. check-session: Confirm grok is logged in"
-    out_plain "2. backup: Push ~/.grok/auth.* to ${GROK_CLI_ROOT}"
-    out_plain "3. sync-auth: Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok"
-    out_plain "4. sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok"
-    out_plain "5. add-crontab: Add backup and sync-auth jobs to this login's crontab"
-    out_plain "6. sudoers: Grant and drafts"
-    out_plain "9. Exit"
+    out_info "$(util_app_ident) — numbered list of live commands"
+    _st=$(gc_session_status_word) || true
+    if [ "${_st}" = "valid" ]; then
+        out_plain "logged in"
+    else
+        out_plain "logged out"
+    fi
+    out_menu_row "1" "backup" "Push ~/.grok/auth.* to ${GROK_CLI_ROOT}"
+    out_menu_row "2" "sync-auth" "Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok"
+    out_menu_row "3" "sync-auth-from-remote" "Copy a remote host's auth.* into ~/.grok"
+    out_menu_row "4" "add-crontab" "Add backup and sync-auth jobs to this login's crontab"
+    out_menu_row "5" "sudoers" "Grant and drafts"
+    out_menu_row "9" "Exit"
 }
 
 # =============================================================================
@@ -4800,21 +4928,21 @@ app_default_print_menu() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-08-23
+# Last updated: 2026-09-03
 # =============================================================================
 app_default_print_sudoers_menu() {
     : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
 
-    out_info "${APP_NAME} — sudoers (grant and drafts)"
-    out_plain "1. generate-sudoer-request: Write a JSON grant you can read"
-    out_plain "2. submit-sudoer-request: Queue the JSON grant inbound"
-    out_plain "3. print-sudoers: Emit sudoers draft"
-    out_plain "4. print-sudoers-install-script: Write admin install script"
-    out_plain "5. remove-project-sudoers: Remove sudoers draft only"
-    out_plain "8. Back"
-    out_plain "9. Exit"
+    out_info "$(util_app_ident) — sudoers (grant and drafts)"
+    out_menu_row "1" "generate-sudoer-request" "Write a JSON grant you can read"
+    out_menu_row "2" "submit-sudoer-request" "Queue the JSON grant inbound"
+    out_menu_row "3" "print-sudoers" "Emit sudoers draft"
+    out_menu_row "4" "print-sudoers-install-script" "Write admin install script"
+    out_menu_row "5" "remove-project-sudoers" "Remove sudoers draft only"
+    out_menu_row "8" "Back"
+    out_menu_row "9" "Exit"
 }
 
 # =============================================================================
@@ -4829,27 +4957,27 @@ app_default_print_sudoers_menu() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-02
+# Last updated: 2026-09-03
 # =============================================================================
 app_default_run_pick() {
     _pick="${1:-}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     case "${_pick}" in
-        1|check-session)
-            gc_check_session
-            ;;
-        2|backup)
+        1|backup)
             gc_backup
             ;;
-        3|sync-auth)
+        2|sync-auth)
             gc_sync_auth
             ;;
-        4|sync-auth-from-remote)
+        3|sync-auth-from-remote)
             gc_sync_auth_from_remote
             ;;
-        5|add-crontab)
+        4|add-crontab)
             gc_add_crontab
+            ;;
+        check-session)
+            gc_check_session
             ;;
         generate-sudoer-request)
             gc_generate_sudoer_request
@@ -4974,7 +5102,7 @@ app_default_sudoers_loop() {
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-shell-cli-zero-arguments.md
 #
-# Last updated: 2026-09-02
+# Last updated: 2026-09-03
 # =============================================================================
 app_default() {
     : "${TTY:=0}"
@@ -5015,7 +5143,7 @@ app_default() {
                 export JSON QUIET
                 return 0
                 ;;
-            6|sudoers)
+            5|sudoers)
                 JSON="${_menu_json}"
                 QUIET="${_menu_quiet}"
                 export JSON QUIET
@@ -5040,7 +5168,7 @@ app_default() {
         JSON=0
         QUIET=0
         export JSON QUIET
-        out_warn "Not a menu choice. Type 1-6, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+        out_warn "Not a menu choice. Type 1-5, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
     done
 }
 

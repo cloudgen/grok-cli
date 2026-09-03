@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-interactive-vs-noninteractive.md  
-**Status**: Active (Version 1.0.3)  
+**Status**: Active (Version 1.0.4)  
 **Area**: shell  
 **Key**: `requirement-shell-interactive-vs-noninteractive`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -164,7 +164,7 @@ Call in the current shell. Value is `PROMPT_ASK_VALUE`. **MUST NOT** `_x=$(promp
 | AC-1 | Non-interactive uninstall without force fails closed |
 | AC-2 | JSON mode never prompts |
 | AC-3 | Backup never hangs waiting for optional confirm by default |
-| AC-4 | TTY menu pick 4 shows a visible SPEC prompt via current-shell `prompt_ask` + `PROMPT_ASK_VALUE` (INC-20260902-001; TP-GROK-CLI-34; TP-CLI-15) |
+| AC-4 | TTY menu `sync-auth-from-remote` row (main **3**) shows a visible SPEC prompt via current-shell `prompt_ask` + `PROMPT_ASK_VALUE` (INC-20260902-001; TP-GROK-CLI-34; TP-CLI-15) |
 
 ---
 
@@ -187,9 +187,10 @@ Call in the current shell. Value is `PROMPT_ASK_VALUE`. **MUST NOT** `_x=$(promp
 | 2026-08-23 | Active (1.0.1) | Consume `TTY`; no live `[ -t` in helpers |
 | 2026-09-02 | Active (1.0.2) | `prompt_ask` capture-safe (`>&2` + `/dev/tty`); INC-20260902-001 |
 | 2026-09-02 | Active (1.0.3) | Ban `$()` of `prompt_ask`; `PROMPT_ASK_VALUE` current-shell call |
+| 2026-09-03 | Active (1.0.4) | AC-4 locator is main-menu **3** (`sync-auth-from-remote`) |
 
 ---
 
-**Last Updated**: 2026-09-02  
+**Last Updated**: 2026-09-03  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -75,10 +75,18 @@ exit 0
 '
         ;;
     *grok-*)
-        body='#!/bin/sh
+        if [ "${CURL_SMOKE_FAIL:-0}" = "1" ]; then
+            body='#!/bin/sh
+echo boom-from-smoke >&2
+exit 7
+'
+        else
+            body='#!/bin/sh
+printf "%s\n" "$0" > "$(dirname "$0")/.smoke-path"
 echo grok 0.0.0-test
 exit 0
 '
+        fi
         ;;
     */stable|*/alpha|*/enterprise|*/stable/*|*/alpha/*|*/enterprise/*)
         body='0.0.0-test'
@@ -272,5 +280,43 @@ run_test_grok_setup() {
     assert_contains "TP-VCLI-12 Next step" "${_err}" "Next:"
     assert_contains "TP-VCLI-12 Next is setup" "${_err}" "setup"
     assert_not_contains "TP-VCLI-12 does not say add USER_BIN" "${_err}" "add ${CI_USER_BIN} to PATH"
+    ci_cleanup_env
+
+    # TP-VCLI-15 smoke --version runs under GROK_HOME/downloads (not cache/tmp)
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    _err=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
+            PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+            sh "${SCRIPT}" setup 2>&1 >/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-15 setup exit 0" 0 "${_ec}"
+    assert_file_exists "TP-VCLI-15 smoke-path recorded" "${CI_HOME}/.grok/downloads/.smoke-path"
+    _sp=$(cat "${CI_HOME}/.grok/downloads/.smoke-path" 2>/dev/null || true)
+    assert_contains "TP-VCLI-15 smoke path is downloads" "${_sp}" ".grok/downloads/"
+    assert_not_contains "TP-VCLI-15 smoke path is not /tmp/cache" "${_sp}" "/tmp/cache/"
+    assert_not_contains "TP-VCLI-15 smoke path is not /dev/shm" "${_sp}" "/dev/shm/"
+    ci_cleanup_env
+
+    # TP-VCLI-16 smoke --version fail: operator-readable Next + captured stderr
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    _err=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_SMOKE_FAIL=1 \
+            PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+            sh "${SCRIPT}" setup 2>&1 >/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-16 smoke fail exit 1" 1 "${_ec}"
+    assert_contains "TP-VCLI-16 error happened" "${_err}" "failed to run --version"
+    assert_contains "TP-VCLI-16 captured stderr" "${_err}" "boom-from-smoke"
+    assert_contains "TP-VCLI-16 captured exit" "${_err}" "exit 7"
+    assert_contains "TP-VCLI-16 Next step" "${_err}" "Next:"
+    assert_contains "TP-VCLI-16 Next is setup" "${_err}" "setup"
+    assert_contains "TP-VCLI-16 did not install grok-cli" "${_err}" "did not install"
+    assert_file_missing "TP-VCLI-16 did not leave tmp binary" "${CI_HOME}/.grok/bin/grok"
     ci_cleanup_env
 }

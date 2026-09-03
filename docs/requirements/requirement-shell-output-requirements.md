@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-output-requirements.md  
-**Status**: Active (Version 1.0.2)  
+**Status**: Active (Version 1.0.3)  
 **Area**: shell  
 **Key**: `requirement-shell-output-requirements`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -46,6 +46,7 @@ All grok-cli messages go through `out_*`. `--json` is machine stdout; errors sti
 |-----------------|------|
 | **A. Inside output SSOT** | Only `out_text`, `out_json`, and `out_json_error` may `printf` to fd 1/2 for product human or JSON lines |
 | **B. Function return-via-stdout** | Helpers may `printf '%s' "$value"` solely for `$(…)` capture (data return, not UI) |
+| **B2. Identity nametag (`util_app_ident`)** | Class B return of live `APP_NAME(APP_VERSION)`. TTY SGR 1/3 is part of that token (consumed by `out_info "$(util_app_ident) …"`). Not a second human printer. |
 | **C. File I/O (redirected)** | Writing config/sudoers draft files is file mutation; user-visible status still via `out_*` |
 | **D. Tool protocol / computation pipes** | e.g. feeding `tar`/`gzip`/`sha256sum` via pipes; product status still via `out_*` |
 | **E. Command-sub fallbacks** | Logic defaults only (`id -un \|\| echo "unknown"`) |
@@ -61,6 +62,7 @@ All grok-cli messages go through `out_*`. `--json` is machine stdout; errors sti
 | `out_error` | Error | stderr | Always show (human) | Prefer `out_json_error` / `out_die` |
 | `out_die` | Fatal + exit 1 | stderr (+ JSON error when JSON) | Always | Emits JSON error then exits |
 | `out_plain` | Plain text, no prefix | stdout | Suppress under quiet | Suppress under JSON |
+| `out_menu_row` | Numbered menu line; explain text light gray italic (SGR 90;3) on TTY | stdout | Suppress under quiet | Suppress under JSON |
 | `out_msg_n` | Prompt fragment without newline | stdout (current-shell prompts; **MUST NOT** `$()` `prompt_ask`) | Suppress under quiet/json | Never for machines |
 | `out_json` | Machine success/status object | stdout | N/A | Only when `JSON=1` |
 | `out_json_error` | Machine error object | as designed for fatal path | N/A | Only when `JSON=1` |
@@ -162,9 +164,10 @@ Rules:
 | 2026-08-03 | Active | Output SSOT for folder-backup |
 | 2026-09-02 | Active (1.0.1) | `prompt_ask` UI off class-B capture fd; INC-20260902-001 |
 | 2026-09-02 | Active (1.0.2) | Ban `$()` of `prompt_ask`; class B is data-only |
+| 2026-09-03 | Active (1.0.3) | `out_menu_row`: numbered list explain text is light gray italic on TTY |
 
 ---
 
-**Last Updated**: 2026-09-02  
+**Last Updated**: 2026-09-03  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

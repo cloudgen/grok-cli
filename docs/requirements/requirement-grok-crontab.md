@@ -218,7 +218,7 @@ Worked crontab body (no Unix login on the lines — crontab is already per-login
 |----------------|-------|--------|
 | **TP-GROK-CLI-26**, **26b**, **27**, **28**, **28b**, **29**, **29b** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-CLI-04** (help lists `add-crontab`) | `tests/test_cli.sh` | have |
-| **TP-CLI-13** (main menu row 4) | `tests/test_cli.sh` | have |
+| **TP-CLI-13** (main menu row 4 `add-crontab`) | `tests/test_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.

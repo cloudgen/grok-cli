@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.0] - 2026-09-03
+
+### Changed
+
+- **Main menu:** header is **grok-cli**(*version*) (`APP_NAME(APP_VERSION)`). The next line is **logged in** or **logged out**. `check-session` is no longer a numbered row (the command still exists). Numbered rows start at **backup** (**1**); family **sudoers** is **5**. Explain text after `: ` is light gray *italic* on a TTY. Law: `requirement-shell-cli-default-interaction` **2.1.0**. Suite **TP-CLI-13** · **TP-CLI-17**.
+
+### Fixed
+
+- **Menu locators:** live AC/TP/lesson rows now name **3** for `sync-auth-from-remote` (pick **4** is `add-crontab`). Historical 1.7.1 changelog wording is unchanged.
+- **`setup` download vs smoke:** the version pointer may land in product storage; the chmod’d/smoked binary is a `mktemp` sibling under `~/.grok/downloads` (not cache/`/tmp`/`/dev/shm`).
+- **Menu nametag:** `APP_VERSION` is always Config `VERSION` (an inherited env value cannot relabel the header).
+- **`setup` smoke `[ERROR]`:** a full stop after the happened clause before “This did not install”.
+
+## [1.7.3] - 2026-09-02
+
+### Fixed
+
+- **`setup` on Termux/Android:** smoke `--version` on the file under `~/.grok/downloads` (same as xAI’s installer), not the cache folder / `/tmp` / `/dev/shm` which may be `noexec`. Failure now includes the smoke exit status and a short stderr snippet. Law: `requirement-grok-setup` **2.1.0**. Suite **TP-VCLI-15** · **TP-VCLI-16**.
+
 ## [1.7.2] - 2026-09-02
 
 ### Fixed

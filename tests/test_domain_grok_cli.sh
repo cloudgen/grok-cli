@@ -686,14 +686,14 @@ FAKESCP
     assert_eq "TP-GROK-CLI-33 missing remote auth exit 1" 1 "$?"
     assert_contains "TP-GROK-CLI-33 next ssh or backup" "${_err}" "Next:"
 
-    # TP-GROK-CLI-34: TTY menu pick 4 must show the SPEC prompt (INC-20260902-001).
+    # TP-GROK-CLI-34: TTY menu pick 3 (sync-auth-from-remote) must show the SPEC prompt (INC-20260902-001).
     # Fake scp only; never real SSH. Kill the child if it still hangs after timeout.
     if command -v python3 >/dev/null 2>&1; then
         _pty_out=$(
             HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-menu-remote" \
             GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
             GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
-            PTY_IN="4
+            PTY_IN="3
 192.0.2.10
 " python3 - "${SCRIPT}" menu <<'PY'
 import os, pty, select, signal, sys, time
@@ -737,9 +737,9 @@ except ChildProcessError:
 sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
 PY
         )
-        assert_contains "TP-GROK-CLI-34 menu pick 4 shows SPEC prompt" "${_pty_out}" \
+        assert_contains "TP-GROK-CLI-34 menu pick 3 shows SPEC prompt" "${_pty_out}" \
             "Remote (user@host, IPv4, domain, or user@domain):"
-        assert_contains "TP-GROK-CLI-34 menu pick 4 completes" "${_pty_out}" \
+        assert_contains "TP-GROK-CLI-34 menu pick 3 completes" "${_pty_out}" \
             "sync-auth-from-remote complete"
         assert_not_contains "TP-GROK-CLI-34 SPEC not mixed with prompt text" "${_pty_out}" \
             "is not user@host"

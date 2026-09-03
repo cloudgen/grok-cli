@@ -2,6 +2,11 @@
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-09-03 | `reports/2026-09-03-menu-header-review.md` | 1.8.0 menu header/session line + setup smoke; human/REQ/checklist/test coverage | **Pass (findings closed)** | PASS=399 FAIL=0 SKIP=0 |
+| 2026-09-03 | `reports/2026-09-03-checklist-cli-default-interaction.md` | Filled `CL-CLI-DEFAULT-INTERACTION` | **Pass** | 1.8.0 |
+| 2026-09-03 | `reports/2026-09-03-checklist-operator-readable-error-setup-smoke.md` | Filled `CL-OPERATOR-READABLE-ERROR` (setup smoke) | **Pass** | TP-VCLI-16 |
+| 2026-09-03 | `reports/2026-09-03-checklist-cli-dual-mention.md` | Filled `CL-CLI-DUAL-MENTION` | **Pass** | 1.8.0 |
+| 2026-09-03 | `reports/2026-09-03-code-review-menu-header.md` | Filled `CL-CODE-REVIEW` | **Pass** | 1.8.0 |
 | 2026-09-02 | `reports/2026-09-02-requirement-review-online-menu.md` | curl install + TTY menu; test-plan/lessons/molds/checklist | **Approve with follow-ups closed** | PASS=360 FAIL=0 SKIP=0 |
 | 2026-09-02 | `reports/2026-09-02-checklist-online-install-script.md` | Filled `CL-ONLINE-INSTALL-SCRIPT` | **Pass** | 1.7.0 |
 | 2026-09-02 | `reports/2026-09-02-requirement-review-grok-setup-inline.md` | `setup` inlines studied xAI channel + artifact; no `install.sh` | **Approve with follow-ups closed** | PASS=350 FAIL=0 SKIP=0 |

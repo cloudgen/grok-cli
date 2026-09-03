@@ -220,7 +220,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have |
-| **TP-VCLI-01..09**, **11**–**14** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01..09**, **11**–**16** | `tests/test_grok_setup.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`

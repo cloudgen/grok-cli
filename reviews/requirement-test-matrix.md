@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-02  
-**Product VERSION:** 1.7.2  
+**Updated:** 2026-09-03  
+**Product VERSION:** 1.8.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -12,11 +12,11 @@
 | requirement-three-layer-privilege-model | architecture | TP-GROK-CLI-01, 01b, 02, 12, 14, 15, 15b, 19, 20, 21, 21b, 22e, 23, 23b, 23c, 24* | Trust tiers; submit; independent generate; inbound; host-probe add/update |
 | requirement-sudoer-json-file | architecture | TP-GROK-CLI-22* · 24* | JSON grant is `grok-cli backup` only |
 | requirement-grok-auth-backup | backup | TP-GROK-CLI-03..10, 12 · 30..34 | Session gate; deposit; sync-auth; sync-auth-from-remote; TTY menu SPEC prompt; production dest fail-closed |
-| requirement-grok-setup | domain | TP-VCLI-01..09 · 11..14 · TP-CLI-04 · TP-CLI-13 | Peer grok channel + artifact (no `install.sh`); stale PATH after `.bashrc` is not an error |
+| requirement-grok-setup | domain | TP-VCLI-01..09 · 11..16 · TP-CLI-04 · TP-CLI-13 | Peer grok channel + artifact (no `install.sh`); smoke from `~/.grok/downloads`; stale PATH after `.bashrc` is not an error |
 | requirement-grok-crontab | domain | TP-GROK-CLI-26..29 · TP-CLI-04 · TP-CLI-13 | Per-login crontab jobs; grant gate is this `id -un` |
 | requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* | Commands, flags, dispatch; `setup`; online verbs |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure |
-| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 | Case 3 `menu`/`main` + TTY empty argv; off-TTY `menu` help |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 | Case 3 `menu`/`main` + TTY empty argv; header nametag + session line; off-TTY `menu` help |
 | requirement-shell-local-self-management | shell | TP-LC-* | checkout install/uninstall/where-is-me; 0755 |
 | requirement-shell-online-install | shell | TP-ONL-01 · TP-CLI-07 | Channel `SCRIPT_URL`; pipe place |
 | requirement-shell-self-management | shell | TP-ONL-03 · 04 · TP-CLI-04 · 10 | version-check / self-update / self-uninstall |

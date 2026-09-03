@@ -119,42 +119,12 @@ run_test_cli() {
     assert_not_contains "TP-CLI-07 --json no command not numbered list" "$_out" "9. Exit"
 
     if command -v python3 >/dev/null 2>&1; then
-        _out=$(PTY_IN="9" python3 - "${SCRIPT}" <<'PY'
-import os, pty, select, sys, time
-script = sys.argv[1]
-payload = (os.environ.get("PTY_IN", "9") + "\n").encode()
-pid, fd = pty.fork()
-if pid == 0:
-    os.execv("/bin/sh", ["sh", script])
-time.sleep(0.2)
-try:
-    os.write(fd, payload)
-except OSError:
-    pass
-out = bytearray()
-end = time.time() + 4
-while time.time() < end:
-    r, _, _ = select.select([fd], [], [], 0.2)
-    if fd in r:
-        try:
-            chunk = os.read(fd, 4096)
-        except OSError:
-            break
-        if not chunk:
-            break
-        out += chunk
-    wpid, _st = os.waitpid(pid, os.WNOHANG)
-    if wpid:
-        break
-try:
-    os.waitpid(pid, 0)
-except ChildProcessError:
-    pass
-sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
-PY
-)
+        _out=$(PTY_IN="9" ci_pty_capture "${SCRIPT}")
         assert_contains "TP-CLI-07 TTY empty argv is numbered list" "$_out" "9. Exit"
-        assert_contains "TP-CLI-07 TTY empty argv check-session first" "$_out" "1. check-session:"
+        assert_contains "TP-CLI-07 TTY empty argv backup first" "$_out" "1. backup:"
+        assert_not_contains "TP-CLI-07 TTY empty argv no check-session row" "$_out" "check-session:"
+        assert_contains "TP-CLI-07 TTY empty argv header app" "$_out" "${APP_NAME}"
+        assert_contains "TP-CLI-07 TTY empty argv header version" "$_out" "${PRODUCT_VERSION}"
         assert_not_contains "TP-CLI-07 TTY empty argv not help dump" "$_out" "Usage:"
     else
         t_skip "TP-CLI-07 TTY empty argv (no python3 for PTY)"
@@ -260,172 +230,86 @@ PY
     assert_contains "TP-CLI-13 menu --quiet off-TTY still help" "$_out" "Usage:"
 
     if command -v python3 >/dev/null 2>&1; then
-        _out=$(PTY_IN="99" python3 - "${SCRIPT}" menu <<'PY'
-import os, pty, select, sys, time
-script = sys.argv[1]
-cmd = sys.argv[2:]
-payload = (os.environ.get("PTY_IN", "99") + "\n").encode()
-pid, fd = pty.fork()
-if pid == 0:
-    os.execv("/bin/sh", ["sh", script] + cmd)
-time.sleep(0.2)
-try:
-    os.write(fd, payload)
-except OSError:
-    pass
-out = bytearray()
-end = time.time() + 4
-while time.time() < end:
-    r, _, _ = select.select([fd], [], [], 0.2)
-    if fd in r:
-        try:
-            chunk = os.read(fd, 4096)
-        except OSError:
-            break
-        if not chunk:
-            break
-        out += chunk
-    wpid, _st = os.waitpid(pid, os.WNOHANG)
-    if wpid:
-        break
-try:
-    os.waitpid(pid, 0)
-except ChildProcessError:
-    pass
-sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
-PY
-)
-        assert_contains "TP-CLI-13 TTY menu check-session first" "$_out" "1. check-session:"
-        assert_contains "TP-CLI-13 TTY menu backup second" "$_out" "2. backup:"
-        assert_contains "TP-CLI-13 TTY menu sync-auth-from-remote fourth" "$_out" "4. sync-auth-from-remote:"
-        assert_contains "TP-CLI-13 TTY menu add-crontab fifth" "$_out" "5. add-crontab:"
-        assert_contains "TP-CLI-13 TTY menu family sudoers" "$_out" "6. sudoers:"
+        ci_isolated_env
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="99" ci_pty_capture "${SCRIPT}" menu)
+        assert_not_contains "TP-CLI-13 TTY menu no check-session row" "$_out" "check-session:"
+        assert_contains "TP-CLI-13 TTY menu backup first" "$_out" "1. backup:"
+        assert_contains "TP-CLI-13 TTY menu sync-auth second" "$_out" "2. sync-auth:"
+        assert_contains "TP-CLI-13 TTY menu sync-auth-from-remote third" "$_out" "3. sync-auth-from-remote:"
+        assert_contains "TP-CLI-13 TTY menu add-crontab fourth" "$_out" "4. add-crontab:"
+        assert_contains "TP-CLI-13 TTY menu family sudoers" "$_out" "5. sudoers:"
         assert_contains "TP-CLI-13 TTY menu Exit 9" "$_out" "9. Exit"
+        assert_contains "TP-CLI-13 TTY menu header app" "$_out" "${APP_NAME}"
+        assert_contains "TP-CLI-13 TTY menu header version" "$_out" "${PRODUCT_VERSION}"
+        assert_contains "TP-CLI-13 TTY menu session line" "$_out" "logged out"
         assert_not_contains "TP-CLI-13 TTY menu no install row" "$_out" "1. Install"
         assert_not_contains "TP-CLI-13 TTY menu no setup row" "$_out" "setup:"
         assert_not_contains "TP-CLI-13 TTY menu no help verb row" "$_out" "help: Show this help"
         assert_not_contains "TP-CLI-13 TTY main hides generate row" "$_out" "1. generate-sudoer-request:"
-        _out=$(PTY_IN="99" python3 - "${SCRIPT}" --json menu <<'PY'
-import os, pty, select, sys, time
-script = sys.argv[1]
-cmd = sys.argv[2:]
-payload = (os.environ.get("PTY_IN", "99") + "\n").encode()
-pid, fd = pty.fork()
-if pid == 0:
-    os.execv("/bin/sh", ["sh", script] + cmd)
-time.sleep(0.2)
-try:
-    os.write(fd, payload)
-except OSError:
-    pass
-out = bytearray()
-end = time.time() + 4
-while time.time() < end:
-    r, _, _ = select.select([fd], [], [], 0.2)
-    if fd in r:
-        try:
-            chunk = os.read(fd, 4096)
-        except OSError:
-            break
-        if not chunk:
-            break
-        out += chunk
-    wpid, _st = os.waitpid(pid, os.WNOHANG)
-    if wpid:
-        break
-try:
-    os.waitpid(pid, 0)
-except ChildProcessError:
-    pass
-sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
-PY
-)
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="99" ci_pty_capture "${SCRIPT}" --json menu)
         assert_contains "TP-CLI-13 TTY menu --json still numbered list" "$_out" "9. Exit"
         assert_not_contains "TP-CLI-13 TTY menu --json ignores JSON help" "$_out" '"type":"success"'
-        _out=$(PTY_IN="12
-9" python3 - "${SCRIPT}" menu <<'PY'
-import os, pty, select, sys, time
-script = sys.argv[1]
-cmd = sys.argv[2:]
-payload = (os.environ.get("PTY_IN", "99") + "\n").encode()
-pid, fd = pty.fork()
-if pid == 0:
-    os.execv("/bin/sh", ["sh", script] + cmd)
-time.sleep(0.2)
-try:
-    os.write(fd, payload)
-except OSError:
-    pass
-out = bytearray()
-end = time.time() + 4
-while time.time() < end:
-    r, _, _ = select.select([fd], [], [], 0.2)
-    if fd in r:
-        try:
-            chunk = os.read(fd, 4096)
-        except OSError:
-            break
-        if not chunk:
-            break
-        out += chunk
-    wpid, _st = os.waitpid(pid, os.WNOHANG)
-    if wpid:
-        break
-try:
-    os.waitpid(pid, 0)
-except ChildProcessError:
-    pass
-sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
-PY
-)
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="12
+9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-13 TTY pick 12 not a menu choice" "$_out" "Not a menu choice"
-        _out=$(PTY_IN="6
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="5
 8
-9" python3 - "${SCRIPT}" menu <<'PY'
-import os, pty, select, sys, time
-script = sys.argv[1]
-cmd = sys.argv[2:]
-payload = (os.environ.get("PTY_IN", "99") + "\n").encode()
-pid, fd = pty.fork()
-if pid == 0:
-    os.execv("/bin/sh", ["sh", script] + cmd)
-time.sleep(0.2)
-try:
-    os.write(fd, payload)
-except OSError:
-    pass
-out = bytearray()
-end = time.time() + 6
-while time.time() < end:
-    r, _, _ = select.select([fd], [], [], 0.2)
-    if fd in r:
-        try:
-            chunk = os.read(fd, 4096)
-        except OSError:
-            break
-        if not chunk:
-            break
-        out += chunk
-    wpid, _st = os.waitpid(pid, os.WNOHANG)
-    if wpid:
-        break
-try:
-    os.waitpid(pid, 0)
-except ChildProcessError:
-    pass
-sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
-PY
-)
+9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-13 TTY submenu generate row" "$_out" "1. generate-sudoer-request:"
         assert_contains "TP-CLI-13 TTY submenu Back 8" "$_out" "8. Back"
         assert_contains "TP-CLI-13 TTY submenu Exit 9" "$_out" "9. Exit"
         _err=$(sh "${SCRIPT}" sudoers 2>&1 >/dev/null)
         assert_eq "TP-CLI-13 sudoers not a live command" 1 "$?"
         assert_contains "TP-CLI-13 sudoers unknown" "$_err" "Unknown command"
+        ci_cleanup_env
     else
         t_skip "TP-CLI-13 TTY menu (no python3 for PTY)"
         t_skip "TP-CLI-13 TTY menu --json (no python3 for PTY)"
         t_skip "TP-CLI-13 TTY pick 12 (no python3 for PTY)"
         t_skip "TP-CLI-13 TTY sudoers submenu (no python3 for PTY)"
+    fi
+
+    # TP-CLI-17: header APP_NAME(APP_VERSION) bold/italic; session line; gray italic desc
+    if command -v python3 >/dev/null 2>&1; then
+        ci_isolated_env
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" APP_VERSION="9.9.9" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        _bold=$(printf '\033[1m%s\033[0m' "${APP_NAME}")
+        _italic=$(printf '\033[3m%s\033[0m' "${PRODUCT_VERSION}")
+        _ident=$(printf '\033[1m%s\033[0m(\033[3m%s\033[0m)' "${APP_NAME}" "${PRODUCT_VERSION}")
+        _gray_italic=$(printf '\033[90;3m')
+        _backup_desc=$(printf '1. backup: \033[90;3mPush ~/.grok/auth.* to /var/grok-cli\033[0m')
+        assert_contains "TP-CLI-17 TTY header bold APP_NAME" "$_out" "${_bold}"
+        assert_contains "TP-CLI-17 TTY header italic APP_VERSION" "$_out" "${_italic}"
+        assert_contains "TP-CLI-17 TTY header nametag APP_NAME(APP_VERSION)" "$_out" "${_ident}"
+        assert_not_contains "TP-CLI-17 TTY nametag ignores inherited APP_VERSION" "$_out" "9.9.9"
+        assert_contains "TP-CLI-17 TTY logged out when no session" "$_out" "logged out"
+        assert_not_contains "TP-CLI-17 TTY no check-session row" "$_out" "check-session:"
+        assert_contains "TP-CLI-17 TTY desc is light gray italic" "$_out" "${_gray_italic}"
+        assert_contains "TP-CLI-17 TTY backup explain is gray italic" "$_out" "${_backup_desc}"
+        _after_header=$(printf '%s\n' "$_out" | grep -A1 "numbered list of live commands" | tail -n1)
+        assert_contains "TP-CLI-17 TTY session line under header" "${_after_header}" "logged out"
+        mkdir -p "${CI_HOME}/.grok"
+        cat > "${CI_HOME}/.grok/auth.json" <<'AUTH'
+{
+  "https://auth.x.ai::test-client": {
+    "key": "test-access-token",
+    "auth_mode": "oidc",
+    "refresh_token": "test-refresh-token",
+    "expires_at": "2099-01-01T00:00:00Z"
+  }
+}
+AUTH
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-17 TTY logged in when session valid" "$_out" "logged in"
+        assert_not_contains "TP-CLI-17 TTY logged-in not logged out" "$_out" "logged out"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="5
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-17 TTY submenu header nametag" "$_out" "${_ident}"
+        assert_contains "TP-CLI-17 TTY submenu title" "$_out" "sudoers (grant and drafts)"
+        ci_cleanup_env
+    else
+        t_skip "TP-CLI-17 TTY header/session (no python3 for PTY)"
+        t_skip "TP-CLI-17 TTY logged in (no python3 for PTY)"
+        t_skip "TP-CLI-17 TTY submenu header (no python3 for PTY)"
     fi
 }
