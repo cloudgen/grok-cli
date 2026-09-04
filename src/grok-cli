@@ -28,6 +28,8 @@
 # - requirement-shell-modular-function-design.md
 # - requirement-shell-output-requirements.md
 # - requirement-shell-interactive-vs-noninteractive.md
+# - requirement-shell-script-coding.md
+# - requirement-shell-termux-coding.md  (Termux/Android: PREFIX, pkg, noexec; not FHS)
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
 # - requirement-grok-crontab.md      (add-crontab: per-login backup/sync-auth jobs)
 # - requirement-grok-setup.md        (setup: xAI channel + artifact; smoke from GROK_HOME/downloads; MUST NOT exec install.sh)
@@ -38,7 +40,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.2"
+# VERSION: hard-assign VERSION="1.8.7"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -54,8 +56,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.2"
-: "${VERSION:=1.8.2}"
+VERSION="1.8.7"
+: "${VERSION:=1.8.7}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -2084,35 +2086,168 @@ gc_setup_detect_platform() {
 }
 
 # =============================================================================
-# gc_setup_curl_file() - curl URL into a file; 0 only when the file is non-empty
+# gc_setup_elf_arch() - Class B: print x86_64 / aarch64 from ELF e_machine
 # =============================================================================
-gc_setup_curl_file() {
-    _gcf_url="${1:-}"
-    _gcf_out="${2:-}"
-    if [ -z "${_gcf_url}" ] || [ -z "${_gcf_out}" ]; then
+#
+# GENERAL PURPOSE:
+# Read ELF magic and e_machine (offset 18, little-endian u16) so setup can
+# refuse a linux-x86_64 grok on aarch64 Termux before exec. Empty + return 1
+# when the file is not ELF, od/dd cannot read it, or the machine is unknown.
+# Scripts used in Core tests are not ELF — callers MUST treat empty as
+# "skip this check", not as a match.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_elf_arch() {
+    _gea_file="${1:-}"
+    if [ -z "${_gea_file}" ] || [ ! -f "${_gea_file}" ]; then
+        printf ''
         return 1
     fi
-    curl -fsSL -o "${_gcf_out}" "${_gcf_url}" || return 1
-    [ -s "${_gcf_out}" ] || return 1
+    if ! command -v od >/dev/null 2>&1; then
+        printf ''
+        return 1
+    fi
+    _gea_magic=$(od -An -N 4 -t x1 "${_gea_file}" 2>/dev/null | tr -d ' \n\t' | tr 'A-F' 'a-f')
+    if [ "${_gea_magic}" != "7f454c46" ]; then
+        printf ''
+        return 1
+    fi
+    _gea_mach=$(od -An -N 2 -j 18 -t u2 "${_gea_file}" 2>/dev/null | tr -d ' \n\t')
+    if [ -z "${_gea_mach}" ] && command -v dd >/dev/null 2>&1; then
+        _gea_mach=$(dd if="${_gea_file}" bs=1 skip=18 count=2 2>/dev/null | od -An -t u2 | tr -d ' \n\t')
+    fi
+    case "${_gea_mach}" in
+        62) printf 'x86_64' ;;
+        183) printf 'aarch64' ;;
+        *)
+            printf ''
+            return 1
+            ;;
+    esac
     return 0
 }
 
 # =============================================================================
-# gc_setup_read_pointer() - Class B: print channel version from base or fallback
+# gc_setup_peer_usable() - 0 if existing grok can run on this host
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Skip setup only when the peer is actually usable here. An x86_64 ELF
+# copied onto aarch64 Termux is executable-bit-on and must not count as
+# already_installed. Prefer ELF e_machine over exec when both are known
+# so Termux does not print EM_X86_64 during the probe.
+#
+# $1 = peer path; $2 = host arch (x86_64 / aarch64, may be empty).
+# Sets GC_SETUP_PEER_UNUSABLE on failure.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_peer_usable() {
+    _gpu_peer="${1:-}"
+    _gpu_host_arch="${2:-}"
+    GC_SETUP_PEER_UNUSABLE=""
+    if [ -z "${_gpu_peer}" ] || [ ! -x "${_gpu_peer}" ]; then
+        GC_SETUP_PEER_UNUSABLE="not executable"
+        return 1
+    fi
+    _gpu_elf=$(gc_setup_elf_arch "${_gpu_peer}") || _gpu_elf=""
+    if [ -n "${_gpu_elf}" ] && [ -n "${_gpu_host_arch}" ] && [ "${_gpu_elf}" != "${_gpu_host_arch}" ]; then
+        GC_SETUP_PEER_UNUSABLE="${_gpu_elf} ELF, this host is ${_gpu_host_arch}"
+        return 1
+    fi
+    if gc_setup_smoke_version "${_gpu_peer}"; then
+        return 0
+    fi
+    GC_SETUP_PEER_UNUSABLE="failed --version"
+    if [ -n "${GC_SETUP_SMOKE_DETAIL:-}" ]; then
+        GC_SETUP_PEER_UNUSABLE="${GC_SETUP_PEER_UNUSABLE} (${GC_SETUP_SMOKE_DETAIL})"
+    fi
+    return 1
+}
+
+# =============================================================================
+# gc_setup_curl_file() - curl URL into a file; 0 only when HTTP 200 and non-empty
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Fetch one URL into a dest file. Record GC_SETUP_CURL_HTTP and
+# GC_SETUP_CURL_DETAIL so setup errors can name HTTP 404 / HTTP 000
+# instead of only "check network". Does not use curl -f, so the
+# status code is still available on 4xx/5xx.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_curl_file() {
+    _gcf_url="${1:-}"
+    _gcf_out="${2:-}"
+    GC_SETUP_CURL_HTTP=""
+    GC_SETUP_CURL_DETAIL=""
+    if [ -z "${_gcf_url}" ] || [ -z "${_gcf_out}" ]; then
+        GC_SETUP_CURL_DETAIL="missing URL or dest"
+        return 1
+    fi
+    GC_SETUP_CURL_URL="${_gcf_url}"
+    _gcf_ec=0
+    _gcf_code=$(curl -sS -L -o "${_gcf_out}" -w '%{http_code}' "${_gcf_url}" 2>/dev/null) || _gcf_ec=$?
+    GC_SETUP_CURL_HTTP="${_gcf_code}"
+    if [ "${_gcf_ec}" -ne 0 ]; then
+        if [ -n "${_gcf_code}" ] && [ "${_gcf_code}" != "000" ]; then
+            GC_SETUP_CURL_DETAIL="HTTP ${_gcf_code} (curl exit ${_gcf_ec})"
+        else
+            GC_SETUP_CURL_DETAIL="HTTP 000 (curl exit ${_gcf_ec})"
+        fi
+        unset _gcf_url _gcf_out _gcf_code _gcf_ec
+        return 1
+    fi
+    if [ -z "${_gcf_code}" ]; then
+        GC_SETUP_CURL_DETAIL="curl returned no HTTP status"
+        unset _gcf_url _gcf_out _gcf_code _gcf_ec
+        return 1
+    fi
+    if [ "${_gcf_code}" != "200" ]; then
+        GC_SETUP_CURL_DETAIL="HTTP ${_gcf_code}"
+        unset _gcf_url _gcf_out _gcf_code _gcf_ec
+        return 1
+    fi
+    if [ ! -s "${_gcf_out}" ]; then
+        GC_SETUP_CURL_DETAIL="HTTP ${_gcf_code} empty body"
+        unset _gcf_url _gcf_out _gcf_code _gcf_ec
+        return 1
+    fi
+    unset _gcf_url _gcf_out _gcf_code _gcf_ec
+    return 0
+}
+
+# =============================================================================
+# gc_setup_read_pointer() - set GC_SETUP_POINTER from channel (same shell)
 # =============================================================================
 gc_setup_read_pointer() {
     _grp_channel="${1:-stable}"
+    GC_SETUP_POINTER=""
     : "${GROK_VENDOR_BASE_URL:=https://x.ai/cli}"
     : "${GROK_VENDOR_FALLBACK_URL:=https://storage.googleapis.com/grok-build-public-artifacts/cli}"
+    _grp_tmp=$(util_mktemp ptr)
+    if [ -z "${_grp_tmp}" ]; then
+        return 1
+    fi
     for _grp_base in "${GROK_VENDOR_BASE_URL}" "${GROK_VENDOR_FALLBACK_URL}"; do
-        _grp_probe=$(curl -fsSL "${_grp_base}/${_grp_channel}" 2>/dev/null) || _grp_probe=""
-        _grp_ver=$(printf '%s' "${_grp_probe}" | tr -d '\r' | head -n1 | tr -d '[:space:]')
-        if gc_setup_version_ok "${_grp_ver}"; then
-            printf '%s' "${_grp_ver}"
-            return 0
+        if gc_setup_curl_file "${_grp_base}/${_grp_channel}" "${_grp_tmp}"; then
+            _grp_ver=$(tr -d '\r' < "${_grp_tmp}" | head -n1 | tr -d '[:space:]')
+            if gc_setup_version_ok "${_grp_ver}"; then
+                rm -f "${_grp_tmp}"
+                GC_SETUP_POINTER="${_grp_ver}"
+                unset _grp_channel _grp_tmp _grp_base _grp_ver
+                return 0
+            fi
+            GC_SETUP_CURL_DETAIL="HTTP ${GC_SETUP_CURL_HTTP:-?} invalid version pointer"
         fi
     done
-    printf ''
+    rm -f "${_grp_tmp}"
+    unset _grp_channel _grp_tmp _grp_base _grp_ver
     return 1
 }
 
@@ -2212,11 +2347,88 @@ gc_setup_path_symlink() {
 # =============================================================================
 # gc_setup_host_is_android() - 0 when uname reports Android (Termux)
 # =============================================================================
+#
+# ALIGNMENT: requirement-shell-termux-coding.md · requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
 gc_setup_host_is_android() {
     case "$(uname -a 2>/dev/null) $(uname -o 2>/dev/null)" in
         *Android*) return 0 ;;
     esac
     return 1
+}
+
+# =============================================================================
+# gc_setup_termux_exec_off() - unset Termux LD_PRELOAD for one exec
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# termux-exec (LD_PRELOAD) rewrites execve through linker64, which
+# refuses ET_EXEC. Save and clear it; pair with gc_setup_termux_exec_restore.
+# Also used before proot (Termux wiki: proot under libtermux-exec fails).
+#
+# ALIGNMENT: requirement-grok-setup.md · requirement-shell-termux-coding.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_termux_exec_off() {
+    GC_SETUP_LD_SET=0
+    if [ "${LD_PRELOAD+x}" = "x" ]; then
+        GC_SETUP_LD_SET=1
+        GC_SETUP_LD="${LD_PRELOAD}"
+    fi
+    GC_SETUP_OPT_SET=0
+    if [ "${TERMUX_EXEC_OPTOUT+x}" = "x" ]; then
+        GC_SETUP_OPT_SET=1
+        GC_SETUP_OPT="${TERMUX_EXEC_OPTOUT}"
+    fi
+    unset LD_PRELOAD
+    TERMUX_EXEC_OPTOUT=1
+    export TERMUX_EXEC_OPTOUT
+    return 0
+}
+
+# =============================================================================
+# gc_setup_termux_exec_restore() - restore LD_PRELOAD after a smoke exec
+# =============================================================================
+gc_setup_termux_exec_restore() {
+    if [ "${GC_SETUP_LD_SET:-0}" -eq 1 ]; then
+        LD_PRELOAD="${GC_SETUP_LD}"
+        export LD_PRELOAD
+    fi
+    if [ "${GC_SETUP_OPT_SET:-0}" -eq 1 ]; then
+        TERMUX_EXEC_OPTOUT="${GC_SETUP_OPT}"
+        export TERMUX_EXEC_OPTOUT
+    else
+        unset TERMUX_EXEC_OPTOUT
+    fi
+    return 0
+}
+
+# =============================================================================
+# gc_setup_keep_failed_download() - leave smoked file as grok-*.failed
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# On Android ET_EXEC refusal, do not rm the mktemp sibling. Rename it
+# to downloads/grok-{{os}}-{{arch}}.failed so ls ~/.grok/downloads shows it.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_keep_failed_download() {
+    _gkf_src="${1:-}"
+    _gkf_dir="${2:-}"
+    _gkf_plat="${3:-}"
+    GC_SETUP_FAILED_PATH=""
+    if [ -z "${_gkf_src}" ] || [ ! -f "${_gkf_src}" ] || [ -z "${_gkf_dir}" ] || [ -z "${_gkf_plat}" ]; then
+        return 1
+    fi
+    _gkf_dest="${_gkf_dir}/grok-${_gkf_plat}.failed"
+    mv -f "${_gkf_src}" "${_gkf_dest}" || return 1
+    chmod 0755 "${_gkf_dest}" 2>/dev/null || true
+    GC_SETUP_FAILED_PATH="${_gkf_dest}"
+    unset _gkf_src _gkf_dir _gkf_plat _gkf_dest
+    return 0
 }
 
 # =============================================================================
@@ -2227,11 +2439,15 @@ gc_setup_host_is_android() {
 # Smoke the artifact in place. On failure, set GC_SETUP_SMOKE_DETAIL to a
 # short "exit N: stderr" line for the operator error. Cache/tmp may be
 # noexec; the caller MUST pass a path under GROK_HOME/downloads.
+# $2 = direct (default) | optout | proot. optout unsets LD_PRELOAD and
+# sets TERMUX_EXEC_OPTOUT so Termux does not load ET_EXEC via linker64.
 #
 # ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
 # =============================================================================
 gc_setup_smoke_version() {
     _gsv_bin="${1:-}"
+    _gsv_how="${2:-direct}"
     GC_SETUP_SMOKE_DETAIL=""
     if [ -z "${_gsv_bin}" ] || [ ! -f "${_gsv_bin}" ]; then
         GC_SETUP_SMOKE_DETAIL="file missing"
@@ -2242,11 +2458,35 @@ gc_setup_smoke_version() {
         GC_SETUP_SMOKE_DETAIL="could not capture smoke output"
         return 1
     fi
-    "${_gsv_bin}" --version </dev/null >"${_gsv_out}" 2>&1
-    _gsv_ec=$?
+    _gsv_ec=1
+    case "${_gsv_how}" in
+        optout)
+            gc_setup_termux_exec_off
+            "${_gsv_bin}" --version </dev/null >"${_gsv_out}" 2>&1
+            _gsv_ec=$?
+            gc_setup_termux_exec_restore
+            ;;
+        proot)
+            _gsv_proot=$(command -v proot 2>/dev/null || true)
+            if [ -z "${_gsv_proot}" ]; then
+                rm -f "${_gsv_out}"
+                GC_SETUP_SMOKE_DETAIL="proot not on PATH"
+                unset _gsv_bin _gsv_how _gsv_out _gsv_ec _gsv_proot
+                return 1
+            fi
+            gc_setup_termux_exec_off
+            "${_gsv_proot}" "${_gsv_bin}" --version </dev/null >"${_gsv_out}" 2>&1
+            _gsv_ec=$?
+            gc_setup_termux_exec_restore
+            ;;
+        *)
+            "${_gsv_bin}" --version </dev/null >"${_gsv_out}" 2>&1
+            _gsv_ec=$?
+            ;;
+    esac
     if [ "${_gsv_ec}" -eq 0 ]; then
         rm -f "${_gsv_out}"
-        unset _gsv_bin _gsv_out _gsv_ec
+        unset _gsv_bin _gsv_how _gsv_out _gsv_ec _gsv_ld_set _gsv_ld _gsv_opt_set _gsv_opt _gsv_proot
         return 0
     fi
     _gsv_txt=$(tr '\n' ' ' < "${_gsv_out}" 2>/dev/null | cut -c1-200)
@@ -2255,8 +2495,346 @@ gc_setup_smoke_version() {
     if [ -n "${_gsv_txt}" ]; then
         GC_SETUP_SMOKE_DETAIL="${GC_SETUP_SMOKE_DETAIL}: ${_gsv_txt}"
     fi
-    unset _gsv_bin _gsv_out _gsv_ec _gsv_txt
+    unset _gsv_bin _gsv_how _gsv_out _gsv_ec _gsv_txt _gsv_ld_set _gsv_ld _gsv_opt_set _gsv_opt _gsv_proot
     return 1
+}
+
+# =============================================================================
+# gc_setup_ensure_termux_proot() - Type 0: pkg install -y proot on Termux
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# When Android/Termux cannot exec the vendor grok and proot is missing,
+# install it with Termux pkg (no sudo, -y, stdin closed). MUST NOT run
+# pkg on non-Android (FreeBSD pkg is a different tool). A failed install
+# is not a setup fatal — caller retries smoke and uses the e_type Next.
+#
+# ALIGNMENT: requirement-grok-setup.md · requirement-shell-termux-coding.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_ensure_termux_proot() {
+    : "${APP_NAME:=grok-cli}"
+    if command -v proot >/dev/null 2>&1; then
+        return 0
+    fi
+    if ! gc_setup_host_is_android; then
+        return 1
+    fi
+    _gep_pkg=""
+    if [ -n "${PREFIX:-}" ] && [ -x "${PREFIX}/bin/pkg" ]; then
+        _gep_pkg="${PREFIX}/bin/pkg"
+    else
+        _gep_pkg=$(command -v pkg 2>/dev/null || true)
+    fi
+    if [ -z "${_gep_pkg}" ]; then
+        unset _gep_pkg
+        return 1
+    fi
+    out_info "This Termux host needs proot to run grok. Installing proot with pkg install -y proot."
+    _gep_df_set=0
+    if [ "${DEBIAN_FRONTEND+x}" = "x" ]; then
+        _gep_df_set=1
+        _gep_df="${DEBIAN_FRONTEND}"
+    fi
+    DEBIAN_FRONTEND=noninteractive
+    export DEBIAN_FRONTEND
+    _gep_pkg_out=$(util_mktemp pkgout)
+    "${_gep_pkg}" install -y proot </dev/null >"${_gep_pkg_out}" 2>&1
+    _gep_pkg_ec=$?
+    if [ "${_gep_pkg_ec}" -ne 0 ]; then
+        _gep_snip=$(tr '\n' ' ' < "${_gep_pkg_out}" 2>/dev/null | cut -c1-200)
+        rm -f "${_gep_pkg_out}"
+        if [ -n "${_gep_snip}" ]; then
+            out_warn "pkg install -y proot failed (exit ${_gep_pkg_ec}: ${_gep_snip}). Continuing without a new proot."
+        else
+            out_warn "pkg install -y proot failed (exit ${_gep_pkg_ec}). Continuing without a new proot."
+        fi
+    else
+        rm -f "${_gep_pkg_out}"
+    fi
+    if [ "${_gep_df_set}" -eq 1 ]; then
+        DEBIAN_FRONTEND="${_gep_df}"
+        export DEBIAN_FRONTEND
+    else
+        unset DEBIAN_FRONTEND
+    fi
+    if [ -n "${PREFIX:-}" ] && [ -x "${PREFIX}/bin/proot" ]; then
+        case ":${PATH}:" in
+            *":${PREFIX}/bin:"*) ;;
+            *)
+                PATH="${PREFIX}/bin:${PATH}"
+                export PATH
+                ;;
+        esac
+    fi
+    unset _gep_pkg _gep_df_set _gep_df
+    if command -v proot >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
+# =============================================================================
+# gc_setup_smoke_android() - retry --version via Termux opt-out or proot
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Direct exec of xAI's linux-aarch64 grok fails on many Termux hosts
+# (Android linker64: unexpected e_type 2 / ET_EXEC). Retry without
+# libtermux-exec; if that fails and proot is missing, pkg install -y
+# proot on Termux, then smoke via proot. Sets GC_SETUP_SMOKE_METHOD
+# on success. MUST NOT byte-patch the vendor file.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_smoke_android() {
+    _gsa_bin="${1:-}"
+    GC_SETUP_SMOKE_METHOD=""
+    if gc_setup_smoke_version "${_gsa_bin}" optout; then
+        GC_SETUP_SMOKE_METHOD="optout"
+        unset _gsa_bin
+        return 0
+    fi
+    if ! command -v proot >/dev/null 2>&1; then
+        gc_setup_ensure_termux_proot
+    fi
+    if command -v proot >/dev/null 2>&1; then
+        if gc_setup_smoke_version "${_gsa_bin}" proot; then
+            GC_SETUP_SMOKE_METHOD="proot"
+            unset _gsa_bin
+            return 0
+        fi
+    fi
+    unset _gsa_bin
+    return 1
+}
+
+# =============================================================================
+# gc_setup_write_exec_wrapper() - POSIX launcher for Android ET_EXEC grok
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Write bin/grok as a small /bin/sh wrapper that execs the unmodified
+# vendor file with TERMUX_EXEC_OPTOUT or proot. Absolute vendor path so
+# ~/.local/bin/grok → ~/.grok/bin/grok still finds downloads/.
+#
+# $1 = wrapper path; $2 = vendor file; $3 = optout | proot
+# $4 = optional resolv.conf to bind at /etc/resolv.conf via proot -b
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_write_exec_wrapper() {
+    _gew_path="${1:-}"
+    _gew_vendor="${2:-}"
+    _gew_method="${3:-optout}"
+    _gew_resolv="${4:-}"
+    if [ -z "${_gew_path}" ] || [ -z "${_gew_vendor}" ]; then
+        return 1
+    fi
+    case "${_gew_vendor}" in
+        *"'"*)
+            if ! command -v sed >/dev/null 2>&1; then
+                unset _gew_path _gew_vendor _gew_method
+                return 1
+            fi
+            _gew_q="'$(printf '%s' "${_gew_vendor}" | sed "s/'/'\\\\''/g")'"
+            ;;
+        *)
+            _gew_q="'${_gew_vendor}'"
+            ;;
+    esac
+    if [ "${_gew_method}" = "proot" ]; then
+        _gew_bind=""
+        if [ -n "${_gew_resolv}" ]; then
+            case "${_gew_resolv}" in
+                *"'"*)
+                    if command -v sed >/dev/null 2>&1; then
+                        _gew_rq="'$(printf '%s' "${_gew_resolv}" | sed "s/'/'\\\\''/g")'"
+                    else
+                        _gew_rq="'${_gew_resolv}'"
+                    fi
+                    ;;
+                *)
+                    _gew_rq="'${_gew_resolv}'"
+                    ;;
+            esac
+            _gew_bind="-b ${_gew_rq}:/etc/resolv.conf "
+        fi
+        cat > "${_gew_path}" <<EOF
+#!/bin/sh
+unset LD_PRELOAD
+TERMUX_EXEC_OPTOUT=1
+export TERMUX_EXEC_OPTOUT
+_g=${_gew_q}
+_p=\$(command -v proot 2>/dev/null || true)
+if [ -z "\${_p}" ]; then
+  printf '%s\\n' "proot is not on PATH, so grok cannot run on this Android host. Next: pkg install proot" >&2
+  exit 127
+fi
+exec "\${_p}" ${_gew_bind}"\${_g}" "\$@"
+EOF
+    else
+        cat > "${_gew_path}" <<EOF
+#!/bin/sh
+unset LD_PRELOAD
+TERMUX_EXEC_OPTOUT=1
+export TERMUX_EXEC_OPTOUT
+exec ${_gew_q} "\$@"
+EOF
+    fi
+    if [ ! -s "${_gew_path}" ]; then
+        unset _gew_path _gew_vendor _gew_method _gew_q
+        return 1
+    fi
+    chmod 0755 "${_gew_path}" || return 1
+    unset _gew_path _gew_vendor _gew_method _gew_q _gew_resolv _gew_bind _gew_rq
+    return 0
+}
+
+# =============================================================================
+# gc_setup_place_android_wrapper() - vendor file + POSIX grok/agent wrapper
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Move the smoked download into downloads/grok-{{os}}-{{arch}} and write
+# bin/grok as an exec wrapper (rule 18c). Does not patch vendor bytes.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_place_android_wrapper() {
+    _gpa_src="${1:-}"
+    _gpa_download_dir="${2:-}"
+    _gpa_bin_dir="${3:-}"
+    _gpa_platform="${4:-}"
+    _gpa_method="${5:-optout}"
+    _gpa_final="${_gpa_download_dir}/grok-${_gpa_platform}"
+    mkdir -p "${_gpa_download_dir}" "${_gpa_bin_dir}" || return 1
+    mv -f "${_gpa_src}" "${_gpa_final}" || return 1
+    chmod 0755 "${_gpa_final}" || return 1
+    if ! gc_setup_write_exec_wrapper "${_gpa_bin_dir}/grok" "${_gpa_final}" "${_gpa_method}"; then
+        return 1
+    fi
+    ln -sf grok "${_gpa_bin_dir}/agent" || return 1
+    unset _gpa_src _gpa_download_dir _gpa_bin_dir _gpa_platform _gpa_method _gpa_final
+    return 0
+}
+
+# =============================================================================
+# gc_setup_host_resolv_ok() - 0 if probe resolv has a nameserver line
+# =============================================================================
+gc_setup_host_resolv_ok() {
+    : "${GROK_SETUP_RESOLV_FILE:=/etc/resolv.conf}"
+    if [ -s "${GROK_SETUP_RESOLV_FILE}" ] && grep -q '^nameserver' "${GROK_SETUP_RESOLV_FILE}" 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
+# =============================================================================
+# gc_setup_write_resolv_conf() - nameserver file for musl via proot bind
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Static vendor grok (musl) reads /etc/resolv.conf. Termux /etc has no
+# nameserver. Write GROK_HOME/resolv.conf without patching the binary.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_write_resolv_conf() {
+    _grc_dest="${1:-}"
+    if [ -z "${_grc_dest}" ]; then
+        return 1
+    fi
+    _grc_tmp=$(util_mktemp resolv)
+    if [ -z "${_grc_tmp}" ]; then
+        return 1
+    fi
+    : > "${_grc_tmp}"
+    if [ -n "${PREFIX:-}" ] && [ -f "${PREFIX}/etc/resolv.conf" ]; then
+        grep '^nameserver' "${PREFIX}/etc/resolv.conf" >> "${_grc_tmp}" 2>/dev/null || true
+    fi
+    if ! grep -q '^nameserver' "${_grc_tmp}" 2>/dev/null; then
+        if command -v getprop >/dev/null 2>&1; then
+            _grc_d1=$(getprop net.dns1 2>/dev/null || true)
+            _grc_d2=$(getprop net.dns2 2>/dev/null || true)
+            if [ -n "${_grc_d1}" ]; then
+                printf 'nameserver %s\n' "${_grc_d1}" >> "${_grc_tmp}"
+            fi
+            if [ -n "${_grc_d2}" ]; then
+                printf 'nameserver %s\n' "${_grc_d2}" >> "${_grc_tmp}"
+            fi
+        fi
+    fi
+    if ! grep -q '^nameserver' "${_grc_tmp}" 2>/dev/null; then
+        printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' >> "${_grc_tmp}"
+    fi
+    mv -f "${_grc_tmp}" "${_grc_dest}" || return 1
+    chmod 0644 "${_grc_dest}" 2>/dev/null || true
+    unset _grc_dest _grc_tmp _grc_d1 _grc_d2
+    return 0
+}
+
+# =============================================================================
+# gc_setup_maybe_android_dns() - bind GROK_HOME/resolv.conf via proot
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# After Android place, if the host resolv probe has no nameserver, write
+# a resolv file and rewrite bin/grok to proot -b that file over
+# /etc/resolv.conf so grok login can resolve auth.x.ai.
+#
+# $1 = vendor file; $2 = bin dir; $3 = grok home
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-04
+# =============================================================================
+gc_setup_maybe_android_dns() {
+    _gad_vendor="${1:-}"
+    _gad_bin_dir="${2:-}"
+    _gad_home="${3:-}"
+    : "${APP_NAME:=grok-cli}"
+    if [ -z "${_gad_vendor}" ] || [ ! -f "${_gad_vendor}" ] || [ -z "${_gad_bin_dir}" ] || [ -z "${_gad_home}" ]; then
+        return 0
+    fi
+    if ! gc_setup_host_is_android; then
+        return 0
+    fi
+    if gc_setup_host_resolv_ok; then
+        unset _gad_vendor _gad_bin_dir _gad_home
+        return 0
+    fi
+    _gad_resolv="${_gad_home}/resolv.conf"
+    if ! gc_setup_write_resolv_conf "${_gad_resolv}"; then
+        out_info "This host has no usable /etc/resolv.conf, so grok may fail DNS (common on Termux). Next: export XAI_API_KEY, or grok login from a host with working DNS."
+        unset _gad_vendor _gad_bin_dir _gad_home _gad_resolv
+        return 0
+    fi
+    if ! command -v proot >/dev/null 2>&1; then
+        gc_setup_ensure_termux_proot
+    fi
+    if ! command -v proot >/dev/null 2>&1; then
+        out_info "Wrote ${_gad_resolv}, but proot is not on PATH so grok cannot bind it over /etc/resolv.conf. grok login may fail DNS. Next: pkg install proot, then ${APP_NAME} setup --force, or export XAI_API_KEY."
+        unset _gad_vendor _gad_bin_dir _gad_home _gad_resolv
+        return 0
+    fi
+    if ! gc_setup_smoke_version "${_gad_vendor}" proot; then
+        out_info "Wrote ${_gad_resolv}, but proot cannot run grok here. grok login may fail DNS. Next: export XAI_API_KEY, or grok login from a host with working DNS."
+        unset _gad_vendor _gad_bin_dir _gad_home _gad_resolv
+        return 0
+    fi
+    if ! gc_setup_write_exec_wrapper "${_gad_bin_dir}/grok" "${_gad_vendor}" proot "${_gad_resolv}"; then
+        out_info "Wrote ${_gad_resolv}, but could not rewrite the grok wrapper. Next: export XAI_API_KEY, or grok login from a host with working DNS."
+        unset _gad_vendor _gad_bin_dir _gad_home _gad_resolv
+        return 0
+    fi
+    ln -sf grok "${_gad_bin_dir}/agent" 2>/dev/null || true
+    out_info "Bound ${_gad_resolv} over /etc/resolv.conf via proot so grok can resolve auth.x.ai (vendor binary unchanged)."
+    unset _gad_vendor _gad_bin_dir _gad_home _gad_resolv
+    return 0
 }
 
 # =============================================================================
@@ -2281,17 +2859,21 @@ gc_setup_maybe_bashrc() {
 # GENERAL PURPOSE:
 # Detect platform, fetch the channel version pointer, download
 # grok-{version}-{os}-{arch} into GROK_HOME/downloads (not cache/tmp),
-# smoke --version there, and link ~/.grok/bin/grok (and agent). MUST NOT
-# download or exec install.sh. MUST NOT require bash. Skip if grok is
-# already present unless --force. grok on disk is success even when this
-# session's PATH is stale.
+# refuse a wrong ELF machine, smoke --version there, and link
+# ~/.grok/bin/grok (and agent). On Android, retry ET_EXEC via
+# TERMUX_EXEC_OPTOUT, Termux pkg install -y proot when missing, or
+# proot, and place a wrapper — do not byte-patch.
+# MUST NOT download or exec install.sh. MUST NOT require bash. Skip if
+# grok already runs on this host unless --force. An x86_64 file copied
+# onto aarch64 Termux is not a skip. grok on disk is success even when
+# this session's PATH is stale.
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
 # - requirement-shell-cli-interface.md
 # - requirement-operator-readable-error.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-04
 # =============================================================================
 gc_setup() {
     : "${APP_NAME:=grok-cli}"
@@ -2304,21 +2886,31 @@ gc_setup() {
     : "${USER_BIN:=${HOME}/.local/bin}"
 
     _peer=$(gc_resolve_grok_peer)
+    _host_platform=$(gc_setup_detect_platform) || _host_platform=""
+    _host_arch=""
+    if [ -n "${_host_platform}" ]; then
+        _host_arch="${_host_platform#*-}"
+    fi
     if [ -n "${_peer}" ] && [ "${FORCE}" -ne 1 ]; then
-        out_success "grok is already installed at ${_peer}."
-        gc_setup_print_next "${_peer}"
-        if [ "${JSON}" -eq 1 ]; then
-            _on_path="false"
-            gc_peer_on_current_path && _on_path="true"
-            out_json "setup" "grok is already installed at ${_peer}." \
-                "app" "${APP_NAME}" \
-                "status" "already_installed" \
-                "peer" "${GROK_PEER_NAME}" \
-                "peer_path" "${_peer}" \
-                "on_path" "${_on_path}" \
-                "vendor_base" "${GROK_VENDOR_BASE_URL}"
+        if gc_setup_peer_usable "${_peer}" "${_host_arch}"; then
+            out_success "grok is already installed at ${_peer}."
+            gc_setup_print_next "${_peer}"
+            if [ "${JSON}" -eq 1 ]; then
+                _on_path="false"
+                gc_peer_on_current_path && _on_path="true"
+                out_json "setup" "grok is already installed at ${_peer}." \
+                    "app" "${APP_NAME}" \
+                    "status" "already_installed" \
+                    "peer" "${GROK_PEER_NAME}" \
+                    "peer_path" "${_peer}" \
+                    "on_path" "${_on_path}" \
+                    "vendor_base" "${GROK_VENDOR_BASE_URL}"
+            fi
+            return 0
         fi
-        return 0
+        if [ -n "${GC_SETUP_PEER_UNUSABLE:-}" ]; then
+            out_info "Existing grok at ${_peer} cannot run on this host (${GC_SETUP_PEER_UNUSABLE}). Fetching a matching grok."
+        fi
     fi
 
     if ! command -v curl >/dev/null 2>&1; then
@@ -2335,10 +2927,15 @@ gc_setup() {
             ;;
     esac
 
-    _platform=$(gc_setup_detect_platform) || _platform=""
+    if [ -n "${_host_platform}" ]; then
+        _platform="${_host_platform}"
+    else
+        _platform=$(gc_setup_detect_platform) || _platform=""
+    fi
     if [ -z "${_platform}" ]; then
         out_die "Unsupported OS or architecture ($(uname -s)/$(uname -m)). Next: use linux or macos on x86_64 or aarch64, then ${APP_NAME} setup."
     fi
+    _want_arch="${_platform#*-}"
 
     if [ -n "${GROK_SETUP_VERSION:-}" ]; then
         if ! gc_setup_version_ok "${GROK_SETUP_VERSION}"; then
@@ -2347,8 +2944,17 @@ gc_setup() {
         _version="${GROK_SETUP_VERSION}"
     else
         out_info "Fetching latest ${GROK_CHANNEL} grok version from ${GROK_VENDOR_BASE_URL}"
-        _version=$(gc_setup_read_pointer "${GROK_CHANNEL}") || _version=""
+        GC_SETUP_POINTER=""
+        if gc_setup_read_pointer "${GROK_CHANNEL}"; then
+            _version="${GC_SETUP_POINTER}"
+        else
+            _version=""
+        fi
         if [ -z "${_version}" ]; then
+            _ptr_det="${GC_SETUP_CURL_DETAIL:-}"
+            if [ -n "${_ptr_det}" ]; then
+                out_die "Download of the grok version pointer failed (${_ptr_det} from ${GROK_VENDOR_BASE_URL}/${GROK_CHANNEL}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
+            fi
             out_die "Download of the grok version pointer failed (${GROK_VENDOR_BASE_URL}/${GROK_CHANNEL}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
         fi
     fi
@@ -2372,32 +2978,77 @@ gc_setup() {
     out_info "Downloading grok ${_version} (${_platform})"
     if ! gc_setup_fetch_artifact "${_version}" "${_platform}" "${_tmp}"; then
         rm -f "${_tmp}"
+        _bin_det="${GC_SETUP_CURL_DETAIL:-}"
+        if [ -n "${_bin_det}" ]; then
+            out_die "Download of the grok binary failed (${_bin_det} for grok-${_version}-${_platform}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
+        fi
         out_die "Download of the grok binary failed (grok-${_version}-${_platform}). This did not install ${APP_NAME}. Next: check network to x.ai, then ${APP_NAME} setup."
     fi
     if ! chmod 0755 "${_tmp}"; then
         rm -f "${_tmp}"
         out_die "Could not chmod the downloaded grok under ${_download_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
     fi
-    if ! gc_setup_smoke_version "${_tmp}"; then
-        _smoke_msg="The downloaded grok failed to run --version"
-        if [ -n "${GC_SETUP_SMOKE_DETAIL:-}" ]; then
-            _smoke_msg="${_smoke_msg} (${GC_SETUP_SMOKE_DETAIL})"
-        fi
-        _smoke_msg="${_smoke_msg}."
-        if gc_setup_host_is_android; then
-            _smoke_msg="${_smoke_msg} This Android host must execute the vendor ${_platform} binary as-is."
-        fi
+    _got_elf=$(gc_setup_elf_arch "${_tmp}") || _got_elf=""
+    if [ -n "${_got_elf}" ] && [ -n "${_want_arch}" ] && [ "${_got_elf}" != "${_want_arch}" ]; then
         rm -f "${_tmp}"
-        out_die "${_smoke_msg} This did not install ${APP_NAME}. Next: check the download, then ${APP_NAME} setup."
+        out_die "The downloaded grok is the wrong architecture (${_got_elf} ELF, this host needs ${_want_arch} / ${_platform}). This did not install ${APP_NAME}. Next: run ${APP_NAME} setup --force on this device (do not scp grok from an x86_64 host onto aarch64 Termux), then ${APP_NAME} setup."
     fi
-    if ! gc_setup_place_links "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}"; then
-        rm -f "${_tmp}"
-        out_die "Could not place grok under ${_bin_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
+    GC_SETUP_SMOKE_METHOD="direct"
+    if ! gc_setup_smoke_version "${_tmp}"; then
+        _smoke_detail="${GC_SETUP_SMOKE_DETAIL:-}"
+        case "${_smoke_detail}" in
+            *EM_X86_64*|*EM_AARCH64*|*EM_X86*)
+                rm -f "${_tmp}"
+                out_die "The downloaded grok is the wrong architecture for this host (${_smoke_detail}). This did not install ${APP_NAME}. Next: run ${APP_NAME} setup --force on this device (do not scp grok from an x86_64 host onto aarch64 Termux), then ${APP_NAME} setup."
+                ;;
+        esac
+        if gc_setup_host_is_android; then
+            if gc_setup_smoke_android "${_tmp}"; then
+                out_info "This Android host cannot run the vendor grok file directly; ${APP_NAME} will place a wrapper under ${_bin_dir} (vendor binary unchanged)."
+            else
+                _smoke_msg="The downloaded grok is a static Linux executable that this Android host refused to run"
+                if [ -n "${GC_SETUP_SMOKE_DETAIL:-}" ]; then
+                    _smoke_msg="${_smoke_msg} (${GC_SETUP_SMOKE_DETAIL})"
+                elif [ -n "${_smoke_detail}" ]; then
+                    _smoke_msg="${_smoke_msg} (${_smoke_detail})"
+                fi
+                if gc_setup_keep_failed_download "${_tmp}" "${_download_dir}" "${_platform}"; then
+                    _kept="${GC_SETUP_FAILED_PATH}"
+                else
+                    _kept="${_tmp}"
+                fi
+                out_die "${_smoke_msg}. Left the file at ${_kept}. This did not install ${APP_NAME}. Next: pkg install proot, then ${APP_NAME} setup --force (or run grok on a Linux host)."
+            fi
+        else
+            _smoke_msg="The downloaded grok failed to run --version"
+            if [ -n "${_smoke_detail}" ]; then
+                _smoke_msg="${_smoke_msg} (${_smoke_detail})"
+            fi
+            rm -f "${_tmp}"
+            out_die "${_smoke_msg}. This did not install ${APP_NAME}. Next: check the download, then ${APP_NAME} setup."
+        fi
+    fi
+    if [ "${GC_SETUP_SMOKE_METHOD}" = "optout" ] || [ "${GC_SETUP_SMOKE_METHOD}" = "proot" ]; then
+        if ! gc_setup_place_android_wrapper "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}" "${GC_SETUP_SMOKE_METHOD}"; then
+            rm -f "${_tmp}"
+            out_die "Could not place grok under ${_bin_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
+        fi
+    else
+        if ! gc_setup_place_links "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}"; then
+            rm -f "${_tmp}"
+            out_die "Could not place grok under ${_bin_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
+        fi
     fi
     gc_setup_path_symlink "${_bin_dir}"
     gc_setup_maybe_bashrc "${_bin_dir}"
-    if [ ! -s /etc/resolv.conf ] || ! grep -q '^nameserver' /etc/resolv.conf 2>/dev/null; then
-        out_info "This host has no usable /etc/resolv.conf, so grok may fail DNS (common on Termux). Next: export XAI_API_KEY, or grok login from a host with working DNS."
+    _placed_vendor="${_download_dir}/grok-${_platform}"
+    if [ -f "${_placed_vendor}" ]; then
+        gc_setup_maybe_android_dns "${_placed_vendor}" "${_bin_dir}" "${_home_grok}"
+    fi
+    if ! gc_setup_host_is_android; then
+        if ! gc_setup_host_resolv_ok; then
+            out_info "This host has no usable /etc/resolv.conf, so grok may fail DNS (common on Termux). Next: export XAI_API_KEY, or grok login from a host with working DNS."
+        fi
     fi
 
     _peer=$(gc_resolve_grok_peer)
@@ -5217,7 +5868,7 @@ app_help() {
     out_plain "  main                 Same as menu (also empty argv on a TTY)"
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
-    out_plain "  setup                Install grok from x.ai (channel + artifact; skip if present)"
+    out_plain "  setup                Install grok from x.ai (channel + artifact; skip if grok already runs here)"
     out_plain "  check-session        Confirm grok is logged in"
     out_plain "  backup               Push ~/.grok/auth.* to ${GROK_CLI_ROOT}/"
     out_plain "                       (checks session first; sudo -n ${GLOBAL_BIN}/${APP_NAME} backup after sudoer-adm grant;"

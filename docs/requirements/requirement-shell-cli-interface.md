@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.7.0)  
+**Status**: Active (Version 2.7.5)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -102,7 +102,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
 | `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
 | `main` | Type 0 | `app_default` (alias) | Same as `menu` |
-| `setup` | Type 0 | `gc_setup` (domain) | Perform the studied xAI grok procedure (platform, channel pointer, artifact, `~/.grok` place) so peer `grok` is installed; **MUST NOT** fetch or exec `install.sh`; skip if already present unless `--force`. Stale session PATH is not an error. **MUST NOT** install grok-cli |
+| `setup` | Type 0 | `gc_setup` (domain) | Perform the studied xAI grok procedure (platform, channel pointer, artifact, `~/.grok` place) so peer `grok` is installed; **MUST NOT** fetch or exec `install.sh`; skip if grok already **runs on this host** unless `--force`. Stale session PATH is not an error. **MUST NOT** install grok-cli |
 | `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in |
 | `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
 | `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo |
@@ -220,7 +220,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have |
-| **TP-VCLI-01..09**, **11**–**16** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01..09**, **11**–**18** | `tests/test_grok_setup.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -243,9 +243,14 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | 2026-09-02 | Active 2.5.0 | `sync-auth-from-remote` Type 0 — four SPEC forms |
 | 2026-09-02 | Active 2.6.0 | `setup` inlines studied xAI procedure; **MUST NOT** fetch or exec `install.sh` |
 | 2026-09-02 | Active 2.7.0 | Dual-mode channel; off-TTY empty argv Type O; `version-check` / `self-update` / `self-uninstall` |
+| 2026-09-04 | Active 2.7.1 | `setup` skip only if grok already runs on this host (dual mention `requirement-grok-setup` 2.2.0) |
+| 2026-09-04 | Active 2.7.2 | `setup` Android ET_EXEC wrapper (dual mention `requirement-grok-setup` 2.3.0) |
+| 2026-09-04 | Active 2.7.3 | `setup` Termux `pkg install -y proot` when needed (dual mention `requirement-grok-setup` 2.4.0) |
+| 2026-09-04 | Active 2.7.4 | `setup` HTTP status on curl fail (dual mention `requirement-grok-setup` 2.5.0) |
+| 2026-09-04 | Active 2.7.5 | `setup` Android proot resolv bind (dual mention `requirement-grok-setup` 2.6.0) |
 
 ---
 
-**Last Updated**: 2026-09-02  
+**Last Updated**: 2026-09-04  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

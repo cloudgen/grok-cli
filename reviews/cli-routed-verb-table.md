@@ -25,7 +25,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | version-check | `ver_check` | you (Type 0) | 2026-09-02 | `version-check: Compare local vs remote VERSION on SCRIPT_URL` |
 | self-update | `inst_self_update` | you (Type 0) | 2026-09-02 | `self-update: Re-download grok-cli from SCRIPT_URL` |
 | self-uninstall | `inst_self_uninstall` | you (Type 0) | 2026-09-02 | `self-uninstall: Same remove as uninstall (channel name)` |
-| setup | `gc_setup` | you (Type 0) | 2026-09-03 | `setup: Install grok from x.ai (channel + artifact; skip if present)` |
+| setup | `gc_setup` | you (Type 0) | 2026-09-04 | `setup: Install grok from x.ai (channel + artifact; skip if grok already runs here)` |
 | print-sudoers | `gc_print_sudoers` | you (Type 0) | 2026-08-14 | `print-sudoers: Emit sudoers draft` |
 | print-sudoers-install-script | `gc_print_sudoers_install_script` | you (Type 0) | 2026-08-09 | `print-sudoers-install-script: Write admin install script` |
 | remove-project-sudoers | `gc_remove_project_sudoers` | you (Type 0) | 2026-08-09 | `remove-project-sudoers: Remove sudoers draft only` |

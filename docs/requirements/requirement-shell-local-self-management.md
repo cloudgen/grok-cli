@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-local-self-management.md  
-**Status**: Active (Version 1.3.0)  
+**Status**: Active (Version 1.3.1)  
 **Area**: shell  
 **Key**: `requirement-shell-local-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -53,6 +53,7 @@ Install copies grok-cli into your bin; uninstall removes that copy. It does not 
 1. Source **MUST** be the currently executing ship unit when resolvable — **not** a URL.  
 2. Target **MUST** be root → `${GLOBAL_BIN}/${APP_NAME}`; non-root → `${USER_BIN}/${APP_NAME}` unless **`--global`** / `FORCE_GLOBAL=1` is set.  
 3. Defaults: `GLOBAL_BIN=/usr/local/bin`; `USER_BIN=${HOME}/.local/bin`.  
+3b. On Termux, missing `${GLOBAL_BIN}` **MUST NOT** fail a non-root `install` to `${USER_BIN}`. **MUST NOT** place grok-cli into `${PREFIX}/bin` as a Termux package (`requirement-shell-termux-coding` / `requirement-project-folder`). `${PREFIX}/bin` is a PATH candidate for peer `grok` only (`requirement-grok-setup`).  
 4. Create target bin dir when missing; fail loud if not writable.  
 5. Atomic place: stage → set mode → `mv` onto final path (or equivalent `install -m`).  
 6. Idempotent: already installed + force off → success no-op **for content**; mode **MUST** still be healed to the required mode when the installer can write the target (see §2.3.1).  
@@ -144,7 +145,8 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 3. Steal empty argv from `requirement-shell-cli-zero-arguments` (TTY menu / off-TTY Type O).  
 4. Delete user data or `/var/backup` content during uninstall.  
 5. Fetch remote version inside `version`.  
-6. Install the managed binary with execute-only group/other bits (`0711` / `chmod +x` after `0600` stage) — **must** keep absolute **`0755`** so global install remains multi-user runnable for a shell ship unit.
+6. Install the managed binary with execute-only group/other bits (`0711` / `chmod +x` after `0600` stage) — **must** keep absolute **`0755`** so global install remains multi-user runnable for a shell ship unit.  
+7. Place grok-cli into `${PREFIX}/bin` as a Termux package, or fail a non-root Termux `install` because `/usr/local/bin` is missing.
 
 **Violating this rule is a critical install-mode regression.**
 
@@ -162,6 +164,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | AC-6 | Installed managed binary mode is **`0755`** (not `0711` / owner-only) after install |
 | AC-7 | Global install is executable by a non-owner account (shell script remains readable) |
 | AC-8 | Re-running `install` without `--force` heals a broken mode (`0700`/`0711` → `0755`) when writable |
+| AC-9 | Non-root install dest is `USER_BIN`; `${PREFIX}/bin` is not grok-cli’s managed path |
 
 ---
 
@@ -171,7 +174,8 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 |-----|--------------|
 | `requirement-shell-cli-interface` | Command table + flags |
 | `requirement-shell-cli-zero-arguments` | TTY menu; off-TTY Type O (not checkout `install`) |
-| `requirement-project-folder` | Path defaults |
+| `requirement-project-folder` | Path defaults including Termux `PREFIX` |
+| `requirement-shell-termux-coding` | Termux: `USER_BIN` install; `PREFIX/bin` not grok-cli dest |
 | `requirement-shell-idempotency` | Already installed / uninstalled |
 | `requirement-bootstrap-chain` | Dual-mode: checkout keep; channel from selfmanaged |
 | `requirement-shell-online-install` | Channel pipe primary |
@@ -197,9 +201,10 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | 2026-08-03 | Active | Local-only lifecycle for folder-backup |
 | 2026-08-09 | Active 1.2.0 | §2.3.1 mode **0755** multi-user; ban `chmod +x`→`0711` trap; AC-6..8; TP-LC-09/10 |
 | 2026-09-02 | Active 1.3.0 | Dual-mode secondary: checkout `install` stays offline; channel owned by online-install |
+| 2026-09-04 | Active 1.3.1 | Termux: missing `GLOBAL_BIN` does not fail user install; `PREFIX/bin` is not grok-cli dest |
 
 ---
 
-**Last Updated**: 2026-09-02  
+**Last Updated**: 2026-09-04  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

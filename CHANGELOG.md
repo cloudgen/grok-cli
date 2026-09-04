@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.7] - 2026-09-04
+
+### Added
+
+- **Termux CLI coding-style law:** `requirement-shell-termux-coding` — how grok-cli is written on Termux/Android (`PREFIX`, Termux `pkg` never sudo, `noexec` tmp, do not assume `/usr/local/bin` or `/var`). Path classes on `requirement-project-folder` **1.2.0**. POSIX coding-style **points** (`requirement-shell-script-coding` **1.1.0**). `setup` procedure stays `requirement-grok-setup` **2.6.1**.
+
+### Fixed
+
+- **`setup` Termux DNS:** vendor grok (musl) reads `/etc/resolv.conf`, which on Termux has no `nameserver`, so `grok login` failed with `dns error` for `auth.x.ai`. Write `~/.grok/resolv.conf` and rewrite the wrapper as `proot -b thatfile:/etc/resolv.conf` (still no vendor byte-patch). If proot cannot bind, INFO still points at `XAI_API_KEY`. Law: `requirement-grok-setup` **2.6.0**. Suite **TP-VCLI-25**.
+
+## [1.8.6] - 2026-09-04
+
+### Fixed
+
+- **`setup` download diagnosis:** curl failures now name **HTTP status** (`HTTP 404`, `HTTP 000` + curl exit). The xAI `linux-aarch64` grok 1.0.13 artifact is a valid static ELF `ET_EXEC` (not a truncated download). On Android `e_type` 2 refusal, leave `~/.grok/downloads/grok-{{os}}-{{arch}}.failed` instead of deleting it. `proot` smoke/wrapper now unsets `LD_PRELOAD` (termux-exec otherwise re-hits `e_type` 2). Law: `requirement-grok-setup` **2.5.0**. Suite **TP-VCLI-19** · **TP-VCLI-21** · **TP-VCLI-24**.
+
+## [1.8.5] - 2026-09-04
+
+### Fixed
+
+- **`setup` on Termux:** when the vendor grok still cannot exec (`e_type` 2) and `proot` is missing, run `pkg install -y proot` (Android + Termux `pkg` only; no sudo; stdin closed) then retry the proot wrapper. Do not call `pkg` on non-Android. A failed `pkg` still fail-closes with Next `pkg install proot`. Law: `requirement-grok-setup` **2.4.0**. Suite **TP-VCLI-22** · **TP-VCLI-23**.
+
+## [1.8.4] - 2026-09-04
+
+### Fixed
+
+- **`setup` on Termux/Android ET_EXEC:** the vendor `linux-aarch64` grok is a static Linux executable (`e_type` 2). Android `linker64` (via termux-exec) refuses it, so `--version` failed even after a correct-arch download. Retry with `TERMUX_EXEC_OPTOUT=1` / `LD_PRELOAD` unset, then `proot` if present; on success place a POSIX wrapper under `~/.grok/bin` (vendor file unchanged). If both fail: Next `pkg install proot`, then `grok-cli setup --force`. Law: `requirement-grok-setup` **2.3.0**. Suite **TP-VCLI-19** · **TP-VCLI-20** · **TP-VCLI-21**.
+
+## [1.8.3] - 2026-09-04
+
+### Fixed
+
+- **`setup` on Termux/aarch64:** do not treat an x86_64 `grok` (execute bit on, `scp` from a linux-x86_64 host) as already installed. Skip only if `grok --version` succeeds on this host; refuse a downloaded ELF whose `e_machine` does not match `uname` (EM_X86_64 vs aarch64). Next: run `grok-cli setup --force` on the phone, do not scp grok from an x86_64 machine. Law: `requirement-grok-setup` **2.2.0**. Suite **TP-VCLI-17** · **TP-VCLI-18**.
+
 ## [1.8.2] - 2026-09-03
 
 ### Changed

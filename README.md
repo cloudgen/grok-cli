@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.2-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.7-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -15,8 +15,8 @@ After `setup`, open a new terminal if `grok` is not on this session’s PATH, th
 
 ## Features
 
-- **Alternative grok install**: `setup` — detect OS/arch, read xAI’s channel version pointer, fetch the matching `grok` artifact, smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder; those may be `noexec` on Termux/Android), place `~/.grok/bin/grok`. Skip if grok already works; `--force` fetches again. POSIX `/bin/sh` (does **not** require bash). Does **not** run `install.sh`. Does **not** byte-patch the vendor binary.
-- **Termux-aware place**: also uses `${PREFIX}/bin` when `PREFIX` is set; missing `/etc/resolv.conf` is INFO, not an install failure when `--version` succeeded.
+- **Alternative grok install**: `setup` — detect OS/arch, read xAI’s channel version pointer, fetch the matching `grok` artifact, smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder; those may be `noexec` on Termux/Android), place `~/.grok/bin/grok`. Skip if grok already **runs on this host**; an x86_64 file copied onto aarch64 Termux is replaced. On Android, if the vendor file is a static `ET_EXEC` that `linker64` refuses, retry with `TERMUX_EXEC_OPTOUT`; if `proot` is missing, `pkg install -y proot` (Termux only), then place a wrapper (still **no** byte-patch). `--force` fetches again. POSIX `/bin/sh` (does **not** require bash). Does **not** run `install.sh`.
+- **Termux-aware place**: also uses `${PREFIX}/bin` when `PREFIX` is set; missing `/etc/resolv.conf` is INFO, not an install failure when `--version` succeeded. If Android still cannot exec grok after that: `pkg install proot`, then `grok-cli setup --force`.
 - **This program’s online install**: `curl|sh` channel, `version-check`, `self-update`, `self-uninstall`
 - **Local self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
 - **Session gate** (after grok is signed in): `check-session`
@@ -41,6 +41,8 @@ grok-cli setup
 ```
 
 Then open a **new terminal** if this session cannot find `grok`, and run `grok login`.
+
+On **Termux (aarch64)** run `grok-cli setup` **on the phone**. `scp` of `~/.grok/bin/grok` from an x86_64 host copies `linux-x86_64` and Termux will reject it (`EM_X86_64` instead of `EM_AARCH64`). `setup` fetches `linux-aarch64` from x.ai; `--force` replaces a copied x86_64 file. If `--version` fails with `unexpected e_type: 2`, setup tries `pkg install -y proot` on Termux and wraps grok. If that still cannot run: `pkg install proot`, then `grok-cli setup --force`.
 
 **Global grok-cli (root):**
 
@@ -102,7 +104,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.2*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.7*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -187,7 +189,7 @@ grok-cli add-crontab
 | Platform | Status |
 |----------|--------|
 | Linux, `/bin/sh` (dash/bash) | Supported |
-| Termux / Android userspace | Supported for **this installer** (`setup` smokes under `~/.grok/downloads`, honors `$PREFIX/bin`, does not require bash). The vendor `linux` `grok` binary must still execute as-is; missing `/etc/resolv.conf` is not an install failure — use `XAI_API_KEY` or a host with working DNS if login fails. **Not** official x.ai Termux support. |
+| Termux / Android userspace | Supported for **this installer** (`setup` smokes under `~/.grok/downloads`, honors `$PREFIX/bin`, does not require bash). Vendor `linux-aarch64` grok is often `ET_EXEC`; setup retries `TERMUX_EXEC_OPTOUT`, may `pkg install -y proot`, and may place a wrapper without patching the file. Missing `/etc/resolv.conf` is not an install failure — use `XAI_API_KEY` or a host with working DNS if login fails. **Not** official x.ai Termux support. |
 | `python3` (optional) | Used for JSON session parse when present |
 | `sudo` + narrow sudoers | Required only for non-root `backup` into `/var/grok-cli` |
 | macOS | `setup` follows xAI’s Darwin/arch detect; GNU `date -d` / `stat -c` assumptions may differ for other verbs |
@@ -212,6 +214,11 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-04 — version **1.8.7**: `setup` on Termux binds `~/.grok/resolv.conf` over `/etc/resolv.conf` via proot so `grok login` can resolve auth.x.ai.  
+2026-09-04 — version **1.8.6**: `setup` curl failures name HTTP status; Android `e_type` 2 keeps `grok-*.failed`; `proot` unsets `LD_PRELOAD`.  
+2026-09-04 — version **1.8.5**: `setup` on Termux runs `pkg install -y proot` when grok still cannot exec and `proot` is missing.  
+2026-09-04 — version **1.8.4**: `setup` on Termux retries Android `e_type` 2 via TERMUX_EXEC_OPTOUT / `proot` and places a wrapper; Next is `pkg install proot` when that still cannot run.  
+2026-09-04 — version **1.8.3**: `setup` skips only if grok **runs on this host**; refuses a wrong ELF (do not scp x86_64 grok onto aarch64 Termux).  
 2026-09-03 — README rewritten for the installer intention (alternative to x.ai `install.sh`; Termux-friendly `setup`; auth backup is optional later work). Version **1.8.2**.  
 2026-09-03 — version **1.8.2**: main-menu short desc is **Alternative online installer for xAI grok**.  
 2026-09-03 — version **1.8.1**: numbered menu descriptions are italic + light gray (SGR 3+37); default CLI main menu style.  

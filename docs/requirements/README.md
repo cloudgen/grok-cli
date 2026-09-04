@@ -18,6 +18,7 @@ Authoritative specialized product law for **grok-cli** lives here.
 | Crontab ops | `requirement-grok-crontab` — `add-crontab` per-login timers |
 | Domain surface | `requirement-domain-grok-cli` — four pillars |
 | Peer grok install | `requirement-grok-setup` — `setup` fetches xAI channel + artifact (does not exec `install.sh`) |
+| Termux host writing | `requirement-shell-termux-coding` — `PREFIX`, Termux `pkg`, `noexec` tmp; folder classes on `requirement-project-folder` |
 | JSON sudoer file | `requirement-sudoer-json-file` — grant is `grok-cli backup` only; no `cp`/`mkdir`/`chmod` |
 
 ## Class requirement gate

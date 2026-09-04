@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.2  
-**Last plan update:** 2026-09-03  
-**Last suite run:** `./tests/run.sh` (1.8.2: PASS=403 FAIL=0 SKIP=0)
+**Product VERSION:** 1.8.7  
+**Last plan update:** 2026-09-04  
+**Last suite run:** `./tests/run.sh` (1.8.7: PASS=466 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -21,6 +21,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Cache folder + persistence storage | have | TP-CLI-12 |
+| Termux/Android host writing (`PREFIX`, `pkg`, `noexec` smoke) | have | TP-VCLI-15..25 · TP-LC-01 |
 | Help lists setup / check-session / backup / sync-auth / sync-auth-from-remote / add-crontab; no restore operand | have | TP-CLI-04 |
 | `setup` grok channel + artifact (fake curl; no `install.sh`) | have | TP-VCLI-01..09 · 11..16 |
 | Local install / idempotent / uninstall / mode 0755 | have | TP-LC-01..10 |
@@ -64,7 +65,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 
 | TP-ID | Intent | Suite | Primary requirement(s) | Status |
 |-------|--------|-------|------------------------|--------|
-| TP-LC-01 | install → USER_BIN | test_local_lifecycle | requirement-shell-local-self-management | **have** |
+| TP-LC-01 | install → USER_BIN | test_local_lifecycle | requirement-shell-local-self-management · requirement-shell-termux-coding | **have** |
 | TP-LC-02 | installed binary version | test_local_lifecycle | local self-management | **have** |
 | TP-LC-03 | reinstall already-installed | test_local_lifecycle | requirement-shell-idempotency | **have** |
 | TP-LC-04 | where-is-me | test_local_lifecycle | local self-management | **have** |
@@ -93,8 +94,17 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-VCLI-12 | binary download fail → fail closed, no USER_BIN PATH hint | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
 | TP-VCLI-13 | curl log MUST NOT contain `install.sh` | test_grok_setup | requirement-grok-setup | **have** |
 | TP-VCLI-14 | curl log contains channel pointer and `grok-` artifact | test_grok_setup | requirement-grok-setup | **have** |
-| TP-VCLI-15 | smoke `--version` runs under `~/.grok/downloads` (not cache/`/tmp`/`/dev/shm`) | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-15 | smoke `--version` runs under `~/.grok/downloads` (not cache/`/tmp`/`/dev/shm`) | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding · requirement-project-folder | **have** |
 | TP-VCLI-16 | smoke `--version` fail → operator-readable Next + captured stderr | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-17 | existing grok that cannot run (wrong arch / exec fail) is not `already_installed`; fetch proceeds | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-18 | downloaded ELF `e_machine` mismatch → fail closed, no place | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-19 | Android `e_type` 2 smoke fail after retries → Next `pkg install proot` (not “check the download”) | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-20 | Android smoke succeeds only with TERMUX_EXEC_OPTOUT → POSIX wrapper; vendor file unchanged | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-21 | Android smoke succeeds only under `proot` → wrapper execs `proot` | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-22 | Termux: opt-out fail, `proot` missing, `pkg` present → `pkg install -y proot` then proot wrapper | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
+| TP-VCLI-23 | Termux `pkg install` fail → fail closed, Next `pkg install proot`, no place | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-24 | artifact HTTP 403 → error names `HTTP 403` | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-25 | Android + no nameserver → `~/.grok/resolv.conf` + wrapper `proot -b …:/etc/resolv.conf` | test_grok_setup | requirement-grok-setup | **have** |
 
 ### TP-ONL (grok-cli channel install)
 

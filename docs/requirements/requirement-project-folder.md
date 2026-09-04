@@ -1,26 +1,28 @@
 **file**: docs/requirements/requirement-project-folder.md  
-**Status**: Active (Version 1.1.2)  
+**Status**: Active (Version 1.2.0)  
 **Area**: architecture  
 **Key**: `requirement-project-folder`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-Define **project folder structure** and path ownership for the grok-cli CLI: source layout, install locations, staging/scratch, and the privileged durable grok-auth deposit root.
+Define **project folder structure** and path ownership for the grok-cli CLI: source layout, install locations, staging/scratch, the privileged durable grok-auth deposit root, and the **Termux / Android prefix tree** (`PREFIX`, `~/.grok`, `noexec` tmp).
 
-**Critical distinction:** CLI tool own paths vs target folders being archived vs host durable backup deposit.
+**Critical distinction:** CLI tool own paths vs target folders being archived vs host durable backup deposit vs Termux prefix (not FHS `/usr`).
+
+**Termux writing rules** (detect, `pkg`, exec) are **`requirement-shell-termux-coding`**. This file owns **path classes**.
 
 ---
 
 ### 1.1 Human-facing
 
-This file says where grok-cli lives: `src/grok-cli`, user/global bins, and `/var/grok-cli` for shared auth.
+This file says where grok-cli lives: `src/grok-cli`, user/global bins, `/var/grok-cli` for shared auth, and on a Termux phone `$PREFIX` plus `~/.grok` for the peer grok program.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Install to `~/.local/bin` or `/usr/local/bin` | Root writes `/var/grok-cli` via `grok-cli backup` | Archiving arbitrary project folders |
+| Install to `~/.local/bin` or `/usr/local/bin`; on Termux also honor `$PREFIX` | Root writes `/var/grok-cli` via `grok-cli backup` | Archiving arbitrary project folders; Termux `pkg` procedure |
 
-**Includes:** ship path, bins, store root. **Excludes:** session parsing.
+**Includes:** ship path, bins, store root, Termux PREFIX tree, `~/.grok` place classes. **Excludes:** session parsing; `pkg` / wrapper writing (`requirement-shell-termux-coding` / `requirement-grok-setup`).
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
@@ -48,6 +50,7 @@ This file says where grok-cli lives: `src/grok-cli`, user/global bins, and `/var
 |------|-------------|---------|
 | **Per-user (normal)** | `${USER_BIN}/${APP_NAME}` | `${HOME}/.local/bin/grok-cli` |
 | **Global (root)** | `${GLOBAL_BIN}/${APP_NAME}` | `/usr/local/bin/grok-cli` |
+| **Termux PATH candidate** | `${PREFIX}/bin` when `PREFIX` is set | **Not** a grok-cli install dest — peer `grok` link + `pkg` only |
 
 Rules:
 
@@ -55,7 +58,8 @@ Rules:
 2. Root **install** **MAY** (and for production elevation **SHOULD**) target global bin.  
 3. **Primary product story** for this project: **user bin** (`~/.local/bin`) for Type 0 day-to-day; **global bin** for multi-user / durable sudoers trust.  
 4. Uninstall **MUST** remove only the managed binary path for the install mode used.  
-5. Managed binary mode **MUST** be **`0755`** after install (shell ship unit: non-owners need **read+execute**; see `requirement-shell-local-self-management` §2.3.1). Global install **MUST** leave a path runnable by normal users and root, not owner-only (`0700`) or execute-without-read (`0711`).
+5. Managed binary mode **MUST** be **`0755`** after install (shell ship unit: non-owners need **read+execute**; see `requirement-shell-local-self-management` §2.3.1). Global install **MUST** leave a path runnable by normal users and root, not owner-only (`0700`) or execute-without-read (`0711`).  
+6. On Termux, missing `${GLOBAL_BIN}` **MUST NOT** fail a non-root grok-cli `install` to `${USER_BIN}`. **MUST NOT** place grok-cli into `${PREFIX}/bin` as if it were a Termux package (`requirement-shell-termux-coding`).
 
 ### 2.3 Scratch / cache (CLI own volatile)
 
@@ -97,21 +101,46 @@ Rules:
 2. The tool **MUST** validate the source is a readable directory before archiving.  
 3. The tool **MUST NOT** follow uncontrolled recursion into dangerous system roots without explicit user path input and validation.
 
-### 2.6 Implementation Notes (this project)
+### 2.6 Termux / Android path classes (mandatory when `PREFIX` is set or `uname` reports Android)
+
+Termux is **not** FHS `/usr`. Path **classes** live here; how code **detects** Android, calls `pkg`, and execs ET_EXEC lives on **`requirement-shell-termux-coding`**. `setup` place/smoke procedure lives on **`requirement-grok-setup`**.
+
+| Class | Path shape | Role |
+|-------|------------|------|
+| Prefix root | `${PREFIX}` when set | Termux userspace (`bin/`, `etc/`). **MUST NOT** hard-code `/data/data/com.termux/files/usr` |
+| Package bin | `${PREFIX}/bin` | `pkg`, `proot`; PATH candidate for peer `grok` |
+| Termux etc | `${PREFIX}/etc` | resolv source when `/etc/resolv.conf` has no `nameserver` |
+| Peer grok home | `${HOME}/.grok` (`GROK_HOME`) | downloads, bin, auth.*, resolv bind file |
+| Exec-capable download | `${GROK_HOME}/downloads` | chmod + smoke `--version` (cache/`/tmp`/`/dev/shm` may be `noexec`) |
+| Peer grok bin | `${GROK_HOME}/bin/grok` | wrapper or relative symlink |
+| grok-cli user bin | `${HOME}/.local/bin` | grok-cli `install` dest for this login |
+| Cache / tmp | `/dev/shm/cache/…`, `/tmp/cache/…` | scratch **only** — **MUST NOT** be the smoke/exec path |
+| Shared deposit | `/var/grok-cli` | often **absent** on unrooted Termux — no substitute here |
+
+Rules:
+
+1. **MUST** document `PREFIX` as an optional live env (Termux sets it).  
+2. **MUST NOT** treat `${PREFIX}/bin` as grok-cli’s managed install path.  
+3. **MUST NOT** use the cache folder, `/tmp`, or `/dev/shm` as the place where a downloaded executable is smoked (`requirement-grok-setup` / `requirement-shell-termux-coding`).  
+4. **MUST NOT** invent a Termux-local `/var/grok-cli` under `${PREFIX}` or `${HOME}` without a new Active requirement.
+
+### 2.7 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
 | **APP_NAME** | `grok-cli` |
 | **Ship unit path** | `src/grok-cli` |
 | **USER_BIN default** | `${HOME}/.local/bin` |
-| **GLOBAL_BIN default** | `/usr/local/bin` |
+| **GLOBAL_BIN default** | `/usr/local/bin` (often missing on Termux) |
+| **PREFIX** | Termux prefix when set — `${PREFIX}/bin` PATH candidate; not grok-cli install dest |
+| **GROK_HOME** | `${HOME}/.grok` |
 | **GROK_CLI_ROOT** | `/var/grok-cli` |
 | **BACKUP_NOTATION default** | `grok-cli` |
 | **Persistence storage** | `${HOME}/.local/grok-cli` |
 | **Config dir (optional)** | `${HOME}/.config/grok-cli/` for generated sudoers drafts |
 | **No Type 2 app data tree** | No dedicated system app user for routine ops |
 
-### 2.7 Why This Requirement Exists (CIAO)
+### 2.8 Why This Requirement Exists (CIAO)
 
 - **Principle 1 – Caution**: Separate staging, install, and privileged deposit.  
 - **Principle 10 – Least privilege**: User creates archive; elevation only for deposit.  
@@ -138,7 +167,10 @@ Rules:
 3. Grant the product unrestricted write under `/var` or `/etc`.  
 4. Collapse staging and durable deposit into one world-writable directory.  
 5. Restore `/dev/shm/${APP_NAME}` or `/dev/shm/${APP_NAME}-${USERNAME}` as the preferred cache.  
-6. Use `${HOME}/.local/bin` or `/var/grok-cli` as Type 0 persistence storage.
+6. Use `${HOME}/.local/bin` or `/var/grok-cli` as Type 0 persistence storage.  
+7. Hard-code `/data/data/com.termux/files/usr` as the product prefix, or treat `${PREFIX}/bin` as grok-cli’s managed install dest.  
+8. Use cache/`/tmp`/`/dev/shm` as the peer-grok smoke directory.  
+9. Invent a Termux-local `/var/grok-cli` under `${PREFIX}` or `${HOME}` without a new requirement.
 
 **Violating this rule is a critical path/privilege regression.**
 
@@ -150,8 +182,9 @@ Rules:
 |----|-----------|
 | AC-1 | Ship unit lives at `src/grok-cli` |
 | AC-2 | Default user install path is `~/.local/bin/grok-cli` |
-| AC-3 | Durable deposit is under `/var/backup/${BACKUP_NOTATION}/` |
-| AC-4 | Archive naming pattern documented and owned with domain law |
+| AC-3 | Durable deposit is under `/var/grok-cli` (`GROK_CLI_ROOT`) |
+| AC-4 | Termux path classes (`PREFIX`, `${GROK_HOME}/downloads`, `${PREFIX}/bin` not grok-cli dest) are documented here |
+| AC-5 | Cache/`/tmp`/`/dev/shm` are not the peer-grok smoke directory |
 
 ---
 
@@ -161,6 +194,8 @@ Rules:
 |-----|--------------|
 | `requirement-shell-local-self-management` | Place/remove binary |
 | `requirement-shell-cli-storage` | Scratch resolve |
+| `requirement-shell-termux-coding` | Termux writing (detect/`pkg`/`noexec`) |
+| `requirement-grok-setup` | `~/.grok` place + smoke procedure |
 | `requirement-domain-grok-cli` | Archive + deposit behavior |
 | `requirement-three-layer-privilege-model` | Elevation boundary |
 | `docs/requirements/index.md` | Registry |
@@ -174,9 +209,23 @@ Rules:
 | 2026-08-03 | Active | Specialized project folder law for folder-backup |
 | 2026-08-30 | Active 1.1.1 | Preferred cache `/dev/shm/cache/cache-${APP_NAME}` |
 | 2026-08-30 | Active 1.1.2 | Persistence storage `${HOME}/.local/${APP_NAME}` |
+| 2026-09-04 | Active 1.2.0 | Termux/Android path classes (`PREFIX`, `~/.grok/downloads`, noexec tmp); AC-3 deposit is `/var/grok-cli` |
 
 ---
 
-**Last Updated**: 2026-08-30  
+## Design-time verification
+
+| TP family / ID | Suite | Status |
+|----------------|-------|--------|
+| **TP-LC-01** | `tests/test_local_lifecycle.sh` | have — grok-cli install → `USER_BIN` |
+| **TP-GROK-CLI-07** | `tests/test_domain_grok_cli.sh` | have — deposit under `GROK_CLI_ROOT` |
+| **TP-VCLI-15** | `tests/test_grok_setup.sh` | have — smoke under `~/.grok/downloads` |
+
+**Matrix:** `reviews/requirement-test-matrix.md`  
+**Map:** `reviews/test-plan.md`.
+
+---
+
+**Last Updated**: 2026-09-04  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

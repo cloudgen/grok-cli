@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.3.2 – everyday-English rewrite; dual-mode + self-managed install unchanged)  
+**Status**: Active (Version 1.3.3 – leftover points at Termux host writing)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (CIAO = Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -131,7 +131,7 @@ A **lockfile** is a frozen list of dependency versions.
 | **Lockfile policy** | not used |
 | **Test runner** | POSIX shell test suite under `tests/` when present (for example `tests/run.sh`) |
 | **Linter/formatter** | none as a project rule (shellcheck is optional for maintainers) |
-| **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh`, `tar`, `gzip` / `tar -z`, and `mktemp` exist) |
+| **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh`, `tar`, `gzip` / `tar -z`, and `mktemp` exist); **Termux / Android userspace** writing owned by `requirement-shell-termux-coding` |
 | **Architectures supported** | any architecture with POSIX sh and the external tools the script uses |
 | **Git surface** | used when the product is published |
 | **Ship unit / install** | yes — the **ship unit** (the program file people install) is `src/grok-cli` → `${USER_BIN}/grok-cli`; **dual-mode** (two install methods: primary `curl \| sh`; secondary checkout + `install`) |
@@ -146,7 +146,7 @@ A **lockfile** is a frozen list of dependency versions.
 | Primary language + toolchain policy | **this file** | posix-sh, unconstrained |
 | Package/build tool + lockfile | **this file** | none / not used |
 | Bootstrap lineage / keep-extend | `requirement-bootstrap-chain` | A=cli-template → B + domain extend |
-| Project layout / install path | `requirement-project-folder` | `src/` + bin targets |
+| Project layout / install path | `requirement-project-folder` | `src/` + bin targets + Termux `PREFIX` / `~/.grok` classes |
 | Commands you run as yourself / flags / dispatch | `requirement-shell-cli-interface` | **Type 0** = you run the command as yourself. Do not duplicate |
 | Empty argv: terminal numbered menu; off-terminal install-or-recheck | `requirement-shell-cli-zero-arguments` | **argv** = the words after the program name. Dual-mode. **Type O** = with no arguments, off a terminal, install or re-check install (not help) |
 | Local self-managed lifecycle | `requirement-shell-local-self-management` | checkout `install` / `uninstall` / `where-is-me` |
@@ -158,6 +158,7 @@ A **lockfile** is a frozen list of dependency versions.
 | Interactive vs non-interactive | `requirement-shell-interactive-vs-noninteractive` | Do not duplicate |
 | Modular prefixes / single-file layout | `requirement-shell-modular-function-design` | Do not duplicate |
 | POSIX sh coding style | `requirement-shell-script-coding` | `set -u`, `out_*`, stop rather than guess when extra privilege is needed; do not duplicate |
+| Termux / Android host writing | `requirement-shell-termux-coding` | `PREFIX`, Termux `pkg`, `noexec` tmp, FHS-not-assumed; do not duplicate |
 | Privilege layers + sudoers files (print / install / stop if not allowed) | `requirement-three-layer-privilege-model` | Daily work as yourself + a narrow `sudo grok-cli backup` grant (**Type 0** + **Type 1** deposit: Type 1 = the command changes the computer). §2.3 sudoers workflow is the SSOT |
 | JSON sudoer file (grant body) | `requirement-sudoer-json-file` | **JSON** = a structured text format. `{{PRJ_NAME}}` only; no `cp` / `mkdir` / OS-tool commands |
 | Grok auth backup operations | `requirement-grok-auth-backup` | Session check / deposit / sync-auth (not domain) |
@@ -237,6 +238,7 @@ A **lockfile** is a frozen list of dependency versions.
 | `requirement-shell-interactive-vs-noninteractive` | Mode policy |
 | `requirement-shell-modular-function-design` | Prefixes / single-file modularity |
 | `requirement-shell-script-coding` | POSIX sh coding style |
+| `requirement-shell-termux-coding` | Termux / Android host writing |
 | `requirement-three-layer-privilege-model` | Privilege + working with sudoers fragment files |
 | `requirement-sudoer-json-file` | JSON sudoer file body (`{{PRJ_NAME}}` only) |
 | `requirement-grok-auth-backup` | Grok auth backup operations SSOT |
@@ -257,9 +259,10 @@ A **lockfile** is a frozen list of dependency versions.
 | 2026-09-02 | Active (1.3.0) | Dual-mode install; online package leftover points to peer REQs |
 | 2026-09-02 | Active (1.3.1) | Same law in plainer English. Dest vocabulary kept. Numbered MUST rules kept. |
 | 2026-09-02 | Active (1.3.2) | Everyday-English pass: abbreviations expanded on first use; leftover jargon explained; no new rules. |
+| 2026-09-04 | Active (1.3.3) | Leftover: Termux / Android host writing → `requirement-shell-termux-coding` |
 
 ---
 
-**Last Updated**: 2026-09-02  
+**Last Updated**: 2026-09-04  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-storage.md  
-**Status**: Active (Version 1.2.0)  
+**Status**: Active (Version 1.2.1)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-storage`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -49,6 +49,8 @@ Scratch goes in a cache folder. Durable Type 0 app data goes under this login’
 
 Live chosen **cache** root: `util_resolve_storage` (stdout).  
 Live **persistence** root: `util_resolve_persistent_storage` (stdout; create-before-return).
+
+On Termux/Android, the chosen cache root (including `/tmp` and `/dev/shm`) **MAY** be **`noexec`**. Cache remains scratch **only**. **MUST NOT** smoke or `exec` a downloaded binary from the cache root — that writing rule is **`requirement-shell-termux-coding`**; the smoke directory is `{{GROK_HOME}}/downloads` (`requirement-grok-setup` / `requirement-project-folder`).
 
 **MUST NOT** mix these with:
 
@@ -199,7 +201,8 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 7. Leave the resolvers dead with no call sites while claiming storage is product law.  
 8. Echo a tier path without creating it.  
 9. Stage durable deposits only in world-writable shared paths by design.  
-10. Use predictable `$$` scratch names instead of `util_mktemp` / `mktemp` XXXXXX.
+10. Use predictable `$$` scratch names instead of `util_mktemp` / `mktemp` XXXXXX.  
+11. Smoke or `exec` a downloaded binary from the cache folder, `/tmp`, or `/dev/shm` on Termux (`requirement-shell-termux-coding`).
 
 **Violating this rule is a critical cache isolation / honesty regression.**
 
@@ -224,6 +227,7 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 | Key | Relationship |
 |-----|--------------|
 | `requirement-project-folder` | Path classes; install bin vs persistence vs deposit |
+| `requirement-shell-termux-coding` | Cache/`tmp`/`shm` are not exec paths on Termux |
 | `requirement-domain-grok-cli` | Staging use |
 | `requirement-shell-cli-interface` | About fields |
 | `requirement-shell-local-self-management` | `USER_BIN` is not persistence |
@@ -249,9 +253,10 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 | 2026-08-15 | Active | `util_mktemp` sample; forbid `$$` scratch names |
 | 2026-08-30 | Active 1.1.0 | Preferred `/dev/shm/cache/cache-${APP_NAME}`; about Cache folder labels |
 | 2026-08-30 | Active 1.2.0 | Storage = cache folder **and** persistence `${HOME}/.local/${APP_NAME}` |
+| 2026-09-04 | Active 1.2.1 | Termux: cache/`tmp`/`shm` may be `noexec` — not a smoke path (point `requirement-shell-termux-coding`) |
 
 ---
 
-**Last Updated**: 2026-08-30  
+**Last Updated**: 2026-09-04  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
