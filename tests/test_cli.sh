@@ -77,7 +77,9 @@ run_test_cli() {
     assert_contains "TP-CLI-05 help json success" "$_out" '"type":"success"'
 
     # TP-CLI-06 about json domain + cache folders, no channel
-    _out=$(sh "${SCRIPT}" --json about 2>/dev/null)
+    # Isolate PATH so about's session probe cannot call a host grok (xAI).
+    ci_isolated_env
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" --json about 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-06 about --json exit 0" 0 "$_ec"
     assert_contains "TP-CLI-06 type about" "$_out" '"type":"about"'
@@ -85,7 +87,7 @@ run_test_cli() {
     assert_contains "TP-CLI-06 cache_fallback" "$_out" '"cache_fallback"'
     assert_contains "TP-CLI-06 persistence_storage" "$_out" '"persistence_storage"'
     assert_contains "TP-CLI-06 effective_storage" "$_out" '"effective_storage"'
-    _hum=$(sh "${SCRIPT}" about 2>/dev/null)
+    _hum=$(HOME="${CI_HOME}" sh "${SCRIPT}" about 2>/dev/null)
     assert_contains "TP-CLI-06 human Cache folder preferred" "$_hum" "Cache folder (preferred)"
     assert_contains "TP-CLI-06 human Cache folder fallback" "$_hum" "Cache folder (fallback)"
     assert_contains "TP-CLI-06 human Persistence storage" "$_hum" "Persistence storage"
@@ -100,6 +102,7 @@ run_test_cli() {
     assert_contains "TP-CLI-06 host_sudoers_present" "$_out" '"host_sudoers_present"'
     assert_not_contains "TP-CLI-06 no CHECKSUM" "$_out" "CHECKSUM"
     assert_not_contains "TP-CLI-06 no SCRIPT_URL" "$_out" "SCRIPT_URL"
+    ci_cleanup_env
 
     # TP-CLI-07 empty argv: off-TTY Type O ensure (not help). TTY: numbered menu.
     ci_isolated_env
@@ -119,13 +122,15 @@ run_test_cli() {
     assert_not_contains "TP-CLI-07 --json no command not numbered list" "$_out" "9. Exit"
 
     if command -v python3 >/dev/null 2>&1; then
-        _out=$(PTY_IN="9" ci_pty_capture "${SCRIPT}")
+        ci_isolated_env
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}")
         assert_contains "TP-CLI-07 TTY empty argv is numbered list" "$_out" "9. Exit"
         assert_contains "TP-CLI-07 TTY empty argv backup first" "$_out" "1. backup:"
         assert_not_contains "TP-CLI-07 TTY empty argv no check-session row" "$_out" "check-session:"
         assert_contains "TP-CLI-07 TTY empty argv header app" "$_out" "${APP_NAME}"
         assert_contains "TP-CLI-07 TTY empty argv header version" "$_out" "${PRODUCT_VERSION}"
         assert_not_contains "TP-CLI-07 TTY empty argv not help dump" "$_out" "Usage:"
+        ci_cleanup_env
     else
         t_skip "TP-CLI-07 TTY empty argv (no python3 for PTY)"
     fi
@@ -304,7 +309,9 @@ run_test_cli() {
   }
 }
 AUTH
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        ci_fake_grok_ok
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-17 TTY logged in when session valid" "$_out" "logged in"
         assert_not_contains "TP-CLI-17 TTY logged-in not logged out" "$_out" "logged out"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="5

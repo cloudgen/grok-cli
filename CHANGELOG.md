@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.8] - 2026-09-05
+
+### Fixed
+
+- **Login check was a file guess.** `check-session`, `backup`, and the menu **logged in** / **logged out** line used to read `~/.grok/auth.json` (refresh token / future `expires_at`). That can look valid while grok cannot talk to xAI (revoked session, Termux DNS, missing wrapper). They now run **`grok -p hello` first** (stdin closed; `timeout` when present; grok’s answer is not printed). Missing grok → Next `grok-cli setup` then `grok login`. Probe fail → Next `grok login`. Core tests inject a fake `GROK_BIN` (no public network). Law: `requirement-grok-auth-backup` **1.2.0**. Suite **TP-GROK-CLI-03**–**05** · **35**–**38** · **TP-CLI-17**.
+
 ## [1.8.7] - 2026-09-04
 
 ### Added

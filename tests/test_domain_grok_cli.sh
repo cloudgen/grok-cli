@@ -127,39 +127,47 @@ run_test_domain_grok_cli() {
         t_skip "TP-GROK-CLI-22e sudoer-cli not installed"
     fi
 
-    # TP-GROK-CLI-03 check-session missing auth
+    # TP-GROK-CLI-03 check-session missing peer grok
     _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" sh "${SCRIPT}" check-session 2>&1 >/dev/null)
-    assert_eq "TP-GROK-CLI-03 check-session missing exit 1" 1 "$?"
-    assert_contains "TP-GROK-CLI-03 not logged in" "$_err" "not logged in"
+    assert_eq "TP-GROK-CLI-03 check-session missing grok exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-03 not installed" "$_err" "not installed"
+    assert_contains "TP-GROK-CLI-03 next setup" "$_err" "setup"
     assert_contains "TP-GROK-CLI-03 next grok login" "$_err" "grok login"
 
-    # TP-GROK-CLI-04 expired session fail-closed
-    gc_write_expired_auth "${CI_HOME}/.grok"
-    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" sh "${SCRIPT}" check-session 2>&1 >/dev/null)
-    assert_eq "TP-GROK-CLI-04 expired session exit 1" 1 "$?"
-    assert_contains "TP-GROK-CLI-04 not valid" "$_err" "not valid"
-
-    # TP-GROK-CLI-05 check-session valid
+    # TP-GROK-CLI-04 auth.json looks valid but grok -p hello fails (file check is not enough)
     gc_write_valid_auth "${CI_HOME}/.grok"
-    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" sh "${SCRIPT}" check-session 2>&1)
+    ci_fake_grok_fail
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        sh "${SCRIPT}" check-session 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-04 probe fail exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-04 not logged in" "$_err" "not logged in"
+    assert_contains "TP-GROK-CLI-04 next grok login" "$_err" "grok login"
+
+    # TP-GROK-CLI-05 check-session valid = grok -p hello exit 0
+    ci_fake_grok_ok
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        sh "${SCRIPT}" check-session 2>&1)
     assert_eq "TP-GROK-CLI-05 valid session exit 0" 0 "$?"
-    assert_contains "TP-GROK-CLI-05 valid text" "$_out" "valid session"
-    _j=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" sh "${SCRIPT}" --json check-session 2>/dev/null)
+    assert_contains "TP-GROK-CLI-05 probe text" "$_out" "grok -p hello"
+    assert_not_contains "TP-GROK-CLI-05 no grok answer leak" "$_out" "hello-from-fake-grok"
+    _j=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        sh "${SCRIPT}" --json check-session 2>/dev/null)
     assert_contains "TP-GROK-CLI-05 json session valid" "${_j}" '"session":"valid"'
 
-    # TP-GROK-CLI-06 backup without session fail-closed
-    rm -f "${CI_HOME}/.grok/auth.json"
+    # TP-GROK-CLI-06 backup without live session fail-closed
+    ci_fake_grok_fail
     _store="${CI_HOME}/var-grok-cli"
     mkdir -p "${_store}"
-    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_CLI_ROOT="${_store}" \
-        sh "${SCRIPT}" backup 2>&1 >/dev/null)
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_ROOT="${_store}" sh "${SCRIPT}" backup 2>&1 >/dev/null)
     assert_eq "TP-GROK-CLI-06 backup no session exit 1" 1 "$?"
     assert_contains "TP-GROK-CLI-06 backup next login" "$_err" "grok login"
 
     # TP-GROK-CLI-07 backup to writable GROK_CLI_ROOT (test override; no sudo)
     gc_write_valid_auth "${CI_HOME}/.grok"
-    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_CLI_ROOT="${_store}" \
-        sh "${SCRIPT}" backup 2>&1)
+    ci_fake_grok_ok
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_ROOT="${_store}" sh "${SCRIPT}" backup 2>&1)
     assert_eq "TP-GROK-CLI-07 backup exit 0" 0 "$?"
     assert_contains "TP-GROK-CLI-07 backup complete" "$_out" "Backup complete"
     assert_file_exists "TP-GROK-CLI-07 dest auth.json" "${_store}/auth.json"
@@ -170,8 +178,8 @@ run_test_domain_grok_cli() {
 
     # TP-GROK-CLI-08 backup is idempotent overwrite
     printf 'stale\n' > "${_store}/auth.json"
-    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_CLI_ROOT="${_store}" \
-        sh "${SCRIPT}" backup 2>&1)
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_ROOT="${_store}" sh "${SCRIPT}" backup 2>&1)
     assert_eq "TP-GROK-CLI-08 second backup exit 0" 0 "$?"
     assert_contains "TP-GROK-CLI-08 overwrite restored token" "$(cat "${_store}/auth.json")" "test-refresh-token"
 
@@ -199,8 +207,9 @@ run_test_domain_grok_cli() {
 
     # TP-GROK-CLI-12 production dest /var/grok-cli without global binary fails closed (no write)
     gc_write_valid_auth "${CI_HOME}/.grok"
-    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_CLI_ROOT=/var/grok-cli \
-        sh "${SCRIPT}" backup 2>&1 >/dev/null)
+    ci_fake_grok_ok
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_ROOT=/var/grok-cli sh "${SCRIPT}" backup 2>&1 >/dev/null)
     assert_eq "TP-GROK-CLI-12 production dest without global binary exit 1" 1 "$?"
     assert_contains "TP-GROK-CLI-12 next install/grant" "$_err" "install"
 
@@ -747,6 +756,46 @@ PY
     else
         t_skip "TP-GROK-CLI-34 (python3 not available for PTY)"
     fi
+
+    # TP-GROK-CLI-35 live probe wins over expired auth.json
+    gc_write_expired_auth "${CI_HOME}/.grok"
+    ci_fake_grok_ok
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        sh "${SCRIPT}" check-session 2>&1)
+    assert_eq "TP-GROK-CLI-35 expired file + probe ok exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-35 probe text" "$_out" "grok -p hello"
+
+    # TP-GROK-CLI-36 probe stdout is not printed (no token/answer leak)
+    _tokfake="${CI_USER_BIN}/grok-secret"
+    mkdir -p "${CI_USER_BIN}"
+    cat > "${_tokfake}" <<'FAKE'
+#!/bin/sh
+echo "secret-token-must-not-leak"
+echo "refresh_token=leak-me" >&2
+exit 0
+FAKE
+    chmod +x "${_tokfake}"
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${_tokfake}" \
+        sh "${SCRIPT}" check-session 2>&1)
+    assert_eq "TP-GROK-CLI-36 leak-fake exit 0" 0 "$?"
+    assert_not_contains "TP-GROK-CLI-36 no stdout leak" "$_out" "secret-token-must-not-leak"
+    assert_not_contains "TP-GROK-CLI-36 no stderr token leak" "$_out" "refresh_token=leak-me"
+
+    # TP-GROK-CLI-37 Core tests never need public network (fake GROK_BIN)
+    ci_fake_grok_ok
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        sh "${SCRIPT}" check-session 2>&1)
+    assert_eq "TP-GROK-CLI-37 fake grok no network exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-37 used probe" "$_out" "grok -p hello"
+
+    # TP-GROK-CLI-38 probe runs before auth.json: missing grok does not parse-succeed
+    unset GROK_BIN 2>/dev/null || true
+    rm -f "${CI_USER_BIN}/grok" "${CI_HOME}/.grok/bin/grok" "${CI_GLOBAL_BIN}/grok"
+    gc_write_valid_auth "${CI_HOME}/.grok"
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" env -u GROK_BIN \
+        sh "${SCRIPT}" check-session 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-38 valid file without grok exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-38 not installed" "$_err" "not installed"
 
     ci_cleanup_env
 }

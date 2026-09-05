@@ -40,7 +40,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.7"
+# VERSION: hard-assign VERSION="1.8.8"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -56,8 +56,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.7"
-: "${VERSION:=1.8.7}"
+VERSION="1.8.8"
+: "${VERSION:=1.8.8}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -116,6 +116,8 @@ fi
 : "${GROK_PEER_NAME:=grok}"
 # GROK_SETUP_VERSION optional pin (skip channel pointer). GROK_BIN_DIR optional.
 # GROK_BIN optional absolute override for the peer executable.
+# GROK_PROMPT_TIMEOUT seconds for grok -p hello (when timeout is on PATH).
+: "${GROK_PROMPT_TIMEOUT:=20}"
 # GROK_HOME is resolved at call time (SUDO_USER-aware). Tests may export it.
 # Optional sudoer-cli compose (Type 0 submit into approval inbound)
 : "${SUDOER_CLI:=}"
@@ -3112,13 +3114,80 @@ gc_iso_to_epoch() {
 }
 
 # =============================================================================
-# gc_auth_session_ok() - Fail-closed valid grok login in auth.json
+# gc_grok_prompt_hello() - Live session probe: grok -p hello
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# A valid session means auth.json exists and at least one credential can still
-# be used: a refresh_token, or an unexpired access token (expires_at in the
-# future). Never print token values.
+# Ask the peer grok one non-interactive question. Exit 0 means grok is
+# actually signed in. auth.json parse is NOT this gate — a future expires_at
+# can still be revoked, and Termux DNS/wrapper failures stay hidden until
+# grok runs. Never print grok's answer or token values.
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-05
+# =============================================================================
+gc_grok_prompt_hello() {
+    GC_GROK_PROMPT_STATUS="missing"
+    GC_GROK_PROMPT_DETAIL=""
+    _peer=$(gc_resolve_grok_peer)
+    if [ -z "${_peer}" ] || [ ! -x "${_peer}" ]; then
+        GC_GROK_PROMPT_STATUS="missing"
+        GC_GROK_PROMPT_DETAIL="no grok peer"
+        unset _peer
+        return 1
+    fi
+    _out=$(util_mktemp grokp)
+    if [ -z "${_out}" ]; then
+        GC_GROK_PROMPT_STATUS="failed"
+        GC_GROK_PROMPT_DETAIL="could not capture probe output"
+        unset _peer _out
+        return 1
+    fi
+    : "${GROK_PROMPT_TIMEOUT:=20}"
+    _ec=1
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "${GROK_PROMPT_TIMEOUT}" "${_peer}" -p hello </dev/null >"${_out}" 2>&1
+        _ec=$?
+    else
+        "${_peer}" -p hello </dev/null >"${_out}" 2>&1
+        _ec=$?
+    fi
+    if [ "${_ec}" -eq 0 ]; then
+        GC_GROK_PROMPT_STATUS="ok"
+        GC_GROK_PROMPT_DETAIL=""
+        rm -f "${_out}"
+        unset _peer _out _ec
+        return 0
+    fi
+    GC_GROK_PROMPT_STATUS="failed"
+    _snip=$(tr '\n' ' ' < "${_out}" 2>/dev/null | cut -c1-160)
+    case "${_snip}" in
+        *dns*|*resolv*)
+            GC_GROK_PROMPT_DETAIL="exit ${_ec}: dns error"
+            ;;
+        *login*|*unauthor*|*logged*)
+            GC_GROK_PROMPT_DETAIL="exit ${_ec}: login required"
+            ;;
+        *)
+            if [ "${_ec}" -eq 124 ]; then
+                GC_GROK_PROMPT_DETAIL="exit 124: probe timed out"
+            else
+                GC_GROK_PROMPT_DETAIL="exit ${_ec}"
+            fi
+            ;;
+    esac
+    rm -f "${_out}"
+    unset _peer _out _ec _snip
+    return 1
+}
+
+# =============================================================================
+# gc_auth_session_ok() - File-shape helper (NOT the session gate)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Optional auth.json shape check. MUST NOT be used as logged-in. The session
+# gate is gc_grok_prompt_hello (grok -p hello). Never print token values.
 #
 # ALIGNMENT: requirement-grok-auth-backup.md
 # =============================================================================
@@ -3196,15 +3265,20 @@ PY
 # =============================================================================
 # gc_session_status_word() - Class B: valid|invalid|missing
 # =============================================================================
+#
+# GENERAL PURPOSE:
+# valid = grok -p hello succeeded. missing = no peer grok. invalid = probe
+# failed. MUST NOT use auth.json parse as logged-in.
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# =============================================================================
 gc_session_status_word() {
-    _home=$(gc_resolve_grok_home)
-    _auth="${_home}/auth.json"
-    if [ ! -f "${_auth}" ]; then
-        printf '%s' "missing"
+    if gc_grok_prompt_hello; then
+        printf '%s' "valid"
         return 0
     fi
-    if gc_auth_session_ok "${_auth}"; then
-        printf '%s' "valid"
+    if [ "${GC_GROK_PROMPT_STATUS:-}" = "missing" ]; then
+        printf '%s' "missing"
         return 0
     fi
     printf '%s' "invalid"
@@ -3216,31 +3290,39 @@ gc_session_status_word() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Tell the operator whether ~/.grok/auth.json is a usable grok login. Backup
-# MUST call this (or gc_auth_session_ok) before any deposit.
+# Tell the operator whether grok is actually signed in. Runs grok -p hello
+# first. Backup MUST call gc_grok_prompt_hello before any deposit.
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
 # =============================================================================
 gc_check_session() {
     : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     _home=$(gc_resolve_grok_home)
     _auth="${_home}/auth.json"
-    _st=$(gc_session_status_word) || true
-    if [ "${_st}" = "valid" ]; then
-        out_success "Grok is logged in with a valid session."
-        out_info "Auth file: ${_auth}"
+    if gc_grok_prompt_hello; then
+        out_success "Grok is logged in (grok -p hello succeeded)."
+        if [ -f "${_auth}" ]; then
+            out_info "Auth file: ${_auth}"
+        fi
         if [ "${JSON}" -eq 1 ]; then
             out_json "check-session" "ok" \
                 "app" "${APP_NAME}" \
                 "grok_home" "${_home}" \
                 "auth_json" "${_auth}" \
-                "session" "valid"
+                "session" "valid" \
+                "probe" "grok -p hello"
         fi
         return 0
     fi
-    if [ "${_st}" = "missing" ]; then
-        out_die "Grok is not logged in (no auth.json at ${_auth}). Next step: run grok login, then ${APP_NAME} check-session."
+    if [ "${GC_GROK_PROMPT_STATUS:-}" = "missing" ]; then
+        out_die "Grok is not installed (no grok on PATH or under ${_home}/bin). Next: ${APP_NAME} setup, then grok login, then ${APP_NAME} check-session."
     fi
-    out_die "Grok session is not valid (${_auth} present but expired or unusable). Next step: run grok login, then ${APP_NAME} check-session."
+    _extra=""
+    if [ -n "${GC_GROK_PROMPT_DETAIL:-}" ]; then
+        _extra=" (${GC_GROK_PROMPT_DETAIL})"
+    fi
+    out_die "Grok is not logged in${_extra}. Next: grok login, then ${APP_NAME} check-session."
 }
 
 # =============================================================================
@@ -3341,7 +3423,7 @@ EOF
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# 1) Fail closed unless grok is logged in with a valid session.
+# 1) Fail closed unless grok -p hello succeeds (live session).
 # 2) As a normal login, re-exec the managed global binary via passwordless
 #    sudo (JSON grant approved by sudoer-adm): sudo grok-cli backup.
 # 3) As root, copy ~/.grok/auth.* into GROK_CLI_ROOT, chown root:root, chmod
@@ -3360,11 +3442,15 @@ gc_backup() {
     _dest=$(gc_resolve_cli_root)
     _auth="${_src}/auth.json"
 
-    if ! gc_auth_session_ok "${_auth}"; then
-        if [ ! -f "${_auth}" ]; then
-            out_die "Cannot backup: grok is not logged in (missing ${_auth}). Next step: run grok login, then ${APP_NAME} backup."
+    if ! gc_grok_prompt_hello; then
+        if [ "${GC_GROK_PROMPT_STATUS:-}" = "missing" ]; then
+            out_die "Cannot backup: grok is not installed (no grok on PATH or under ${_src}/bin). Next: ${APP_NAME} setup, then grok login, then ${APP_NAME} backup."
         fi
-        out_die "Cannot backup: grok session is not valid (${_auth}). Next step: run grok login, then ${APP_NAME} backup."
+        _extra=""
+        if [ -n "${GC_GROK_PROMPT_DETAIL:-}" ]; then
+            _extra=" (${GC_GROK_PROMPT_DETAIL})"
+        fi
+        out_die "Cannot backup: grok is not logged in${_extra}. Next: grok login, then ${APP_NAME} backup."
     fi
 
     _list=$(gc_list_auth_files "${_src}") || _list=""
@@ -5529,7 +5615,7 @@ app_about() {
     out_info "   ${APP_NAME} print-sudoers   → Sudoers fragment for admin"
     out_info "   ${APP_NAME} generate-sudoer-request → Write a local JSON grant you can verify"
     out_info "   ${APP_NAME} submit-sudoer-request → JSON request into /var/sudoer-cli/sudoer-request"
-    out_info "   ${APP_NAME} check-session   → Confirm grok is logged in"
+    out_info "   ${APP_NAME} check-session   → Confirm grok is logged in (grok -p hello)"
     out_info "   ${APP_NAME} backup          → Push ~/.grok/auth.* to /var/grok-cli (sudo grant)"
     out_info "   ${APP_NAME} sync-auth       → Copy /var/grok-cli/auth.* into ~/.grok (no sudo)"
     out_info "   ${APP_NAME} --json          → Machine-readable output"
@@ -5869,9 +5955,9 @@ app_help() {
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
     out_plain "  setup                Install grok from x.ai (channel + artifact; skip if grok already runs here)"
-    out_plain "  check-session        Confirm grok is logged in"
+    out_plain "  check-session        Confirm grok is logged in (runs grok -p hello first)"
     out_plain "  backup               Push ~/.grok/auth.* to ${GROK_CLI_ROOT}/"
-    out_plain "                       (checks session first; sudo -n ${GLOBAL_BIN}/${APP_NAME} backup after sudoer-adm grant;"
+    out_plain "                       (runs grok -p hello first; sudo -n ${GLOBAL_BIN}/${APP_NAME} backup after sudoer-adm grant;"
     out_plain "                       chown root:root, chmod 0644 so others can sync-auth)"
     out_plain "  sync-auth            Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok (no sudo)"
     out_plain "  sync-auth-from-remote SPEC"
@@ -5929,6 +6015,7 @@ app_help() {
     out_plain "  GROK_CHANNEL            grok channel (stable|alpha|enterprise; default stable)"
     out_plain "  GROK_SETUP_VERSION      pin grok version (skip channel pointer)"
     out_plain "  GROK_BIN             override path to peer grok"
+    out_plain "  GROK_PROMPT_TIMEOUT  seconds for grok -p hello (default 20; needs timeout)"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers / generate / submit"
     out_plain "  SUDOER_CLI              override path to sudoer-cli"
@@ -5960,7 +6047,7 @@ app_help() {
     out_empty_line
     out_info "Empty argv on a real terminal shows the numbered list. Off-TTY empty argv is channel install-ensure (curl|sh)."
     out_info "Off-TTY empty argv shows help. Explicit help stays help."
-    out_info "backup needs a valid grok login, then passwordless sudo ${APP_NAME} backup (sudoer-adm)."
+    out_info "backup runs grok -p hello first, then passwordless sudo ${APP_NAME} backup (sudoer-adm)."
     out_info "sync-auth never uses sudo. Local install + sudoers is TEST MODE ONLY; prefer global."
 }
 

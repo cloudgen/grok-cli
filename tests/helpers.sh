@@ -105,6 +105,52 @@ ci_isolated_env() {
     # Peer grok probe searches GROK_HOME/bin; do not leak the host session.
     unset GROK_HOME 2>/dev/null || true
     unset GROK_BIN 2>/dev/null || true
+    # Drop host grok (often /usr/local/bin) so session tests cannot call xAI.
+    if [ -z "${CI_PATH_ORIG:-}" ]; then
+        CI_PATH_ORIG="${PATH}"
+    fi
+    export PATH="${CI_USER_BIN}:${CI_GLOBAL_BIN}:/usr/bin:/bin"
+}
+
+# Write a fake peer grok that never hits the network.
+# Usage: ci_write_fake_grok PATH [exit_code_for_-p]
+ci_write_fake_grok() {
+    _fp="${1:-}"
+    _fec="${2:-0}"
+    if [ -z "${_fp}" ]; then
+        return 1
+    fi
+    mkdir -p "$(dirname "${_fp}")"
+    cat > "${_fp}" <<FAKE
+#!/bin/sh
+# Core-test fake grok — never hits the network.
+case "\${1:-}" in
+  --version)
+    echo "grok 0.0.0-test"
+    exit 0
+    ;;
+  -p)
+    echo "hello-from-fake-grok"
+    exit ${_fec}
+    ;;
+  *)
+    exit ${_fec}
+    ;;
+esac
+FAKE
+    chmod +x "${_fp}"
+}
+
+ci_fake_grok_ok() {
+    mkdir -p "${CI_USER_BIN}"
+    ci_write_fake_grok "${CI_USER_BIN}/grok" 0
+    export GROK_BIN="${CI_USER_BIN}/grok"
+}
+
+ci_fake_grok_fail() {
+    mkdir -p "${CI_USER_BIN}"
+    ci_write_fake_grok "${CI_USER_BIN}/grok" 1
+    export GROK_BIN="${CI_USER_BIN}/grok"
 }
 
 ci_cleanup_env() {
@@ -115,6 +161,10 @@ ci_cleanup_env() {
         CI_GLOBAL_BIN=
     fi
     unset GLOBAL_BIN 2>/dev/null || true
+    unset GROK_BIN 2>/dev/null || true
+    if [ -n "${CI_PATH_ORIG:-}" ]; then
+        export PATH="${CI_PATH_ORIG}"
+    fi
 }
 
 # Run SCRIPT under a PTY. Sends PTY_IN (default "9") plus a trailing newline.

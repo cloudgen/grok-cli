@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-grok-cli.md  
-**Status**: Active (Version 1.4.5)  
+**Status**: Active (Version 1.4.6)  
 **Area**: domain  
 **Key**: `requirement-domain-grok-cli`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -33,7 +33,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
 | Place grok | grok-cli fetches xAI’s version pointer and matching `grok` binary (does not run `install.sh`) | `grok-cli setup` |
-| Confirm login | grok-cli reads `~/.grok/auth.json` and fails closed if it is missing or expired | `grok-cli check-session` |
+| Confirm login | grok-cli runs `grok -p hello` first (a file that only looks valid is not enough) | `grok-cli check-session` |
 | Push shared auth | After a valid session, grok-cli copies `auth.*` into `/var/grok-cli` as root | `grok-cli backup` |
 | Pull shared auth | A normal login copies from `/var/grok-cli` into `~/.grok` with no sudo | `grok-cli sync-auth` |
 | Pull from another host | `scp` that host’s store into `~/.grok` | `grok-cli sync-auth-from-remote user@192.0.2.10` |
@@ -48,7 +48,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | Command | Operands / flags | Handler prefix | Behavior summary | Behavior SSOT |
 |---------|------------------|----------------|------------------|---------------|
 | `setup` | `--force` | `gc_*` | Fetch xAI channel + artifact and place peer `grok`; **MUST NOT** exec `install.sh`; skip if grok already runs on this host; Android ET_EXEC may place an exec wrapper | **`requirement-grok-setup`** |
-| `check-session` | none | `gc_*` | Confirm grok is logged in | **`requirement-grok-auth-backup`** |
+| `check-session` | none | `gc_*` | Confirm grok is logged in (`grok -p hello` first) | **`requirement-grok-auth-backup`** |
 | `backup` | none | `gc_*` | Check session, then elevated deposit of `auth.*` into `/var/grok-cli` | **`requirement-grok-auth-backup`** |
 | `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo** | **`requirement-grok-auth-backup`** |
 | `sync-auth-from-remote` | SPEC (`user@IPv4`, IPv4, domain, `user@domain`) | `gc_*` | `scp` remote `/var/grok-cli/auth.*` into `~/.grok` **without sudo** | **`requirement-grok-auth-backup`** |
@@ -121,7 +121,7 @@ leolio ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
 | Help row | Text intent |
 |----------|-------------|
 | `setup` | Install grok from x.ai (channel + artifact; skip if grok already runs here) |
-| `check-session` | Confirm grok is logged in |
+| `check-session` | Confirm grok is logged in (`grok -p hello` first) |
 | `backup` | Check session, push `~/.grok/auth.*` to `/var/grok-cli` (passwordless `sudo grok-cli backup` after sudoer-adm) |
 | `sync-auth` | Copy `/var/grok-cli/auth.*` into `~/.grok` with no sudo |
 | `sync-auth-from-remote` | Copy a remote host's `/var/grok-cli/auth.*` into `~/.grok` |
@@ -254,6 +254,7 @@ grok-cli add-crontab
 | 2026-09-04 | Active (1.4.3) | `setup` Termux `pkg install -y proot` when needed (dual mention `requirement-grok-setup` 2.4.0) |
 | 2026-09-04 | Active (1.4.4) | `setup` HTTP status on curl fail; keep Android `.failed` artifact (dual mention `requirement-grok-setup` 2.5.0) |
 | 2026-09-04 | Active (1.4.5) | `setup` Android proot resolv bind (dual mention `requirement-grok-setup` 2.6.0) |
+| 2026-09-05 | Active (1.4.6) | `check-session` live `grok -p hello` (dual mention `requirement-grok-auth-backup` 1.2.0) |
 
 ---
 
@@ -266,11 +267,11 @@ grok-cli add-crontab
 | **TP-VCLI-01**–**09**, **11**–**25** | `tests/test_grok_setup.sh` | have |
 | **TP-GROK-CLI-01**, **01b**, **02**, **11**, **14**, **15**, **15b**, **19**–**25** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-26**–**29** | `tests/test_domain_grok_cli.sh` | have |
-| **TP-GROK-CLI-30**–**34** | `tests/test_domain_grok_cli.sh` | have |
+| **TP-GROK-CLI-30**–**38** | `tests/test_domain_grok_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-04  
+**Last Updated**: 2026-09-05  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

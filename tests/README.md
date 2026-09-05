@@ -18,7 +18,7 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 | `helpers.sh` | Asserts + isolated HOME | — |
 | `test_cli.sh` | CLI surface, empty argv (TTY menu / off-TTY Type O), help lists online verbs | **TP-CLI-*** |
 | `test_local_lifecycle.sh` | install / uninstall / where-is-me | **TP-LC-*** |
-| `test_domain_grok_cli.sh` | session gate + backup/sync-auth + sync-auth-from-remote (incl. TTY menu row 3 SPEC prompt) + add-crontab + sudoers print + JSON grant + submit inbound | **TP-GROK-CLI-*** |
+| `test_domain_grok_cli.sh` | live `grok -p hello` session gate + backup/sync-auth + sync-auth-from-remote (incl. TTY menu row 3 SPEC prompt) + add-crontab + sudoers print + JSON grant + submit inbound | **TP-GROK-CLI-*** |
 | `test_grok_setup.sh` | `setup` fetches xAI channel + artifact (fake curl; no public net; no `install.sh`) | **TP-VCLI-*** |
 | `test_online_install.sh` | Channel `curl|sh` ensure, checksum mismatch, version-check, self-uninstall (fake curl) | **TP-ONL-*** |
 
@@ -27,7 +27,7 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 - Temp `HOME` + `USER_BIN` for install tests  
 - **No** public network  
 - **No** write to `/etc/sudoers.d` (suite never installs sudoers)  
-- Auth fixtures are synthetic (no live tokens)  
+- Auth fixtures are synthetic (no live tokens); session tests inject a fake `GROK_BIN` (never `grok -p hello` against xAI)  
 - Backup **success** uses writable `GROK_CLI_ROOT` override (not `/var/grok-cli`)
 
 ## Ship unit under test

@@ -16,7 +16,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | about | `app_about` | you (Type 0) | 2026-08-03 | `about: Show diagnostics (incl. sudoers trust tier)` |
 | add-crontab | `gc_add_crontab` | you (Type 0) | 2026-09-02 | `add-crontab: Add backup and sync-auth jobs to this login's crontab` |
 | backup | `gc_backup` | change-the-computer (Type 1) | missing | `backup: Push ~/.grok/auth.* to /var/grok-cli` |
-| check-session | `gc_check_session` | you (Type 0) | missing | `check-session: Confirm grok is logged in` |
+| check-session | `gc_check_session` | you (Type 0) | 2026-09-05 | `check-session: Confirm grok is logged in (runs grok -p hello first)` |
 | generate-sudoer-request | `gc_generate_sudoer_request` | you (Type 0) | 2026-08-17 | `generate-sudoer-request: Write a JSON grant you can read` |
 | help | `app_help` | you (Type 0) | missing | `help: Show this help` |
 | main | `app_default` | you (Type 0) | 2026-09-03 | `main: Same as menu` |

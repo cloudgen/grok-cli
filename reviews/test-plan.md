@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.7  
-**Last plan update:** 2026-09-04  
-**Last suite run:** `./tests/run.sh` (1.8.7: PASS=466 FAIL=0 SKIP=0)
+**Product VERSION:** 1.8.8  
+**Last plan update:** 2026-09-05  
+**Last suite run:** `./tests/run.sh` (1.8.8: PASS=478 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -122,9 +122,9 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-01 | print-sudoers NOPASSWD grok-cli backup; no restore; no OS tools; no `/etc` write | test_domain_grok_cli | three-layer · domain | **have** |
 | TP-GROK-CLI-01b | refuse test_local without `--allow-test-local` | test_domain_grok_cli | three-layer | **have** |
 | TP-GROK-CLI-02 | print-sudoers to path; user-bound | test_domain_grok_cli | three-layer | **have** |
-| TP-GROK-CLI-03 | check-session missing auth.json | test_domain_grok_cli | grok-auth-backup | **have** |
-| TP-GROK-CLI-04 | expired session fail-closed | test_domain_grok_cli | grok-auth-backup | **have** |
-| TP-GROK-CLI-05 | valid session | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-03 | check-session missing peer grok; Next setup then grok login | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-04 | `auth.json` looks valid but `grok -p hello` fails | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-05 | `grok -p hello` exit 0; no grok answer leak | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-06 | backup without session fail-closed | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-07 | backup writable GROK_CLI_ROOT; dest 0644 | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-08 | backup overwrite same basenames | test_domain_grok_cli | grok-auth-backup · idempotency | **have** |
@@ -151,3 +151,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-32 | dest auth.json mode 0600 | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-33 | missing remote auth fail-closed with Next: | test_domain_grok_cli | grok-auth-backup · operator-readable-error | **have** |
 | TP-GROK-CLI-34 | TTY menu `sync-auth-from-remote` row (main **3**) shows SPEC prompt; typed SPEC is not mixed with prompt text; fake scp completes (INC-20260902-001) | test_domain_grok_cli | grok-auth-backup · interactive-vs-noninteractive · output | **have** |
+| TP-GROK-CLI-35 | expired `auth.json` + `grok -p hello` ok → logged in (live probe wins) | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-36 | grok `-p hello` stdout/stderr not printed (no token leak) | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-37 | Core tests fake `GROK_BIN`; no public network | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
+| TP-GROK-CLI-38 | valid-looking `auth.json` without grok is not logged in | test_domain_grok_cli | grok-auth-backup | **have** |

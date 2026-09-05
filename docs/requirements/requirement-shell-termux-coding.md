@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-termux-coding.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0)  
 **Area**: shell  
 **Key**: `requirement-shell-termux-coding`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -19,7 +19,7 @@ This is **not** a second language coding-style file. POSIX `/bin/sh` style (`set
 | Cache vs persistence resolvers | `requirement-shell-cli-storage` |
 | grok-cli checkout `install` dest | `requirement-shell-local-self-management` |
 | `setup` procedure (channel, artifact, wrapper, `pkg install proot`, resolv bind) | `requirement-grok-setup` |
-| `/var/grok-cli` deposit + session | `requirement-grok-auth-backup` |
+| `/var/grok-cli` deposit + **session procedure** (`grok -p hello`) | `requirement-grok-auth-backup` |
 | **This file** | How every CLI path **must be written** so those peers still work on Termux |
 
 ### 1.1 Human-facing
@@ -103,10 +103,19 @@ Rules:
 19. When execing that vendor file or `proot`, **MUST** unset `LD_PRELOAD` and set `TERMUX_EXEC_OPTOUT=1` for that exec, then restore. **MUST NOT** leave `LD_PRELOAD` cleared for the rest of the CLI.  
 20. **MUST NOT** run `proot` against the vendor grok while Termux `LD_PRELOAD` (libtermux-exec) is still set.
 
+### 2.4b Session probe (writing rules; procedure SSOT is `requirement-grok-auth-backup`)
+
+A credential file on the phone can look valid while grok cannot reach `auth.x.ai` (no nameserver, wrapper missing, `ET_EXEC`). Writers **MUST** exec the **resolved peer** (`{{GROK_HOME}}/bin/grok` wrapper when that is what `setup` placed).
+
+21b. The session probe **MUST** be `grok -p hello` with stdin closed. **MUST NOT** hang under `--json` / off-TTY / the numbered menu. When `timeout` is on PATH, **MUST** bound the probe.  
+22b. **MUST** exec the path `gc_resolve_grok_peer` returns (the POSIX wrapper when setup wrote one). **MUST NOT** smoke `grok -p hello` from cache/`/tmp`/`/dev/shm`.  
+23b. **MUST NOT** print grok’s answer. Core tests **MUST** fake `GROK_BIN` (no xAI).  
+24b. A `dns error` from the probe is a **session** failure (`requirement-grok-auth-backup`), not an install failure. Next stays `grok login` (or `export XAI_API_KEY`). Do **not** invent a Termux `/var/grok-cli`.
+
 ### 2.5 PATH and bins (writing rules)
 
-21. PATH candidates when placing a **peer grok** link: `USER_BIN` (`${HOME}/.local/bin`), then `GLOBAL_BIN` (`/usr/local/bin`), then `${PREFIX}/bin` **when `PREFIX` is set**. Skip a candidate that is missing or not writable. Missing `GLOBAL_BIN` on Termux is **not** a blocking error for a user-bin install.  
-22. A PATH line written to `~/.bashrc` does **not** apply to the current session. **MUST NOT** print `[ERROR]` for that stale-PATH case when the binary is on disk (`requirement-grok-setup`).
+25. PATH candidates when placing a **peer grok** link: `USER_BIN` (`${HOME}/.local/bin`), then `GLOBAL_BIN` (`/usr/local/bin`), then `${PREFIX}/bin` **when `PREFIX` is set**. Skip a candidate that is missing or not writable. Missing `GLOBAL_BIN` on Termux is **not** a blocking error for a user-bin install.  
+26. A PATH line written to `~/.bashrc` does **not** apply to the current session. **MUST NOT** print `[ERROR]` for that stale-PATH case when the binary is on disk (`requirement-grok-setup`).
 
 ### 2.6 Implementation Notes (this project)
 
@@ -125,7 +134,8 @@ Rules:
 | grok-cli user bin | `${HOME}/.local/bin/grok-cli` |
 | grok-cli global bin | `/usr/local/bin/grok-cli` (Linux multi-user; often absent on Termux) |
 | Deposit | `/var/grok-cli` — not a Termux substitute |
-| Core tests | `tests/test_grok_setup.sh` fakes Android `uname`, `pkg`, `proot` |
+| Session probe | `gc_grok_prompt_hello` (`grok -p hello`; stdin closed; fake `GROK_BIN` in Core tests) |
+| Core tests | `tests/test_grok_setup.sh` fakes Android `uname`, `pkg`, `proot`; `tests/test_domain_grok_cli.sh` fakes `GROK_BIN` |
 
 **Detect helper (complete sample — live copy is the ship unit):**
 
@@ -190,7 +200,9 @@ PREFIX=/data/data/com.termux/files/usr
 9. Invent a Termux-local `/var/grok-cli` or `/etc/sudoers.d` substitute without a new Active requirement.  
 10. Copy a second Android `uname` detect instead of reusing the one helper.  
 11. Hit packages.termux.org from Core tests.  
-12. Require `bash` because Termux happens to ship it.
+12. Require `bash` because Termux happens to ship it.  
+13. Treat `auth.json` parse as logged-in on Termux without `grok -p hello` (DNS / wrapper / `ET_EXEC` would stay hidden).  
+14. Hang the session probe or the numbered menu waiting for an interactive `grok login`.
 
 **Violating this rule is a critical Termux-host / install-class regression.**
 
@@ -208,6 +220,7 @@ PREFIX=/data/data/com.termux/files/usr
 | AC-6 | grok-cli user install dest remains `USER_BIN`; missing `GLOBAL_BIN` is not a user-install failure |
 | AC-7 | Ship unit shebang is `#!/bin/sh` (no bash required) |
 | AC-8 | No Termux-local substitute for `/var/grok-cli` in the ship unit |
+| AC-9 | Session probe is `grok -p hello` on the resolved peer, stdin closed, Core tests fake `GROK_BIN` |
 
 ---
 
@@ -221,7 +234,7 @@ PREFIX=/data/data/com.termux/files/usr
 | `docs/requirements/requirement-grok-setup.md` | `setup` procedure (pkg/proot/wrapper/resolv) |
 | `docs/requirements/requirement-shell-cli-storage.md` | Cache resolver (not an exec path) |
 | `docs/requirements/requirement-shell-local-self-management.md` | grok-cli `install` dest |
-| `docs/requirements/requirement-grok-auth-backup.md` | `/var/grok-cli` deposit (no Termux substitute) |
+| `docs/requirements/requirement-grok-auth-backup.md` | `/var/grok-cli` deposit + live session probe (no Termux substitute) |
 | `./src/grok-cli` | Implementation |
 
 ---
@@ -231,6 +244,7 @@ PREFIX=/data/data/com.termux/files/usr
 | Date | Status | Note |
 |------|--------|------|
 | 2026-09-04 | Active (1.0.0) | Termux/Android host writing SSOT: PREFIX, pkg, noexec, FHS-not-assumed; points at setup/folder/storage |
+| 2026-09-05 | Active (1.1.0) | Session probe writing: exec resolved peer `grok -p hello` (stdin closed; no hang; fake in Core tests) |
 
 ---
 
@@ -243,10 +257,11 @@ PREFIX=/data/data/com.termux/files/usr
 | **TP-VCLI-19**–**25** | `tests/test_grok_setup.sh` | have — Android ET_EXEC, `pkg install -y proot`, `LD_PRELOAD` unset, resolv bind |
 | **TP-LC-01** | `tests/test_local_lifecycle.sh` | have — grok-cli install → `USER_BIN` (not PREFIX) |
 | **TP-CLI-01** | `tests/test_cli.sh` | have — `sh -n`; shebang `/bin/sh` |
+| **TP-GROK-CLI-35**–**38** | `tests/test_domain_grok_cli.sh` | have — live `grok -p hello` fake peer; no xAI; no hang |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-04  
+**Last Updated**: 2026-09-05  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 2.3.0)  
+**Status**: Active (Version 2.4.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -73,7 +73,7 @@ After flag parse, when the command token is `menu` or `main`, **or** when argv w
 8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut). Live verbs excluded from both lists **MUST NOT** run from the pick prompt (typed `check-session` **MAY** still run as a shortcut).  
 9. The choice **MUST** be read in the **current shell**. **MUST NOT** `$()` / backticks a helper whose body contains `read` (**do-not-capture-read** / **PP-A-22**; current-shell `PROMPT_ASK_VALUE`).  
 10. **Header (mandatory — default CLI main menu style):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the product short description (`SHORT_DESCRIPTION` / `APP_DESC`). Typical: `out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"` which prints **Alternative online installer for xAI grok**. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header. **MUST NOT** the generic board title “numbered list of live commands”.  
-11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. **MUST NOT** make this a numbered row.
+11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. That word **MUST** use the live `grok -p hello` probe (`requirement-grok-auth-backup`) — **MUST NOT** treat `auth.json` parse alone as logged-in. The probe **MUST** close stdin and **MUST NOT** hang the menu (`GROK_PROMPT_TIMEOUT`; default 20 when `timeout` is present). **MUST NOT** make this a numbered row.
 
 Normative **main** order:
 
@@ -125,7 +125,7 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 | **Interactive + `--json`** | Ignore json on `menu`/`main`; still the menu |
 | **Non-interactive** | `app_help` (human; `--quiet` still prints help) |
 | **Look** | **default CLI main menu style** — header `APP_NAME(APP_VERSION)`; TTY explain *italic* + light gray (SGR 3+37) via `out_menu_choice`; number and name unstyled |
-| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title; main **N = 5**; submenu **N = 5**; Exit **9**; Back **8**. |
+| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title from live `grok -p hello`; main **N = 5**; submenu **N = 5**; Exit **9**; Back **8**. |
 
 ### 2.6 Why this requirement exists (CIAO)
 
@@ -163,7 +163,8 @@ Future agents **MUST NOT**:
 10. Print a main-menu (or APP_NAME-led submenu) header as a bare `APP_NAME` without live `VERSION` / `APP_VERSION`, or unstyled on TTY.  
 11. Capture the menu choice with `$()` of a `read` helper.  
 12. Draw the numbered list off **default CLI main menu style** — **MUST NOT** print numbered-choice explain unstyled on a TTY (it **MUST** be *italic* and light gray, SGR **3** + **37**, via `out_menu_choice`). **MUST NOT** invent a second house look (SGR 90, italic-only, gray-only, styled number/name).  
-13. Print the generic board title “numbered list of live commands” instead of Config `SHORT_DESCRIPTION` / `APP_DESC` (**Alternative online installer for xAI grok**).
+13. Print the generic board title “numbered list of live commands” instead of Config `SHORT_DESCRIPTION` / `APP_DESC` (**Alternative online installer for xAI grok**).  
+14. Print **logged in** from `auth.json` parse alone (the session line **MUST** use `grok -p hello`).
 
 ---
 
@@ -173,13 +174,13 @@ Future agents **MUST NOT**:
 |----------------|-------|--------|
 | **TP-CLI-07** | `tests/test_cli.sh` | have (TTY empty argv = this menu; off-TTY empty argv = Type O ensure) |
 | **TP-CLI-13** | `tests/test_cli.sh` | have (main list, family row, submenu Back/Exit, off-TTY help) |
-| **TP-CLI-17** | `tests/test_cli.sh` | have (default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; board title **Alternative online installer for xAI grok**; numbered explain italic + light gray SGR 3+37; number/name unstyled; logged in/out; no check-session row) |
+| **TP-CLI-17** | `tests/test_cli.sh` | have (default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; board title **Alternative online installer for xAI grok**; numbered explain italic + light gray SGR 3+37; number/name unstyled; logged in/out from live `grok -p hello`; no check-session row) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
 
 ---
 
-**Last Updated**: 2026-09-03 (2.3.0 — main-menu board title is product short description **Alternative online installer for xAI grok**)  
+**Last Updated**: 2026-09-05 (2.4.0 — session line is live `grok -p hello`, not `auth.json` parse)  
 **Owner**: product  
-**Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite
+**Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-grok-auth-backup` (session probe) · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

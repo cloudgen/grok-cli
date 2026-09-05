@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.7-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.8-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -19,10 +19,10 @@ After `setup`, open a new terminal if `grok` is not on this session’s PATH, th
 - **Termux-aware place**: also uses `${PREFIX}/bin` when `PREFIX` is set; missing `/etc/resolv.conf` is INFO, not an install failure when `--version` succeeded. If Android still cannot exec grok after that: `pkg install proot`, then `grok-cli setup --force`.
 - **This program’s online install**: `curl|sh` channel, `version-check`, `self-update`, `self-uninstall`
 - **Local self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
-- **Session gate** (after grok is signed in): `check-session`
+- **Session gate**: `check-session` runs `grok -p hello` first. A credential file that only *looks* valid is not enough — grok must actually answer. Missing grok → `grok-cli setup`, then `grok login`.
 - **Optional shared auth on a host**: `backup` deposits `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644`; `sync-auth` copies that store into this login’s `~/.grok` with **no sudo**; `sync-auth-from-remote` uses `scp`; `add-crontab` adds this login’s timers after **this** login’s backup grant exists
 - **Narrow sudoers** (only if you use `backup`): `print-sudoers` emits `NOPASSWD: /usr/local/bin/grok-cli backup`; `generate-sudoer-request` / `submit-sudoer-request` for sudoer-adm
-- **Fail-closed**: missing login, unauthorized deposit, unreadable store, failed grok download/smoke
+- **Fail-closed**: `grok -p hello` failed or grok missing, unauthorized deposit, unreadable store, failed grok download/smoke
 - **CIAO / CIAO-Lite** defensive design (Protection Zones, `out_*` output SSOT)
 
 ## Quick Installation
@@ -104,7 +104,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.7*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.8*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -114,13 +114,13 @@ logged out
 9. Exit
 ```
 
-Choose a number, or type the command name. `9` exits. The line under the title is **logged in** or **logged out**. On a real terminal the descriptions after the colon are gray and italic. `setup` is not on this list — type `grok-cli setup`.
+Choose a number, or type the command name. `9` exits. The line under the title is **logged in** or **logged out** from a live `grok -p hello` (not from reading `auth.json` alone). On a real terminal the descriptions after the colon are gray and italic. `setup` is not on this list — type `grok-cli setup`.
 
 ## Usage
 
 | How you run it | What you get |
 |----------------|--------------|
-| `grok-cli` at a real terminal | Numbered start list (`backup` is **1**; login status is under the title; **9** leaves). Same as `grok-cli menu`. |
+| `grok-cli` at a real terminal | Numbered start list (`backup` is **1**; **logged in** / **logged out** under the title from `grok -p hello`; **9** leaves). Same as `grok-cli menu`. |
 | `curl -fsSL … \| sh` or `grok-cli` in a script (no args) | Install-ensure: places `~/.local/bin/grok-cli` or reports already installed. **Not** help. **Not** the menu. |
 | `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help |
 | `grok-cli menu` in a script | Help (the list is TTY-only) |
@@ -157,6 +157,7 @@ grok-cli self-uninstall --force
 | `GROK_VENDOR_BASE_URL` | xAI grok channel/artifact base (default `https://x.ai/cli`) |
 | `GROK_CHANNEL` | grok channel (`stable` / `alpha` / `enterprise`; default `stable`) |
 | `GROK_BIN` | Override path to peer `grok` |
+| `GROK_PROMPT_TIMEOUT` | Seconds to wait for `grok -p hello` (default 20; needs `timeout` on PATH) |
 | `GROK_CLI_ROOT` | Durable auth store (default `/var/grok-cli`; optional sharing) |
 | `ALLOW_TEST_LOCAL_SUDOERS` | `1` = allow test-mode sudoers emit without `--allow-test-local` |
 | `SUDOER_CLI` | Override path to `sudoer-cli` |
@@ -170,8 +171,8 @@ grok-cli setup
 # open a new terminal if grok is not on this session PATH yet
 grok login
 
-# Optional: confirm session, then share auth.* on this host
-grok-cli check-session
+# Optional: confirm grok actually answers, then share auth.* on this host
+grok-cli check-session    # runs grok -p hello first
 grok-cli backup
 
 # Another login on the same host, no sudo:
@@ -190,7 +191,7 @@ grok-cli add-crontab
 |----------|--------|
 | Linux, `/bin/sh` (dash/bash) | Supported |
 | Termux / Android userspace | Supported for **this installer** (`setup` smokes under `~/.grok/downloads`, honors `$PREFIX/bin`, does not require bash). Vendor `linux-aarch64` grok is often `ET_EXEC`; setup retries `TERMUX_EXEC_OPTOUT`, may `pkg install -y proot`, and may place a wrapper without patching the file. Missing `/etc/resolv.conf` is not an install failure — use `XAI_API_KEY` or a host with working DNS if login fails. **Not** official x.ai Termux support. |
-| `python3` (optional) | Used for JSON session parse when present |
+| `python3` (optional) | Used for leftover `auth.json` shape helper when present (session gate is `grok -p hello`) |
 | `sudo` + narrow sudoers | Required only for non-root `backup` into `/var/grok-cli` |
 | macOS | `setup` follows xAI’s Darwin/arch detect; GNU `date -d` / `stat -c` assumptions may differ for other verbs |
 | Windows | Out of scope (fail closed in `setup`) |
@@ -214,6 +215,7 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-05 — version **1.8.8**: `check-session` / backup / menu **logged in** run `grok -p hello` first. A file that only looks valid is not a login.  
 2026-09-04 — version **1.8.7**: `setup` on Termux binds `~/.grok/resolv.conf` over `/etc/resolv.conf` via proot so `grok login` can resolve auth.x.ai.  
 2026-09-04 — version **1.8.6**: `setup` curl failures name HTTP status; Android `e_type` 2 keeps `grok-*.failed`; `proot` unsets `LD_PRELOAD`.  
 2026-09-04 — version **1.8.5**: `setup` on Termux runs `pkg install -y proot` when grok still cannot exec and `proot` is missing.  

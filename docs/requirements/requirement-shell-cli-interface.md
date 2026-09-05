@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.7.5)  
+**Status**: Active (Version 2.7.6)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -103,7 +103,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
 | `main` | Type 0 | `app_default` (alias) | Same as `menu` |
 | `setup` | Type 0 | `gc_setup` (domain) | Perform the studied xAI grok procedure (platform, channel pointer, artifact, `~/.grok` place) so peer `grok` is installed; **MUST NOT** fetch or exec `install.sh`; skip if grok already **runs on this host** unless `--force`. Stale session PATH is not an error. **MUST NOT** install grok-cli |
-| `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in |
+| `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in by running `grok -p hello` first (not `auth.json` parse alone) |
 | `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
 | `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo |
 | `sync-auth-from-remote` | Type 0 | `gc_sync_auth_from_remote` (domain) | `scp` remote `/var/grok-cli/auth.*` into `~/.grok`; SPEC is `user@IPv4`, IPv4, domain, or `user@domain`; **does not** use sudo |
@@ -248,9 +248,10 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | 2026-09-04 | Active 2.7.3 | `setup` Termux `pkg install -y proot` when needed (dual mention `requirement-grok-setup` 2.4.0) |
 | 2026-09-04 | Active 2.7.4 | `setup` HTTP status on curl fail (dual mention `requirement-grok-setup` 2.5.0) |
 | 2026-09-04 | Active 2.7.5 | `setup` Android proot resolv bind (dual mention `requirement-grok-setup` 2.6.0) |
+| 2026-09-05 | Active 2.7.6 | `check-session` live `grok -p hello` (dual mention `requirement-grok-auth-backup` 1.2.0) |
 
 ---
 
-**Last Updated**: 2026-09-04  
+**Last Updated**: 2026-09-05  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

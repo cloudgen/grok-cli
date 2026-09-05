@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.8.7 (current) | Yes |
+| 1.8.8 (current) | Yes |
+| 1.8.7 | Yes |
 | 1.8.6 | Yes |
 | 1.8.5 | Yes |
 | 1.8.4 | Yes |
@@ -42,7 +43,7 @@ This project follows **[CIAO](https://github.com/cloudgen/ciao)** / **[CIAO-Lite
 
 | Letter | Principle | Security application |
 |--------|-----------|----------------------|
-| **C** | **Caution** | Fail closed without a valid grok session; fail closed without allowlisted `sudo grok-cli backup` for `/var/grok-cli`. Never print tokens. |
+| **C** | **Caution** | Fail closed unless `grok -p hello` succeeds; fail closed without allowlisted `sudo grok-cli backup` for `/var/grok-cli`. Never print tokens or grok’s prompt answer. |
 | **I** | **Intentional** | Session check and `sync-auth` stay the invoking login; only deposit/chown/chmod is elevated. `print-sudoers` never writes `/etc`. |
 | **A** | **Anti-fragile** | `GROK_HOME` / `GROK_CLI_ROOT` overrides keep tests off production dest; SUDO_USER home used when re-exec'd as root. |
 | **O** | **Over-protect** | Narrow Cmnd only (`NOPASSWD: /usr/local/bin/grok-cli backup`); no `cp`/`chmod`/`chown` sudoers tools; Protection Zones. |
