@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.8  
-**Last plan update:** 2026-09-05  
-**Last suite run:** `./tests/run.sh` (1.8.8: PASS=478 FAIL=0 SKIP=0)
+**Product VERSION:** 1.8.9  
+**Last plan update:** 2026-09-06  
+**Last suite run:** `./tests/run.sh` (1.8.9: PASS=479 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -16,6 +16,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Area | Status | Evidence |
 |------|--------|----------|
 | Syntax `sh -n` | have | TP-CLI-01 |
+| Active REQ samples do not freeze a session login | have | TP-CLI-18 |
 | version / help / about human + JSON | have | TP-CLI-02..06 |
 | Empty argv: TTY menu; off-TTY Type O ensure (not help) | have | TP-CLI-07 · TP-ONL-01 |
 | Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 |
@@ -60,6 +61,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-13 | `menu`/`main`: TTY daily-work list (backup is 1; sync-auth-from-remote is 3; add-crontab is 4; sudoers family is 5) + submenu (Back 8 / Exit 9); ignore `--json` on TTY; off-TTY `menu` help; empty argv off-TTY is Type O ensure (not help); `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
 | TP-CLI-15 | Static: ship unit has no `$(prompt_ask` / `$(prompt_yes_no` (T1-PROMPT-CAPTURE; **TP-ELEV-10**) | `tests/test_cli.sh` | requirement-shell-script-coding · interactive-vs-noninteractive | **have** |
 | TP-CLI-17 | Default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; numbered explain italic + light gray SGR 3+37; number/name unstyled; not SGR 90; session line under title; no `check-session` row; submenu nametag; inherited `APP_VERSION` ignored | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-output-requirements | **have** |
+| TP-CLI-18 | Active `requirement-*.md` samples do not freeze a session Unix login | `tests/test_cli.sh` | requirement-sudoer-json-file · requirement-three-layer-privilege-model · requirement-domain-grok-cli | **have** |
 
 ### TP-LC (local lifecycle)
 

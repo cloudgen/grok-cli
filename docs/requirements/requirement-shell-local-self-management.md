@@ -127,6 +127,23 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** checkout `install` stays `USER_BIN`. Do not wrap sudo to write `GLOBAL_BIN` on this class.
+
+---
+
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - **Caution**: No network in install path.  
@@ -143,10 +160,12 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 1. Replace local `uninstall` with online `self-uninstall` as the primary remove verb.  
 2. Require `SCRIPT_URL` for install.  
 3. Steal empty argv from `requirement-shell-cli-zero-arguments` (TTY menu / off-TTY Type O).  
-4. Delete user data or `/var/backup` content during uninstall.  
+4. Delete user data or `/var/grok-cli` content during uninstall.  
 5. Fetch remote version inside `version`.  
 6. Install the managed binary with execute-only group/other bits (`0711` / `chmod +x` after `0600` stage) — **must** keep absolute **`0755`** so global install remains multi-user runnable for a shell ship unit.  
 7. Place grok-cli into `${PREFIX}/bin` as a Termux package, or fail a non-root Termux `install` because `/usr/local/bin` is missing.
+
+8. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical install-mode regression.**
 
@@ -205,6 +224,6 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 
 ---
 
-**Last Updated**: 2026-09-04  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

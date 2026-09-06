@@ -16,7 +16,7 @@ This does **not** install grok-cli itself (checkout `install` and channel `curl|
 
 ### 1.1 Human-facing
 
-**In one sentence:** you type `grok-cli setup` so this login downloads the matching `grok` program from xAI’s CLI channel and places it under `~/.grok`; setup runs `--version` on the file under `~/.grok/downloads` first, because some phones will not execute a file from `/tmp` or the cache folder; on Termux, if that file is a static Linux executable the phone linker refuses, setup retries without Termux’s exec interceptor, and if `proot` is missing it runs `pkg install -y proot` itself, then may place a wrapper — it still does not edit the vendor file; then you `grok login`.
+**In one sentence:** you type `grok-cli setup` so this login downloads the matching `grok` program from xAI and places it under `~/.grok`, then you `grok login`.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
@@ -165,6 +165,23 @@ grok-cli setup --json
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** `setup` stays this login. Termux `pkg` is ordinary-user work. Do not use sudo.
+
+---
+
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - **Caution:** Temp-file fetch; never exec `install.sh`; never place a binary that fails `--version`.  
@@ -201,6 +218,8 @@ grok-cli setup --json
 21. Delete the smoked Android download on `e_type` / ET_EXEC failure (operator cannot inspect `~/.grok/downloads`).  
 22. Hide the HTTP status (or curl exit) on a failed version-pointer or artifact fetch.  
 23. Leave Android grok without a `proot -b …:/etc/resolv.conf` bind when the probe resolv has no nameserver and proot can run the vendor file (musl then fails `grok login` with dns error).
+
+24. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical setup / install-class regression.**
 
@@ -278,6 +297,6 @@ grok-cli setup --json
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-04 (2.6.1)  
+**Last Updated**: 2026-09-06 (2.6.1)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

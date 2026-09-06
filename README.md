@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.8-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.9-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -15,15 +15,14 @@ After `setup`, open a new terminal if `grok` is not on this session’s PATH, th
 
 ## Features
 
-- **Alternative grok install**: `setup` — detect OS/arch, read xAI’s channel version pointer, fetch the matching `grok` artifact, smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder; those may be `noexec` on Termux/Android), place `~/.grok/bin/grok`. Skip if grok already **runs on this host**; an x86_64 file copied onto aarch64 Termux is replaced. On Android, if the vendor file is a static `ET_EXEC` that `linker64` refuses, retry with `TERMUX_EXEC_OPTOUT`; if `proot` is missing, `pkg install -y proot` (Termux only), then place a wrapper (still **no** byte-patch). `--force` fetches again. POSIX `/bin/sh` (does **not** require bash). Does **not** run `install.sh`.
-- **Termux-aware place**: also uses `${PREFIX}/bin` when `PREFIX` is set; missing `/etc/resolv.conf` is INFO, not an install failure when `--version` succeeded. If Android still cannot exec grok after that: `pkg install proot`, then `grok-cli setup --force`.
-- **This program’s online install**: `curl|sh` channel, `version-check`, `self-update`, `self-uninstall`
-- **Local self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
-- **Session gate**: `check-session` runs `grok -p hello` first. A credential file that only *looks* valid is not enough — grok must actually answer. Missing grok → `grok-cli setup`, then `grok login`.
-- **Optional shared auth on a host**: `backup` deposits `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644`; `sync-auth` copies that store into this login’s `~/.grok` with **no sudo**; `sync-auth-from-remote` uses `scp`; `add-crontab` adds this login’s timers after **this** login’s backup grant exists
-- **Narrow sudoers** (only if you use `backup`): `print-sudoers` emits `NOPASSWD: /usr/local/bin/grok-cli backup`; `generate-sudoer-request` / `submit-sudoer-request` for sudoer-adm
-- **Fail-closed**: `grok -p hello` failed or grok missing, unauthorized deposit, unreadable store, failed grok download/smoke
-- **CIAO / CIAO-Lite** defensive design (Protection Zones, `out_*` output SSOT)
+- **Install grok without x.ai’s `install.sh`**: type `grok-cli setup`. It detects this computer, downloads the matching grok program from xAI, checks that `--version` runs from `~/.grok/downloads` (not `/tmp` or the cache folder — some phones refuse to run files from there), and places `~/.grok/bin/grok`. Skip if grok already **runs on this host**. An x86_64 file copied onto an aarch64 phone is replaced. On Termux, if the phone will not run the vendor file, setup may install `proot` with `pkg` (this login, no sudo) and place a wrapper — it still does **not** edit the vendor file. `--force` downloads again. POSIX `/bin/sh` (does **not** need bash).
+- **Termux-aware place**: uses `${PREFIX}/bin` when `PREFIX` is set. A missing `/etc/resolv.conf` is a note, not an install failure, when `--version` succeeded. If grok still will not run: `pkg install proot`, then `grok-cli setup --force`.
+- **Install this program**: paste the curl one-liner; later `version-check`, `self-update`, `self-uninstall`
+- **Install from a checkout**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
+- **Prove grok is logged in**: `check-session` asks grok a one-line question (`grok -p hello`). A credential file that only *looks* valid is not enough. Missing grok → `grok-cli setup`, then `grok login`.
+- **Optional shared login on one Linux host**: `backup` copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644`; `sync-auth` copies that store into this login’s `~/.grok` with **no sudo**; `sync-auth-from-remote` uses `scp`; `add-crontab` adds this login’s timers after **this** login’s backup grant exists
+- **Optional passwordless backup grant** (only if you use `backup`): `print-sudoers` prints one line so this login may run `sudo grok-cli backup` without a password. A host admin installs that line. `generate-sudoer-request` / `submit-sudoer-request` hand the same grant to the named approver (`sudoer-adm`).
+- **Stops when it should**: grok missing or not answering, unauthorized copy into `/var/grok-cli`, unreadable store, failed grok download
 
 ## Quick Installation
 
@@ -104,7 +103,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.8*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.9*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -203,7 +202,7 @@ grok-cli add-crontab
 - [folder-backup](https://github.com/cloudgen/folder-backup) — architecture parent (folder archive backup)
 - [CIAO Defensive Programming](https://github.com/cloudgen/ciao)
 - [CIAO-Lite](https://github.com/cloudgen/ciao-lite)
-- [cli-template](https://github.com/cloudgen/cli-template) — Type 0 template (hop 0)
+- [cli-template](https://github.com/cloudgen/cli-template) — POSIX shell starter this product grew from (hop 0)
 
 ## Contributing
 
@@ -215,24 +214,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-05 — version **1.8.8**: `check-session` / backup / menu **logged in** run `grok -p hello` first. A file that only looks valid is not a login.  
-2026-09-04 — version **1.8.7**: `setup` on Termux binds `~/.grok/resolv.conf` over `/etc/resolv.conf` via proot so `grok login` can resolve auth.x.ai.  
-2026-09-04 — version **1.8.6**: `setup` curl failures name HTTP status; Android `e_type` 2 keeps `grok-*.failed`; `proot` unsets `LD_PRELOAD`.  
-2026-09-04 — version **1.8.5**: `setup` on Termux runs `pkg install -y proot` when grok still cannot exec and `proot` is missing.  
-2026-09-04 — version **1.8.4**: `setup` on Termux retries Android `e_type` 2 via TERMUX_EXEC_OPTOUT / `proot` and places a wrapper; Next is `pkg install proot` when that still cannot run.  
-2026-09-04 — version **1.8.3**: `setup` skips only if grok **runs on this host**; refuses a wrong ELF (do not scp x86_64 grok onto aarch64 Termux).  
-2026-09-03 — README rewritten for the installer intention (alternative to x.ai `install.sh`; Termux-friendly `setup`; auth backup is optional later work). Version **1.8.2**.  
-2026-09-03 — version **1.8.2**: main-menu short desc is **Alternative online installer for xAI grok**.  
-2026-09-03 — version **1.8.1**: numbered menu descriptions are italic + light gray (SGR 3+37); default CLI main menu style.  
-2026-09-03 — version **1.8.0**: main menu header **grok-cli**(*version*); **logged in** / **logged out** under the title; `check-session` is no longer a numbered row.  
-2026-09-02 — version **1.7.3**: `setup` smokes grok from `~/.grok/downloads` (Termux/Android `noexec` tmp) and prints the exec error.  
-2026-09-02 — version **1.7.2**: `prompt_ask` sets `PROMPT_ASK_VALUE` in the current shell (no `$()` of `read` helpers).  
-2026-09-02 — version **1.7.1**: TTY menu pick 4 (`sync-auth-from-remote`) shows the SPEC prompt instead of hanging (INC-20260902-001).  
-2026-09-02 — version **1.7.0**: online `curl|sh` install; off-TTY empty argv is ensure, TTY empty argv stays the menu.  
-2026-09-02 — version **1.6.0**: `setup` installs peer `grok` by the studied xAI channel + artifact procedure (does not run `install.sh`).  
-2026-09-02 — version **1.5.0**: `sync-auth-from-remote` pulls `/var/grok-cli/auth.*` from another host via scp.  
-2026-09-02 — version **1.4.0**: `add-crontab` installs this login’s backup/sync-auth crontab jobs after **this** login’s sudoers grant exists.  
-2026-08-30 — version **1.3.0**: storage = cache folder **and** persistence `${HOME}/.local/grok-cli`; `about` prints both.  
-2026-08-30 — version **1.2.2**: `about` Cache folder preferred `/dev/shm/cache/cache-grok-cli`; fallback under XDG `cache-grok-cli` (not Storage (effective)/(fallback)).  
-2026-08-23 — version **1.1.0**: empty argv on a real terminal opens the numbered start list (same as `menu`); off-TTY empty argv still prints help; Type N (no install).  
-2026-08-23 — version **1.0.0**: specialized from sibling folder-backup; grok session gate; backup `~/.grok/auth.*` to `/var/grok-cli` as root:root; unprivileged `sync-auth`; JSON grant is `grok-cli backup` only (sudoer-adm).
+2026-09-06 — version **1.8.9**: README and requirement wording for people (grant samples use `id -un`, not a frozen login; Termux / Git Bash stay this-login-only). Full history: [`CHANGELOG.md`](./CHANGELOG.md).

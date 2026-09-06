@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.8.8 (current) | Yes |
+| 1.8.9 (current) | Yes |
+| 1.8.8 | Yes |
 | 1.8.7 | Yes |
 | 1.8.6 | Yes |
 | 1.8.5 | Yes |

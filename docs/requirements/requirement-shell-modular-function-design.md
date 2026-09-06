@@ -95,6 +95,23 @@ Critical sections (output SSOT, install place/remove, storage resolve, domain ar
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** prefixes only. Do not add an admin-privilege-only module on this class.
+
+---
+
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - **Caution:** No bare unscoped helpers.  
@@ -113,6 +130,8 @@ Critical sections (output SSOT, install place/remove, storage resolve, domain ar
 3. Split into multi-file runtime without a pack story and requirement change.  
 4. Strip Protection Zones “for readability.”  
 5. Cite templates/skills as product-source behavioral authority.
+
+6. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical modular design regression.**
 
@@ -148,6 +167,6 @@ Critical sections (output SSOT, install place/remove, storage resolve, domain ar
 
 ---
 
-**Last Updated**: 2026-08-03  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

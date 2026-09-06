@@ -84,15 +84,15 @@ This file lists the grok-cli commands a login types after install: place the xAI
 sudoer-{{YYYYMMDD}}-grok-cli-{{username}}-{{action}}-{{n}}.json
 ```
 
-**Worked sample basename (add):** `sudoer-20260822-grok-cli-leolio-add-1.json`
+**Worked sample basename (add):** `sudoer-20260822-grok-cli-<id -un>-add-1.json`
 
 **Complete sample JSON grant (add):**
 
 ```json
 {
   "schema_version": 1,
-  "purpose": "Allow leolio to run grok-cli backup as root.",
-  "username": "leolio",
+  "purpose": "Allow <id -un> to run grok-cli backup as root.",
+  "username": "<id -un>",
   "service": "grok-cli",
   "action": "add",
   "commands": [
@@ -111,7 +111,7 @@ sudoer-{{YYYYMMDD}}-grok-cli-{{username}}-{{action}}-{{n}}.json
 **Equivalent text dual:**
 
 ```text
-leolio ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
+<id -un> ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
 ```
 
 ### 2.3 Pillar C — Specialized project help items
@@ -178,7 +178,7 @@ grok-cli add-crontab
 | **Crontab operations SSOT** | `requirement-grok-crontab` |
 | **Privilege / sudoers SSOT** | `requirement-three-layer-privilege-model` (workflow) · `requirement-sudoer-json-file` (JSON grant body) |
 | **Public inbound (sibling)** | `/var/sudoer-cli/sudoer-request` |
-| **Worked queued basename** | `sudoer-20260822-grok-cli-leolio-add-1.json` |
+| **Worked queued basename** | `sudoer-20260822-grok-cli-<id -un>-add-1.json` |
 | **Bootstrap** | Specialized from sibling **folder-backup**; chain cli-template → folder-backup → grok-cli |
 
 ### 2.6 Why This Requirement Exists (CIAO)
@@ -186,6 +186,23 @@ grok-cli add-crontab
 - **Principle 2 – Intentional**: Domain surface is explicit (four pillars) and not mixed with full ops law.  
 - **Principle 5 – Output SSOT**: Help/about domain rows via product output system.  
 - **Principle 9 – Three Types of Commands**: Domain labels user verbs that invoke a narrow elevated backup sub-step under peer REQs.
+
+---
+
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** `backup` / sudoers verbs stay **unused** on this class. `setup` and `check-session` stay this-login work.
 
 ---
 
@@ -208,6 +225,8 @@ grok-cli add-crontab
 4. Put domain law into bootstrap origin folder-backup or cli-template.  
 5. Create a second Active `requirement-domain-*` without superseding this one.  
 6. Let Type 0 `mkdir` `/var/sudoer-cli/sudoer-request`.
+
+7. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical domain regression.**
 
@@ -272,6 +291,6 @@ grok-cli add-crontab
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-05  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

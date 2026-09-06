@@ -107,8 +107,8 @@ This product **MUST NOT** invent the dest basename. Sibling grammar (informative
 sudoer-{{YYYYMMDD}}-{{PRJ_NAME}}-{{username}}-{{action}}-{{n}}.json
 ```
 
-**Worked sample basename (add):** `sudoer-20260822-grok-cli-leolio-add-1.json`  
-**Worked sample basename (update):** `sudoer-20260822-grok-cli-leolio-update-1.json`
+**Worked sample basename (add):** `sudoer-20260822-grok-cli-<id -un>-add-1.json`  
+**Worked sample basename (update):** `sudoer-20260822-grok-cli-<id -un>-update-1.json`
 
 ### 2.6 Complete sample bodies (same grant; add vs update)
 
@@ -117,8 +117,8 @@ Normative **add** JSON (this project’s filled values — see §2.8):
 ```json
 {
   "schema_version": 1,
-  "purpose": "Allow leolio to run grok-cli backup as root.",
-  "username": "leolio",
+  "purpose": "Allow <id -un> to run grok-cli backup as root.",
+  "username": "<id -un>",
   "service": "grok-cli",
   "action": "add",
   "commands": [
@@ -137,8 +137,8 @@ Normative **update** JSON (same commands; `action` only changes):
 ```json
 {
   "schema_version": 1,
-  "purpose": "Allow leolio to run grok-cli backup as root.",
-  "username": "leolio",
+  "purpose": "Allow <id -un> to run grok-cli backup as root.",
+  "username": "<id -un>",
   "service": "grok-cli",
   "action": "update",
   "commands": [
@@ -155,8 +155,8 @@ Normative **update** JSON (same commands; `action` only changes):
 Equivalent **text dual** of the same grant (not a second allowlist of OS tools):
 
 ```text
-# Purpose: Allow leolio to run grok-cli backup as root.
-leolio ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
+# Purpose: Allow <id -un> to run grok-cli backup as root.
+<id -un> ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
 ```
 
 **Withdrawn (forbidden) encoding** — do not copy into a JSON sudoer file:
@@ -203,7 +203,7 @@ Sibling (or this product) **MAY** decode then re-encode the grant when convertin
 | **Generate verb** | `generate-sudoer-request` → `gc_generate_sudoer_request` (independent compact dual; dest readable without sudo) |
 | **Generate dest (default)** | `${HOME}/.config/grok-cli/sudoer-request-<user>.json` (path operand for suite/review) |
 | **Service field** | `grok-cli` |
-| **Worked user in samples** | `leolio` (illustrative login; live emit uses `id -un`) |
+| **Worked user in samples** | `id -un` at runtime (never freeze a session login) |
 | **Privilege / workflow peer** | `requirement-three-layer-privilege-model` |
 | **Ship unit emit** | **1.8.0+** `gc_sudoers_json_text` / `gc_sudoers_fragment_text` — `{{GLOBAL_BIN}}/grok-cli` `backup` only. `print-sudoers <path>` also writes `<path>.json`. Submit default input is the JSON grant. |
 
@@ -214,6 +214,23 @@ Sibling (or this product) **MAY** decode then re-encode the grant when convertin
 - **CIAO Principle 2 – Intentional**: The JSON file means “this user may run `{{PRJ_NAME}}` backup as root,” nothing else.  
 - **CIAO Principle 9 – Type 0 / 1 / 2**: JSON is the Type 1 **grant**. Live mkdir/copy/tar after elev are not a second grant.  
 - **CIAO Principle 21 – Dual policies**: Core rules use `{{PRJ_NAME}}` / `{{GLOBAL_BIN}}`; this section fills `grok-cli` and `/usr/local/bin`.
+
+---
+
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** JSON grant samples stay **unused** on this class. Do not emit a live sudo wrap here.
 
 ---
 
@@ -246,6 +263,8 @@ Sibling (or this product) **MAY** decode then re-encode the grant when convertin
 12. Require callers to emit minified `},{` only in order to skip a whitespace-tolerant decoder.  
 13. Make submit, inbound, or a deleted temp the only way to obtain this JSON for tests or review. Independent generate to a readable dest is required.
 
+14. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
+
 **Violating this rule is a critical privilege / complexity-as-insecurity regression.**
 
 ---
@@ -273,7 +292,7 @@ Sibling (or this product) **MAY** decode then re-encode the grant when convertin
 |-----|--------------|
 | `requirement-three-layer-privilege-model` | Privilege layers; submit/install workflow; trust tiers |
 | `requirement-domain-grok-cli` | `submit-sudoer-request` surface; defers JSON **body** here |
-| `requirement-folder-archive-backup` | `backup` ops after elev |
+| `requirement-grok-auth-backup` | `backup` ops after elev |
 | `requirement-shell-cli-interface` | Verb routing |
 | `requirement-project-folder` | Global bin / ship unit |
 | `requirement-class-software-dev` | Residual points JSON sudoer file here |
@@ -307,6 +326,6 @@ Sibling (or this product) **MAY** decode then re-encode the grant when convertin
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

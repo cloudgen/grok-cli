@@ -37,7 +37,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 |----------|-----------|---------|
 | **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu` (`main` alias), `version-check`, `self-update`, `self-uninstall` |
 | **Type 0 – Domain (user work)** | Invoking user | `setup` (peer grok channel + artifact), session/sync, sudoers fragment **print** |
-| **Type 1 – Narrow elevated deposit** | Controlled sudo (allowlisted only) | Copy staged archive into `/var/backup/...` only |
+| **Type 1 – Narrow elevated deposit** | Controlled sudo (allowlisted only) | Copy `~/.grok/auth.*` into `/var/grok-cli` only |
 | **Type 2 – Dedicated system user app ops** | Dedicated app user | **Not in scope** for this product |
 
 ### 2.2 Global flags (portable)
@@ -153,6 +153,23 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** the Type 1 backup/sudoers rows stay **unused** on detect. Do not add sudo verbs because Linux has them.
+
+---
+
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - **Caution:** Fail loud on bad input; never silent wrong privilege context.  
@@ -174,6 +191,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 5. Run the entire CLI as root by default instead of narrow deposit elevation.  
 6. Put full domain archive semantics only here and omit the domain SSOT.  
 7. Add a second submit verb (`submit-sudoer`) without routing + help, or invent inbound `mkdir` as this CLI’s job.
+
+8. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical CLI interface regression.**
 
@@ -252,6 +271,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-09-05  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

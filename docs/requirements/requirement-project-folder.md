@@ -149,6 +149,23 @@ Rules:
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** `GLOBAL_BIN` and `/var/grok-cli` stay **unused**. `USER_BIN` and `~/.grok` stay.
+
+---
+
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - **Caution**: Fail loud if deposit root or staging is not usable under policy.  
@@ -171,6 +188,8 @@ Rules:
 7. Hard-code `/data/data/com.termux/files/usr` as the product prefix, or treat `${PREFIX}/bin` as grok-cli’s managed install dest.  
 8. Use cache/`/tmp`/`/dev/shm` as the peer-grok smoke directory.  
 9. Invent a Termux-local `/var/grok-cli` under `${PREFIX}` or `${HOME}` without a new requirement.
+
+10. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical path/privilege regression.**
 
@@ -226,6 +245,6 @@ Rules:
 
 ---
 
-**Last Updated**: 2026-09-04  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

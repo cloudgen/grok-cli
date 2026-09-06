@@ -22,9 +22,9 @@ Normal grok-cli work is your login. Only `sudo grok-cli backup` is elevated, aft
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Generate/submit the grant; run backup | sudoer-adm / admin installs `/etc/sudoers.d/grok-cli-<user>` | Type 0 writing `/etc`; `sync-auth` using sudo |
+| Generate/submit the grant; run backup | sudoer-adm / admin installs `/etc/sudoers.d/grok-cli-<user>` | This login writing `/etc`; `sync-auth` using sudo |
 
-**Includes:** Type 0 vs Type 1 map, emit/submit workflow. **Excludes:** JWT parse.
+**Includes:** who may run what; the one elevated command is `backup`; emit/submit workflow. **Excludes:** JWT parse.
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
@@ -261,8 +261,8 @@ Draft often at `${HOME}/.config/grok-cli/sudoers.fragment-<user>`; installed at 
 `print-sudoers` **MUST** emit this shape (or an equivalent one-line `backup` grant).
 
 ```sudoers
-# Purpose: Allow leolio to run grok-cli backup as root.
-leolio ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
+# Purpose: Allow <id -un> to run grok-cli backup as root.
+<id -un> ALL=(root) NOPASSWD: /usr/local/bin/grok-cli backup
 ```
 
 **What this example intentionally omits:** `NOPASSWD: ALL`, shell Cmnds, package managers, `mkdir`/`cp`/`install`/`chmod`/`tar`/`rm`, deposit/stage/archive operands, elevation of `${USER_BIN}/grok-cli`.
@@ -354,8 +354,8 @@ When an agent **creates or materially revises** a sudoers draft (beyond re-runni
 | **Public queue root** | `/var/sudoer-cli` (sibling default) |
 | **Legacy inbound names** | `…/sudoer-approving` — last-fallback only |
 | **Queued basename (sibling allocator)** | `sudoer-{{YYYYMMDD}}-grok-cli-{{user}}-add-{{n}}.json` (or `update`) |
-| **Worked sample basename** | `sudoer-20260815-grok-cli-leolio-add-1.json` |
-| **Worked dest after approve** | `/etc/sudoers.d/grok-cli-leolio` |
+| **Worked sample basename** | `sudoer-20260815-grok-cli-<id -un>-add-1.json` |
+| **Worked dest after approve** | `/etc/sudoers.d/grok-cli-<id -un>` |
 | **Term** | `project-sudoers-file` · `sudoers-fragment` |
 | **Whitelist meaning** | **Sudoers command allowlist** (narrow lines) — not server-maintenance ops registry |
 | **Applied host record** | `docs/whitelists/external-sudoers/records/WS-20260803-001-grok-cli.md` |
@@ -369,20 +369,20 @@ When an agent **creates or materially revises** a sudoers draft (beyond re-runni
 
 **JSON body SSOT:** `requirement-sudoer-json-file` — grant is **`grok-cli` only** (`backup`). **MUST NOT** encode `mkdir` / `cp` / `tar` / `rm` / `install` / `chmod` (or deposit/stage/archive-name operands) in the queued JSON. Complete add/update samples live on that peer.
 
-**Worked add basename:** `sudoer-20260815-grok-cli-leolio-add-1.json`  
-**Worked update basename:** `sudoer-20260815-grok-cli-leolio-update-1.json`
+**Worked add basename:** `sudoer-20260815-grok-cli-<id -un>-add-1.json`  
+**Worked update basename:** `sudoer-20260815-grok-cli-<id -un>-update-1.json`
 
-§2.3.4a remains the **legacy text-fragment** example (OS-tool deposit). That shape is **not** a valid dual of the JSON sudoer file. When emit is updated, the text dual **MUST** match `requirement-sudoer-json-file` §2.6 (`/usr/local/bin/grok-cli backup` and `restore` only).
+§2.3.4a remains the **legacy text-fragment** example (OS-tool deposit). That shape is **not** a valid dual of the JSON sudoer file. When emit is updated, the text dual **MUST** match `requirement-sudoer-json-file` §2.6 (`/usr/local/bin/grok-cli backup` only).
 
 **Admin install script (worked shape).** Live emit is `print-sudoers-install-script` → `/dev/shm/grok-cli-<user>-sudoers-admin.sh`. Complete verb skeleton (values filled for this product):
 
 ```sh
 #!/bin/sh
 # grok-cli — admin sudoers install / uninstall
-# RUN: sudo sh /dev/shm/grok-cli-leolio-sudoers-admin.sh install|uninstall|replace|status
+# RUN: sudo sh /dev/shm/grok-cli-<id -un>-sudoers-admin.sh install|uninstall|replace|status
 set -u
-PROJECT_SUDOERS_FILE="${HOME}/.config/grok-cli/sudoers.fragment-leolio"
-INSTALLED_SUDOERS="/etc/sudoers.d/grok-cli-leolio"
+PROJECT_SUDOERS_FILE="${HOME}/.config/grok-cli/sudoers.fragment-<id -un>"
+INSTALLED_SUDOERS="/etc/sudoers.d/grok-cli-<id -un>"
 die() { printf '%s\n' "ERROR: $*" >&2; exit 1; }
 require_root() { [ "$(id -u)" -eq 0 ] || die "Must run as root"; }
 cmd_install() {
@@ -410,6 +410,23 @@ esac
 - **Principle 10 – Least-Privilege User**  
 - **Principle 1 – Caution**: Fail closed without working sudoers  
 - **Principle 20 – Over-protect**: Do not collapse elevation into “just run as root” or `NOPASSWD: ALL`
+
+---
+
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** sudoers emit, `sudo grok-cli backup`, and `/etc/sudoers.d` stay **unused** on this class. Do not recommend sudo on Termux.
 
 ---
 
@@ -447,6 +464,8 @@ esac
 19. Treat `[OK] Submitted` or checklist S14 Pass as proof the **inbound** `commands[]` still has `backup`.  
 20. Hide sudoer generate only inside `submit-sudoer-request` (no independent Type 0 subcommand).  
 21. Treat inbound, `/etc`, or a deleted submit temp as the **review/test fixture** for a generated sudoer file. Tests and review **MUST** read an independent generate dest without sudo.
+
+22. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical privilege regression.**
 
@@ -540,6 +559,6 @@ esac
 
 ---
 
-**Last Updated**: 2026-08-30 (2.0.1 preferred cache path)  
+**Last Updated**: 2026-09-06 (2.0.1 preferred cache path)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; mold `template-three-layer-privilege-model.md` (**`LM-THREE-LAYER-PRIVILEGE-MODEL`**); **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

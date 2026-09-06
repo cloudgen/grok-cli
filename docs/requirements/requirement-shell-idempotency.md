@@ -18,7 +18,7 @@ Running install or backup again must be safe: no second binary mess, auth snapsh
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Re-run `install` / `backup` | Dated tar.gz next-N is retired | Silent archive overwrite of other projects |
+| Re-run `install` / `backup` | Same `auth.*` names in `/var/grok-cli` are replaced | Silent overwrite of another login’s files |
 
 **Includes:** re-run safety. **Excludes:** sudoers install.
 
@@ -82,6 +82,23 @@ Archive names use `${SOURCE_FOLDER_NAME}-YYYYMMDD-N.tar.gz`. For the same calend
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** re-run safety stays this login. Do not heal `/etc` on this class.
+
+---
+
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - Detect → ensure → success-if-done for lifecycle.  
@@ -98,6 +115,8 @@ Archive names use `${SOURCE_FOLDER_NAME}-YYYYMMDD-N.tar.gz`. For the same calend
 2. Overwrite existing dated archives by default.  
 3. Treat idempotency as permission to ignore validation failures.  
 4. Remove atomic install/stage patterns for “speed.”
+
+5. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical re-run safety regression.**
 
@@ -143,6 +162,6 @@ Archive names use `${SOURCE_FOLDER_NAME}-YYYYMMDD-N.tar.gz`. For the same calend
 
 ---
 
-**Last Updated**: 2026-08-03  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

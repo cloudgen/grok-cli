@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.9] - 2026-09-06
+
+### Changed
+
+- **README for people:** Features and Related Projects lead with everyday words (who types what). Last Update is the current date; full history stays in this file.
+- **Requirement samples:** JSON/sudoers grant examples use `id -un`, not a frozen Unix login.
+- **Termux / Git Bash / Windows cmd:** related shell requirements print **Under command line for normal user only** — this-login work only; no `sudo curl | sh` on that class.
+
+### Fixed
+
+- CLI interface Type 1 deposit still named leftover `/var/backup`.
+- Idempotency human-facing still talked about dated tar.gz archives.
+- Ship unit header still said online install was absent.
+
 ## [1.8.8] - 2026-09-05
 
 ### Fixed

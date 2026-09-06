@@ -324,4 +324,22 @@ AUTH
         t_skip "TP-CLI-17 TTY logged in (no python3 for PTY)"
         t_skip "TP-CLI-17 TTY submenu header (no python3 for PTY)"
     fi
+
+    # TP-CLI-18: Active requirement bodies must not freeze a session Unix login
+    # Needle is split so this test file is not itself a login leak.
+    _needle="leo""lio"
+    _hit=""
+    for _rf in "${REPO_ROOT}/docs/requirements"/requirement-*.md; do
+        case "$_rf" in
+            *requirement-domain-folder-backup.md|*requirement-folder-archive-backup.md|*requirement-folder-archive-backup-retention-*) continue ;;
+        esac
+        if grep -F "$_needle" "$_rf" >/dev/null 2>&1; then
+            _hit="${_hit} ${_rf##*/}"
+        fi
+    done
+    if [ -z "$_hit" ]; then
+        t_pass "TP-CLI-18 Active REQs do not freeze a session Unix login in samples"
+    else
+        t_fail "TP-CLI-18 frozen session login in:${_hit}"
+    fi
 }

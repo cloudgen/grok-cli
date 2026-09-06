@@ -55,6 +55,23 @@ This file says how grok-cli’s ship unit must be written: one `/bin/sh` file, `
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** fail-closed elevation helpers stay **unused** on this class. Do not implement a sudo ladder here.
+
+---
+
 ## 3. Design Principles
 
 - **Caution:** Assume unset HOME and missing sudo.  
@@ -66,7 +83,7 @@ This file says how grok-cli’s ship unit must be written: one `/bin/sh` file, `
 
 ## 4. Protection Rule
 
-**MUST NOT** add `set -e` as the only error policy, drop prefixes, treat coding skills as product law in place of this file, capture `prompt_ask` / `read` helpers with `$()`, or fold Termux `PREFIX`/`pkg`/`noexec` bodies into this file instead of pointing at `requirement-shell-termux-coding`.
+**MUST NOT** add `set -e` as the only error policy, drop prefixes, treat coding skills as product law in place of this file, capture `prompt_ask` / `read` helpers with `$()`, fold Termux `PREFIX`/`pkg`/`noexec` bodies into this file instead of pointing at `requirement-shell-termux-coding`, or strip the **Under command line for normal user only** section.
 
 ---
 
@@ -103,6 +120,6 @@ This file says how grok-cli’s ship unit must be written: one `/bin/sh` file, `
 
 ---
 
-**Last Updated**: 2026-09-04  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

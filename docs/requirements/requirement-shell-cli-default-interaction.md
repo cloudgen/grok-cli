@@ -136,6 +136,23 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** the numbered list stays. Do not add sudo-install rows to the menu on this class.
+
+---
+
 ## 3. Design Principles
 
 - The start list is **daily work**, not a reprint of `help`.  
@@ -167,6 +184,8 @@ Future agents **MUST NOT**:
 14. Print **logged in** from `auth.json` parse alone (the session line **MUST** use `grok -p hello`).
 
 ---
+15. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
+
 
 ## Design-time verification
 
@@ -181,6 +200,6 @@ Future agents **MUST NOT**:
 
 ---
 
-**Last Updated**: 2026-09-05 (2.4.0 — session line is live `grok -p hello`, not `auth.json` parse)  
+**Last Updated**: 2026-09-06 (2.4.0 — session line is live `grok -p hello`, not `auth.json` parse)  
 **Owner**: product  
 **Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-grok-auth-backup` (session probe) · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

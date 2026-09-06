@@ -54,6 +54,23 @@ This requirement is the **remote lifecycle Single Source of Truth** for grok-cli
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** `version-check` / `self-update` / `self-uninstall` stay this-login `USER_BIN`. No `sudo curl`.
+
+---
+
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - **Caution:** Fail loud.  
@@ -65,7 +82,7 @@ This requirement is the **remote lifecycle Single Source of Truth** for grok-cli
 
 ## 4. Protection Rule (Sacred)
 
-**MUST NOT**: bury lifecycle under `gc_*`; skip dual mention; hang off-TTY uninstall without `--force`.
+**MUST NOT**: bury lifecycle under `gc_*`; skip dual mention; hang off-TTY uninstall without `--force`; strip the **Under command line for normal user only** section, or recommend `sudo curl | sh` on Termux / Git Bash / Windows cmd.
 
 ---
 
@@ -112,6 +129,6 @@ grok-cli self-uninstall --force
 |------|--------|------|
 | 2026-09-02 | Active (1.0.0) | Specialized from selfmanaged lifecycle |
 
-**Last Updated**: 2026-09-02  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

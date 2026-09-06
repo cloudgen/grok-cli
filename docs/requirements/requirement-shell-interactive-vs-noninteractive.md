@@ -133,6 +133,23 @@ Call in the current shell. Value is `PROMPT_ASK_VALUE`. **MUST NOT** `_x=$(promp
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** confirm policy only. No sudo password prompts on this class.
+
+---
+
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - **Caution:** Fail closed on destructive ops without force in non-interactive.  
@@ -152,6 +169,8 @@ Call in the current shell. Value is `PROMPT_ASK_VALUE`. **MUST NOT** `_x=$(promp
 4. Re-test live `[ -t 0 ]` / `[ -t 1 ]` inside `prompt_*` as the interactive-capability gate (helpers consume `TTY`).  
 5. Treat non-interactive as license to skip required validation.  
 6. Capture `prompt_ask` / `prompt_yes_no` / any `read` helper with `$()` or backticks (`_var=$(prompt_ask …)` — INC-20260902-001 / T1-PROMPT-CAPTURE).
+
+7. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical interaction-mode regression.**
 
@@ -191,6 +210,6 @@ Call in the current shell. Value is `PROMPT_ASK_VALUE`. **MUST NOT** `_x=$(promp
 
 ---
 
-**Last Updated**: 2026-09-03  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

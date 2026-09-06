@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-05  
-**Product VERSION:** 1.8.8  
+**Updated:** 2026-09-06  
+**Product VERSION:** 1.8.9  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -14,7 +14,7 @@
 | requirement-grok-auth-backup | backup | TP-GROK-CLI-03..10, 12 · 30..38 | Live `grok -p hello` session gate (before `auth.json`); deposit; sync-auth; sync-auth-from-remote; TTY menu SPEC prompt; production dest fail-closed |
 | requirement-grok-setup | domain | TP-VCLI-01..09 · 11..25 · TP-CLI-04 · TP-CLI-13 | Peer grok channel + artifact; Android ET_EXEC wrapper; Termux proot + resolv bind; HTTP status on curl fail; keep `.failed` artifact; Termux writing dual-mention |
 | requirement-grok-crontab | domain | TP-GROK-CLI-26..29 · TP-CLI-04 · TP-CLI-13 | Per-login crontab jobs; grant gate is this `id -un` |
-| requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* | Commands, flags, dispatch; `setup`; online verbs |
+| requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* | Commands, flags, dispatch; `setup`; online verbs; TP-CLI-18 no frozen login in Active REQ samples |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure |
 | requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 | Case 3 `menu`/`main` + TTY empty argv; default CLI main menu style (header short desc + SGR 3+37 explain); session line from `grok -p hello`; off-TTY `menu` help |
 | requirement-shell-local-self-management | shell | TP-LC-* | checkout install/uninstall/where-is-me; 0755; Termux dest is `USER_BIN` |

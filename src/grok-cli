@@ -8,7 +8,7 @@
 # Bootstrap origin: sibling folder-backup (Type 0 + three-layer privilege).
 # Chain: cli-template → folder-backup → grok-cli. Direction A→B only.
 # Specialize: A=folder-backup → B=grok-cli (domain retarget). Do not reverse-copy.
-# Online install / remote self-update / channel checksum: absent; remain absent.
+# Online install / remote self-update / companion checksum: Active (dual-mode).
 #
 # Project requirements (docs/requirements/ only — never cite templates here):
 # - requirement-class-software-dev.md
@@ -40,7 +40,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.8"
+# VERSION: hard-assign VERSION="1.8.9"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -56,8 +56,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.8"
-: "${VERSION:=1.8.8}"
+VERSION="1.8.9"
+: "${VERSION:=1.8.9}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"

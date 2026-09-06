@@ -23,11 +23,11 @@ The preferred cache is **not** a ram-drive **project** tree (`/dev/shm/<project>
 
 ### 1.1 Human-facing
 
-Scratch goes in a cache folder. Durable Type 0 app data goes under this login’s persistence storage. `/var/grok-cli` is the shared deposit, not your personal store.
+Scratch goes in a cache folder. Durable app data for this login goes under persistence storage. `/var/grok-cli` is the shared host store, not your personal folder.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Let the CLI pick cache + persistence | `/var/grok-cli` is the Type 1 deposit | Putting tokens in `/tmp` with a guessed name; treating `~/.local/bin` as data |
+| Let the CLI pick cache + persistence | `/var/grok-cli` is the shared host store (passwordless `sudo grok-cli backup`) | Putting tokens in `/tmp` with a guessed name; treating `~/.local/bin` as data |
 
 **Includes:** cache resolver, persistence resolver, about fields. **Excludes:** deposit chown; install binary placement.
 
@@ -178,6 +178,23 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 
 ---
 
+## Under command line for normal user only
+
+When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** |
+| Treat admin-privilege and dedicated-account work as **unused** | Wrap `apt` / `dnf` / `yum`; `useradd`; recommend `sudo curl \| sh` |
+| Termux: `pkg` as this login stays ordinary-user work | Recommend `sudo curl \| sh` as the install path |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** cache and persistence stay under this login. Do not resolve scratch into `/etc`.
+
+---
+
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - Volatile cache first, user cache last for scratch.  
@@ -203,6 +220,8 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 9. Stage durable deposits only in world-writable shared paths by design.  
 10. Use predictable `$$` scratch names instead of `util_mktemp` / `mktemp` XXXXXX.  
 11. Smoke or `exec` a downloaded binary from the cache folder, `/tmp`, or `/dev/shm` on Termux (`requirement-shell-termux-coding`).
+
+12. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
 **Violating this rule is a critical cache isolation / honesty regression.**
 
@@ -257,6 +276,6 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 
 ---
 
-**Last Updated**: 2026-09-04  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
