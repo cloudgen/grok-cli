@@ -163,6 +163,9 @@ ci_write_fake_grok_hang() {
     cat > "${_fp}" <<'FAKE'
 #!/bin/sh
 # Core-test hang grok — ignores SIGTERM so timeout without -k would freeze.
+if [ -n "${GROK_PROBE_LOG:-}" ]; then
+    printf '%s\n' "-p ${1-}" >> "${GROK_PROBE_LOG}"
+fi
 trap '' TERM INT HUP
 while :; do
     sleep 1

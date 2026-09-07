@@ -5,11 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.18] - 2026-09-07
+
+### Changed
+
+- **`--json` with no command is 0-argv, special case JSON help:** even on a TTY, `grok-cli --json` prints JSON help (not the numbered list, not install-ensure). It is still empty argv (no command token). Distinct from `grok-cli menu --json` on a TTY, which still ignores `--json` and draws the list. Law: `requirement-shell-cli-zero-arguments` **2.2.0**. Suite **TP-CLI-07** TTY `--json`.
+
+## [1.8.17] - 2026-09-07
+
+### Fixed
+
+- **Empty argv includes overlay switches:** `grok-cli --debug` (and `--quiet` / `--force` with no command) follows the same 0-argv path as `grok-cli` and as `DEBUG=1 grok-cli` — TTY numbered menu, off-TTY Type O install-ensure. Empty argv is **no command token** after flag parse, not `$# -eq 0`. `--json` with no command still stays JSON help. Law: `requirement-shell-cli-zero-arguments` **2.1.0**. Suite **TP-CLI-29**.
+
+## [1.8.16] - 2026-09-07
+
+### Added
+
+- **Debug mode menu elapsed:** `grok-cli --debug menu` prints how many seconds each numbered-list paint step took (`header`, `session`, `host`, `logged-in`, `rows`, outer `paint`; sudoers submenu uses `sudoers.*`). Named in-process start/stop/status/elapsed/kill/reset/list helpers specialize sibling **timer** contracts without adding `grok-cli start` domain verbs. Stage ids allow only `[-._a-zA-Z0-9]` (no glob/shell metas). Law: `requirement-shell-internal-volatile-timer` **1.0.0** · `requirement-shell-cli-default-interaction` **2.8.0**. Suite **TP-CLI-25** · **TP-CLI-26** · **TP-CLI-27** · **TP-CLI-28** (AC-6 double-start).
+
 ## [1.8.14] - 2026-09-07
 
 ### Fixed
 
-- **Main menu freeze on Termux:** `grok -p hello` under the Termux `proot` wrapper can ignore SIGTERM, so GNU `timeout` without `--kill-after` waited forever after the header. The live probe is **always** bounded (`GROK_PROMPT_TIMEOUT`, default 20) even when `timeout` is missing. GNU `timeout -k` (`GROK_PROMPT_KILL_AFTER`, default 2) sends SIGKILL after the deadline; otherwise a POSIX watchdog (`kill` then `kill -9`). A bad menu pick no longer runs a second probe. Law: `requirement-grok-auth-backup` **1.5.0** · `requirement-shell-termux-coding` **1.2.0** · `requirement-shell-cli-default-interaction` **2.7.0**. Suite **TP-GROK-CLI-44** · **TP-GROK-CLI-45** · **TP-CLI-21**.
+- **Main menu freeze on Termux:** `grok -p hello` under the Termux `proot` wrapper can ignore SIGTERM, so GNU `timeout` without `--kill-after` waited forever after the header. The live probe is **always** bounded (`GROK_PROMPT_TIMEOUT`, default 20) even when `timeout` is missing. GNU `timeout -k` (`GROK_PROMPT_KILL_AFTER`, default 2) sends SIGKILL after the deadline; otherwise a POSIX watchdog (`kill` then `kill -9`). A bad menu pick no longer runs a second probe. Law: `requirement-grok-auth-backup` **1.5.0** · `requirement-shell-termux-coding` **1.2.0** · `requirement-shell-cli-default-interaction` **2.7.0**. Suite **TP-GROK-CLI-44** · **TP-GROK-CLI-45** · **TP-CLI-21**. Incident **INC-20260907-001**.
 
 ## [1.8.13] - 2026-09-07
 

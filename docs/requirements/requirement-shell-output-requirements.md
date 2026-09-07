@@ -37,7 +37,7 @@ All grok-cli messages go through `out_*`. `--json` is machine stdout; errors sti
 |-------------------------------------|--------|
 | Raw `echo` / bare `printf` for **user messages** | `out_info`, `out_success`, `out_warn`, `out_error`, `out_plain`, … |
 | Direct `printf` of JSON from command logic | `out_json` / `out_json_error` |
-| Ad-hoc `echo >&2` diagnostics | `out_warn` / `out_error` / `out_debug` |
+| Ad-hoc `echo >&2` diagnostics | `out_warn` / `out_error` / `out_debug` (`--debug` menu elapsed uses `out_debug`) |
 | Second parallel print helper that bypasses mode guards | Extend `out_text` / wrappers only |
 
 ### 2.1.1 Allowed `printf` / `echo` exceptions

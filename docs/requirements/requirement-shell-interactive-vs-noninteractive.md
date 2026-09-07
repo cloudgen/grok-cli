@@ -41,7 +41,7 @@ Without a TTY, grok-cli will not wait for yes/no. Use `--force` for uninstall an
 | TTY | `TTY=1` when stdin **and** stdout are terminals | Interactive UX possible |
 | Quiet | `QUIET=1` | Suppress non-essential human chatter |
 | JSON | `JSON=1` (implies quiet) | Machine output; no human hang |
-| Debug | `DEBUG=1` | Extra stderr diagnostics |
+| Debug | `DEBUG=1` | Extra stderr diagnostics (TTY menu: elapsed of each paint step) |
 | Force | `FORCE=1` | Skip confirms / force reinstall where documented |
 
 Rules:

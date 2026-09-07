@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 2.7.0)  
+**Status**: Active (Version 2.8.2)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -8,7 +8,7 @@
 
 This requirement is the **product Single Source of Truth** for grok-cli’s **default interaction**: a **short numbered main menu** of daily **auth work**, with sudoers grant/draft commands behind one **family** row. grok-cli has `requirement-shell-cli-zero-arguments` (**case 3**): that REQ **defers TTY empty argv** to this menu and **owns off-TTY empty argv as Type O ensure**. The menu **MUST** also be the command **`menu`**. **`main` MAY** be accepted as the same handler.
 
-On a **real terminal**, empty argv and `grok-cli menu` (or `main`) **MUST** show the main menu. `menu`/`main` **MUST ignore `--json`**. Off-TTY, **`menu`/`main` MUST** print **help**, following `--json`. Off-TTY **empty argv** is **not** this file — it is channel ensure. Command rows **MUST** be `command: what it does`. The family row **MUST NOT** be a live dispatcher command.
+On a **real terminal**, empty argv (no command token — overlay switches such as `--debug` allowed) and `grok-cli menu` (or `main`) **MUST** show the main menu. `menu`/`main` **MUST ignore `--json`**. Off-TTY, **`menu`/`main` MUST** print **help**, following `--json`. Off-TTY **empty argv** is **not** this file — it is channel ensure. Command rows **MUST** be `command: what it does`. The family row **MUST NOT** be a live dispatcher command.
 
 Empty-argv type and the TTY vs off-TTY split for **no command token** stay on `requirement-shell-cli-zero-arguments`. Confirm / no-hang stays on `requirement-shell-interactive-vs-noninteractive`. Live command inventory stays dispatcher truth (`requirement-shell-cli-interface`).
 
@@ -18,7 +18,7 @@ Typing only `grok-cli` at a real terminal shows the numbered start list. In a sc
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Type `grok-cli` or `grok-cli menu`, pick a number | CI / pipe: empty argv ensures install; `menu` prints help; `--json` with no command gets JSON help | A menu that hangs a pipeline; `restore` on the list; install/version on the list; `sudoers` as a typed CLI command |
+| Type `grok-cli`, `grok-cli --debug`, or `grok-cli menu`, pick a number | CI / pipe: empty argv ensures install; `menu` prints help; `--json` with no command gets JSON help | A menu that hangs a pipeline; help because `--debug` was present; `restore` on the list; install/version on the list; `sudoers` as a typed CLI command |
 
 **Includes:** TTY empty argv numbered list; `menu`/`main` numbered TTY main list; default CLI main menu style (header `APP_NAME(APP_VERSION)`; TTY explain italic + light gray); session line under the title; **not-available** line on this-login-only hosts; **appended** logged-in not-available line when the session is valid; family row **sudoers** + submenu on multi-user hosts; Exit **9**; Back **8**; off-TTY `menu` help. **Excludes:** off-TTY empty argv (Type O); `help` as a list row; `check-session` as a numbered row; install / uninstall / self-update / where-is-me / version / about on either list; a live `sudoers` dispatcher token; showing backup / sync-auth / sudoers on Termux / Git Bash / Windows cmd; showing **sync-auth** / **sync-auth-from-remote** when **logged in**; replacing the host not-available line with the logged-in line; a second TTY look (unstyled explain, SGR 90, styled number/name).
 
@@ -47,11 +47,11 @@ grok-cli **claims** a default function. **Case 3** applies: `requirement-shell-c
 
 | Token | Role |
 |-------|------|
-| empty argv (`$# -eq 0`) | Same handler as `menu` when TTY=1; Type O ensure when TTY=0 (owned by zero-arguments; **not** `app_default`) |
+| empty argv (no command token; overlay `--debug` / `--quiet` allowed) | Same handler as `menu` when TTY=1; Type O ensure when TTY=0 (owned by zero-arguments; **not** `app_default`) |
 | `menu` | Primary named command for this default |
 | `main` | Same handler (alias) |
 
-After flag parse, when the command token is `menu` or `main`, **or** when argv was empty at `app_main` (zero-arguments routes `COMMAND=menu`), grok-cli **MUST** branch (`TTY` measured in the main process, **not** inside helpers):
+After flag parse, when the command token is `menu` or `main`, **or** when no command token was present and `--json` is off (zero-arguments routes `COMMAND=menu` on a TTY — including `grok-cli --debug`), grok-cli **MUST** branch (`TTY` measured in the main process, **not** inside helpers):
 
 | # | Condition | MUST | MUST NOT |
 |---|-----------|------|----------|
@@ -59,7 +59,7 @@ After flag parse, when the command token is `menu` or `main`, **or** when argv w
 | 2 | Not interactive (`TTY=0`) and `JSON=0` | **Human help screen** — `app_help` (not JSON) | Menu; silent return; hang |
 | 3 | Not interactive (`TTY=0`) and `JSON=1` | **JSON help** — `app_help` in JSON mode | Menu; human banners; hang |
 
-`--quiet` without a TTY still takes the **help screen** path (do not swallow `menu` help). Flags-only `--json` (not empty argv) stays help — `requirement-shell-cli-zero-arguments`.
+`--quiet` without a TTY on **`menu`/`main`** still takes the **help screen** path (do not swallow `menu` help). Flags-only `--json` **is** empty argv on `requirement-shell-cli-zero-arguments`; **special case** = JSON help **even on a TTY** (this file **MUST NOT** steal it onto the numbered list). Overlay flags-only (`--debug`, `--quiet` with no command) follow the ordinary empty-argv path on that REQ. `grok-cli menu --json` on a TTY still ignores `--json` (rule 1).
 
 ### 2.3 Main menu
 
@@ -75,7 +75,8 @@ After flag parse, when the command token is `menu` or `main`, **or** when argv w
 10. **Header (mandatory — default CLI main menu style):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the product short description (`SHORT_DESCRIPTION` / `APP_DESC`). Typical: `out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"` which prints **Alternative online installer for xAI grok**. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header. **MUST NOT** the generic board title “numbered list of live commands”.  
 11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. That word **MUST** use the live `grok -p hello` probe (`requirement-grok-auth-backup`) — **MUST NOT** treat `auth.json` parse alone as logged-in. The probe **MUST** close stdin and **MUST NOT** hang the menu — **MUST** bound even when `timeout` is missing, and **MUST** SIGKILL-follow (`timeout -k` or POSIX watchdog) so a Termux `proot` child that ignores SIGTERM cannot freeze after the header. A reprint after a bad pick **MUST NOT** run a second probe (reuse `GC_SESSION_STATUS_CACHE`). **MUST NOT** make this a numbered row.  
 12. **Not-available line (mandatory on this-login-only hosts):** immediately under the session line, when the host is Termux / Git Bash / Windows cmd (detect in **Under command line for normal user only**), print exactly **`backup, sync-auth and sudoers features are not available in {{label}}.`** where **label** is **`termux`**, **`gitbash`**, or **`windows-cmd`**. **MUST NOT** make this a numbered row. **MUST NOT** print this line on a multi-user host.  
-13. **Logged-in not-available line (mandatory when session is valid):** when `gc_session_status_word` is `valid`, **MUST NOT** display **sync-auth** or **sync-auth-from-remote**. Immediately under the host not-available line when that line is printed, otherwise immediately under the session line, **MUST** print exactly **`sync-auth and sync-auth-from-remote features are not available for logged-in environment.`** This line **MUST** be an **additional** `out_plain` line — **MUST NOT** replace, rewrite, or drop the host not-available line. **MUST NOT** make this a numbered row. **MUST NOT** print this line when the session is not valid.
+13. **Logged-in not-available line (mandatory when session is valid):** when `gc_session_status_word` is `valid`, **MUST NOT** display **sync-auth** or **sync-auth-from-remote**. Immediately under the host not-available line when that line is printed, otherwise immediately under the session line, **MUST** print exactly **`sync-auth and sync-auth-from-remote features are not available for logged-in environment.`** This line **MUST** be an **additional** `out_plain` line — **MUST NOT** replace, rewrite, or drop the host not-available line. **MUST NOT** make this a numbered row. **MUST NOT** print this line when the session is not valid.  
+14. **Debug elapsed (mandatory when `DEBUG=1`):** the numbered list **MUST** print elapsed wall-clock of each paint step on stderr via `out_debug` (`requirement-shell-internal-volatile-timer`). Stages: `paint`, `header`, `session`, `host`, `logged-in`, `rows` (plus `sudoers.*` on the submenu). **MUST NOT** put elapsed on numbered choice rows. **MUST NOT** print those lines when `DEBUG=0`. **MUST NOT** hang or skip the list because a timer helper failed.
 
 Normative **main** order (multi-user host, **logged out**):
 
@@ -162,14 +163,14 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 | **Claimed** | yes |
 | **Case** | **3** (zero-argument REQ exists; that REQ defers TTY empty argv here; off-TTY empty argv is Type O, not this file) |
 | **Empty argv** | TTY → this menu; off-TTY → Type O ensure (`requirement-shell-cli-zero-arguments`; not this handler) |
-| **Verb** | `menu` (alias `main`); TTY empty argv sets `COMMAND=menu` |
+| **Verb** | `menu` (alias `main`); TTY empty argv (including `--debug` with no command) sets `COMMAND=menu` |
 | **Handler** | `app_default` (`menu` / `main` / TTY empty argv); submenu printer/loop under the same `app_default_*` family |
 | **Family row** | `sudoers` — menu-only; **not** dispatched |
 | **Label source** | `reviews/cli-routed-verb-table.md` **human-readable** for command rows; family explain is this file’s table |
 | **Interactive + `--json`** | Ignore json on `menu`/`main`; still the menu |
 | **Non-interactive** | `app_help` (human; `--quiet` still prints help) |
 | **Look** | **default CLI main menu style** — header `APP_NAME(APP_VERSION)`; TTY explain *italic* + light gray (SGR 3+37) via `out_menu_choice`; number and name unstyled |
-| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title from live `grok -p hello` (always bounded; reprint reuses `GC_SESSION_STATUS_CACHE`); host not-available line on Termux / Git Bash / Windows cmd; logged-in not-available line **appended** when session is valid; main **N = 5 / 3 / 2 / 1** (multi-user logged out / multi-user logged in / this-login-only logged out / this-login-only logged in); submenu **N = 5**; Exit **9**; Back **8**. |
+| **Honesty** | **Implemented.** TTY empty argv (including `--debug` with no command) draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title from live `grok -p hello` (always bounded; reprint reuses `GC_SESSION_STATUS_CACHE`); host not-available line on Termux / Git Bash / Windows cmd; logged-in not-available line **appended** when session is valid; main **N = 5 / 3 / 2 / 1** (multi-user logged out / multi-user logged in / this-login-only logged out / this-login-only logged in); submenu **N = 5**; Exit **9**; Back **8**. `--debug` prints elapsed of each paint step (`requirement-shell-internal-volatile-timer`). |
 | **Host detect** | `gc_host_is_normal_user_only` / `gc_host_normal_user_only_label` (`termux` · `gitbash` · `windows-cmd`) |
 
 ### 2.6 Why this requirement exists (CIAO)
@@ -222,6 +223,8 @@ Future agents **MUST NOT**:
 7. Steal Type O install-ensure onto **TTY** empty argv (menu stolen).  
 8. Invent command-row labels that are not `command: what it does`.  
 9. Replace TTY empty argv with the help dump while zero-arguments **1.3.0+** defers that path here.  
+9b. Treat TTY `grok-cli --debug` (no command) as help instead of this menu. Overlay flags-only is empty argv (`requirement-shell-cli-zero-arguments` **2.1.0+**).  
+9c. Draw this menu for TTY `grok-cli --json` (no command). That invocation **is** empty argv but the special-case outcome is JSON help (`requirement-shell-cli-zero-arguments` **2.2.0+**).  
 10. Print a main-menu (or APP_NAME-led submenu) header as a bare `APP_NAME` without live `VERSION` / `APP_VERSION`, or unstyled on TTY.  
 11. Capture the menu choice with `$()` of a `read` helper.  
 12. Draw the numbered list off **default CLI main menu style** — **MUST NOT** print numbered-choice explain unstyled on a TTY (it **MUST** be *italic* and light gray, SGR **3** + **37**, via `out_menu_choice`). **MUST NOT** invent a second house look (SGR 90, italic-only, gray-only, styled number/name).  
@@ -233,6 +236,7 @@ Future agents **MUST NOT**:
 18. Display **sync-auth** or **sync-auth-from-remote** on the main list when the session is **logged in**, or omit the logged-in not-available line on that session.  
 19. Replace the host not-available line with the logged-in line, merge them into one sentence, or skip the host line because the session is logged in. The logged-in line **MUST** append.  
 20. Freeze the numbered menu on Termux (or any host) while waiting for `grok -p hello` — missing `timeout`, a peer that ignores SIGTERM, or a second probe on reprint.  
+21. Skip `--debug` elapsed of each paint step, print those lines when `DEBUG=0`, or put elapsed onto numbered choice rows.  
 
 
 ## Design-time verification
@@ -240,17 +244,22 @@ Future agents **MUST NOT**:
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-07** | `tests/test_cli.sh` | have (TTY empty argv = this menu; off-TTY empty argv = Type O ensure) |
+| **TP-CLI-29** | `tests/test_cli.sh` | have (TTY `--debug` no command = this menu; off-TTY `--debug` no command = Type O ensure) |
 | **TP-CLI-13** | `tests/test_cli.sh` | have (main list, family row, submenu Back/Exit, off-TTY help) |
 | **TP-CLI-17** | `tests/test_cli.sh` | have (default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; board title **Alternative online installer for xAI grok**; numbered explain italic + light gray SGR 3+37; number/name unstyled; logged in/out from live `grok -p hello`; no check-session row) |
 | **TP-CLI-19** | `tests/test_cli.sh` | have (Termux / Git Bash / Windows cmd: hide backup / sync-auth / sudoers; not-available line under session; remaining rows from **1**) |
 | **TP-CLI-20** | `tests/test_cli.sh` | have (logged in: hide sync-auth / sync-auth-from-remote; append logged-in not-available line; host line still present on this-login-only; remaining rows from **1**; listed sudoers number opens submenu) |
 | **TP-CLI-21** | `tests/test_cli.sh` | have (Termux menu with a SIGTERM-ignoring grok still prints the list and accepts Exit; no freeze) |
+| **TP-CLI-22** | `tests/test_cli.sh` | have (bad pick reprints without a second hang-grok probe) |
+| **TP-CLI-23** | `tests/test_cli.sh` | have (ship unit has `timeout -k` + watchdog `kill -9`) |
+| **TP-CLI-25** | `tests/test_cli.sh` | have (`--debug menu` elapsed of each paint step, including `sudoers.*`) |
+| **TP-CLI-26** | `tests/test_cli.sh` | have (no `--debug` → no menu-step elapsed) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
 
 ---
 
-**Last Updated**: 2026-09-07 (2.7.0 — Termux menu must not freeze on `grok -p hello`; always-bounded probe + cache reprint)  
+**Last Updated**: 2026-09-07 (2.8.2 — TTY `--json` no command is 0-argv special case: JSON help)  
 **Owner**: product  
-**Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-grok-auth-backup` (session probe) · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite
+**Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-shell-internal-volatile-timer` (`--debug` elapsed) · `requirement-grok-auth-backup` (session probe) · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

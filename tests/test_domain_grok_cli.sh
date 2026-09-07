@@ -846,16 +846,15 @@ PY
     # TP-GROK-CLI-42 sync-auth skips when grok is already logged in
     ci_fake_grok_ok
     _keep="${CI_HOME}/keep-grok"
-    mkdir -p "${_keep}"
-    printf 'keep-me\n' > "${_keep}/auth.json"
-    chmod 0600 "${_keep}/auth.json"
+    gc_write_valid_auth "${_keep}"
+    _keep_body=$(cat "${_keep}/auth.json")
     _out=$(HOME="${CI_HOME}" GROK_HOME="${_keep}" GROK_BIN="${GROK_BIN}" \
         GROK_CLI_ROOT="${_store}" sh "${SCRIPT}" sync-auth 2>&1)
     assert_eq "TP-GROK-CLI-42 logged-in skip exit 0" 0 "$?"
     assert_contains "TP-GROK-CLI-42 skip message" "$_out" \
         "No sync-auth for logged-in environment."
     assert_not_contains "TP-GROK-CLI-42 did not copy" "$_out" "sync-auth complete"
-    assert_eq "TP-GROK-CLI-42 dest unchanged" "keep-me" "$(tr -d '\r\n' < "${_keep}/auth.json")"
+    assert_eq "TP-GROK-CLI-42 dest unchanged" "${_keep_body}" "$(cat "${_keep}/auth.json")"
     _j=$(HOME="${CI_HOME}" GROK_HOME="${_keep}" GROK_BIN="${GROK_BIN}" \
         GROK_CLI_ROOT="${_store}" sh "${SCRIPT}" --json sync-auth 2>/dev/null)
     assert_contains "TP-GROK-CLI-42 json type" "${_j}" '"type":"sync-auth"'

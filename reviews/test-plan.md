@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.14  
+**Product VERSION:** 1.8.18  
 **Last plan update:** 2026-09-07  
-**Last suite run:** `./tests/run.sh` (1.8.14: PASS=568 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.8.18: PASS=644 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -18,8 +18,9 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Syntax `sh -n` | have | TP-CLI-01 |
 | Active REQ samples do not freeze a session login | have | TP-CLI-18 |
 | version / help / about human + JSON | have | TP-CLI-02..06 |
-| Empty argv: TTY menu; off-TTY Type O ensure (not help) | have | TP-CLI-07 · TP-ONL-01 |
-| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 |
+| Empty argv: TTY menu; off-TTY Type O ensure (not help); overlay `--debug` follows 0-argv | have | TP-CLI-07 · TP-CLI-29 · TP-ONL-01 |
+| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 |
+| `--debug` menu elapsed of each paint step (internal-timer) | have | TP-CLI-25 · TP-CLI-26 · TP-CLI-27 · TP-CLI-28 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Cache folder + persistence storage | have | TP-CLI-12 |
 | Termux/Android host writing (`PREFIX`, `pkg`, `noexec` smoke) | have | TP-VCLI-15..25 · TP-LC-01 |
@@ -52,7 +53,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-04 | help: setup, auth verbs, version-check / self-update / self-uninstall, SCRIPT_URL; no restore; no CHECKSUM | test_cli | requirement-shell-cli-interface · requirement-domain-grok-cli · requirement-grok-setup · requirement-grok-crontab · requirement-grok-auth-backup · requirement-shell-self-management | **have** |
 | TP-CLI-05 | help JSON short | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-06 | about JSON cache_preferred / cache_fallback / persistence_storage + grok_cli_root + session; human Cache folder + Persistence storage | test_cli | requirement-shell-cli-storage · requirement-domain-grok-cli | **have** |
-| TP-CLI-07 | empty argv: off-TTY Type O already-installed (not help); `--json` no command JSON help; TTY numbered list | test_cli | requirement-shell-cli-zero-arguments · requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-07 | empty argv: off-TTY Type O already-installed (not help); `--json` no command JSON help (TTY **and** off-TTY — 0-argv special case, not the list); TTY numbered list | test_cli | requirement-shell-cli-zero-arguments · requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-29 | overlay flags-only (`--debug`, `--quiet`) follow empty argv (TTY menu / off-TTY Type O ensure); `--json --debug` no command stays JSON help | test_cli | requirement-shell-cli-zero-arguments · requirement-shell-cli-default-interaction · requirement-shell-cli-interface | **have** |
 | TP-CLI-08 | unknown fail-closed | test_cli | requirement-shell-cli-interface | **have** |
 | TP-CLI-09 | quiet suppresses version | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-10 | version-check / self-update routed (not unknown) | test_cli | requirement-shell-self-management · requirement-bootstrap-chain | **have** |
@@ -65,6 +67,12 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-19 | Termux / Git Bash / Windows cmd main menu hides backup / sync-auth / sudoers; not-available line under session; remaining rows from **1**; pick **5** does not open sudoers; multi-user host unchanged | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-20 | Logged-in main menu hides sync-auth / sync-auth-from-remote; appends logged-in not-available line; host not-available line kept on this-login-only; remaining rows from **1**; listed sudoers number opens submenu; pick of hidden verb is not a menu choice | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-21 | Termux menu with a SIGTERM-ignoring grok still prints the list and accepts Exit (no freeze) | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup · requirement-shell-termux-coding | **have** |
+| TP-CLI-22 | Termux hang-grok: bad pick reprints the list; `grok -p hello` runs once | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup | **have** |
+| TP-CLI-23 | Ship unit always bounds the probe (`timeout -k` + watchdog `kill -9`) | `tests/test_cli.sh` | requirement-grok-auth-backup · requirement-shell-termux-coding | **have** |
+| TP-CLI-25 | `--debug menu` prints start + elapsed for each paint step (`paint` `header` `session` `host` `logged-in` `rows` plus `sudoers.*` on the submenu) | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-26 | `menu` without `--debug` has no menu-step elapsed lines | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-27 | `--json --debug version` stdout stays JSON (no `[DEBUG]`) | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-interface · requirement-shell-output-requirements | **have** |
+| TP-CLI-28 | Ship unit has `util_int_timer_*`; AC-6 double-start fail-closed; invalid stage names rejected; help lists `--debug`; help has no timer `start` verb | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-interface | **have** |
 
 ### TP-LC (local lifecycle)
 

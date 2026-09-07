@@ -2,7 +2,7 @@
 
 Authoritative specialized product law for **grok-cli** lives here.
 
-**Current state (2026-09-02):** Specialized **software-development** product. Left genesis. Bootstrap: **cli-template → folder-backup → grok-cli** (domain) **plus** selfmanaged online package. Case 3: TTY empty argv and `menu`/`main` show the numbered list; off-TTY empty argv is Type O install-ensure (not help). `setup` installs peer `grok` (not `install.sh`). Dual-mode install: `curl|sh` primary; checkout `install` secondary.
+**Current state (2026-09-07):** Specialized **software-development** product. Left genesis. Bootstrap: **cli-template → folder-backup → grok-cli** (domain) **plus** selfmanaged online package. Case 3: TTY empty argv (including overlay `--debug`) and `menu`/`main` show the numbered list; off-TTY empty argv is Type O install-ensure (not help). `setup` installs peer `grok` (not `install.sh`). Dual-mode install: `curl|sh` primary; checkout `install` secondary.
 
 ## Product identity (summary)
 
@@ -19,6 +19,7 @@ Authoritative specialized product law for **grok-cli** lives here.
 | Domain surface | `requirement-domain-grok-cli` — four pillars |
 | Peer grok install | `requirement-grok-setup` — `setup` fetches xAI channel + artifact (does not exec `install.sh`) |
 | Termux host writing | `requirement-shell-termux-coding` — `PREFIX`, Termux `pkg`, `noexec` tmp; folder classes on `requirement-project-folder` |
+| Internal-timer | `requirement-shell-internal-volatile-timer` — `--debug` elapsed of each menu paint step |
 | JSON sudoer file | `requirement-sudoer-json-file` — grant is `grok-cli backup` only; no `cp`/`mkdir`/`chmod` |
 
 ## Class requirement gate

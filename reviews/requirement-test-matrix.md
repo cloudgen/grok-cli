@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-07  
-**Product VERSION:** 1.8.14  
+**Updated:** 2026-09-07 (1.8.18 TTY `--json` no command is JSON help)  
+**Product VERSION:** 1.8.18  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -14,9 +14,9 @@
 | requirement-grok-auth-backup | backup | TP-GROK-CLI-03..10, 12 · 30..45 | Live `grok -p hello` session gate (before `auth.json`); always bounded (`timeout -k` / watchdog); elevated probe uses `SUDO_USER` home; grant-present child fail is not missing sudoers; deposit; sync-auth; sync-auth-from-remote; skip sync when already logged in; preferred SPEC in persistence; TTY menu SPEC prompt; production dest fail-closed |
 | requirement-grok-setup | domain | TP-VCLI-01..09 · 11..25 · TP-CLI-04 · TP-CLI-13 | Peer grok channel + artifact; Android ET_EXEC wrapper; Termux proot + resolv bind; HTTP status on curl fail; keep `.failed` artifact; Termux writing dual-mention |
 | requirement-grok-crontab | domain | TP-GROK-CLI-26..29 · TP-CLI-04 · TP-CLI-13 | Per-login crontab jobs; grant gate is this `id -un` |
-| requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* | Commands, flags, dispatch; `setup`; online verbs; TP-CLI-18 no frozen login in Active REQ samples |
-| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure |
-| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 | Case 3 `menu`/`main` + TTY empty argv; default CLI main menu style (header short desc + SGR 3+37 explain); session line from `grok -p hello`; this-login-only hosts hide backup/sync-auth/sudoers + not-available line; logged-in session hides sync-auth / sync-auth-from-remote and appends not-available; Termux menu does not freeze on hanging grok; off-TTY `menu` help |
+| requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* | Commands, flags, dispatch; `setup`; online verbs; TP-CLI-18 no frozen login in Active REQ samples; `--debug` dual mention TP-CLI-25..28 |
+| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-CLI-29 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure; overlay `--debug` / `--quiet` follow empty argv |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); default CLI main menu style; session line from `grok -p hello`; this-login-only hide; logged-in hide; Termux menu does not freeze; reprint does not re-probe; probe always bounded; `--debug` elapsed of each paint step |
 | requirement-shell-local-self-management | shell | TP-LC-* | checkout install/uninstall/where-is-me; 0755; Termux dest is `USER_BIN` |
 | requirement-shell-online-install | shell | TP-ONL-01 · TP-CLI-07 | Channel `SCRIPT_URL`; pipe place |
 | requirement-shell-self-management | shell | TP-ONL-03 · 04 · TP-CLI-04 · 10 | version-check / self-update / self-uninstall |
@@ -29,6 +29,7 @@
 | requirement-shell-idempotency | shell | TP-LC-03,07 · TP-GROK-CLI-08 · 29 | Re-install; auth overwrite; crontab no-duplicate |
 | requirement-shell-interactive-vs-noninteractive | shell | TP-LC-05 · TP-GROK-CLI-15 · 15b · 34 · TP-CLI-15 | Confirm fail-closed; no `$()` of `prompt_ask` |
 | requirement-shell-cli-storage | shell | TP-CLI-**06**, **12** · TP-GROK-CLI-41 · TP-VCLI-15 | Cache `/dev/shm/cache/cache-${APP_NAME}` + persistence `${HOME}/.local/${APP_NAME}` (preferred-remote leaf); Termux cache may be `noexec` |
+| requirement-shell-internal-volatile-timer | shell | TP-CLI-25 · 26 · 27 · 28 | Named volatile `util_int_timer_*`; `--debug menu` elapsed of each paint step; JSON stdout stays pure |
 | requirement-domain-grok-cli | domain | TP-GROK-CLI-01,02,11,14,15,19,20,21*,23*,24* · 26..29 · TP-CLI-04,06 · TP-VCLI-02 | Surface verbs/help/about including `setup` and `add-crontab` |
 | requirement-domain-folder-backup | superseded | n/a | Retired |
 | requirement-folder-archive-backup* | superseded | n/a | Retired (TP-GROK-CLI-11 proves restore unknown) |

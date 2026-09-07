@@ -148,7 +148,7 @@ A **lockfile** is a frozen list of dependency versions.
 | Bootstrap lineage / keep-extend | `requirement-bootstrap-chain` | A=cli-template → B + domain extend |
 | Project layout / install path | `requirement-project-folder` | `src/` + bin targets + Termux `PREFIX` / `~/.grok` classes |
 | Commands you run as yourself / flags / dispatch | `requirement-shell-cli-interface` | **Type 0** = you run the command as yourself. Do not duplicate |
-| Empty argv: terminal numbered menu; off-terminal install-or-recheck | `requirement-shell-cli-zero-arguments` | **argv** = the words after the program name. Dual-mode. **Type O** = with no arguments, off a terminal, install or re-check install (not help) |
+| Empty argv: terminal numbered menu; off-terminal install-or-recheck | `requirement-shell-cli-zero-arguments` | **Empty argv** = no command token after flag parse (overlay `--debug` still counts). Dual-mode. **Type O** = with no command, off a terminal, install or re-check install (not help) |
 | Local self-managed lifecycle | `requirement-shell-local-self-management` | checkout `install` / `uninstall` / `where-is-me` |
 | Online channel + checksum + remote lifecycle | `requirement-shell-online-install` · `requirement-shell-automatic-checksum` · `requirement-shell-self-management` | Specialized from selfmanaged. A **checksum** is a fingerprint used to verify the download |
 | Output SSOT (`out_*`) | `requirement-shell-output-requirements` | Do not duplicate |

@@ -6,6 +6,7 @@ Durable failure modes. **Always re-check on product review.**
 |----|------|------------|--------|
 | L-TYPE-N-01 | TTY empty argv becomes install-ensure (menu stolen) | TTY → `app_default`; off-TTY Type O only; TP-CLI-07 PTY | open watch |
 | L-ARGV-01 | Off-TTY empty argv draws or hangs the numbered menu | Off-TTY empty argv is Type O ensure; `menu` off-TTY is help; TP-CLI-07/13 | open watch |
+| L-ARGV-02 | Overlay flags-only (`--debug`) treated as help because empty argv was `$# -eq 0` | Empty argv = no command token after flag parse; TP-CLI-29 | open watch |
 | L-ONLINE-01 | Drop channel / dual-mode matrix while advertising `curl\|sh` | `requirement-shell-online-install` matrix; TP-ONL-* · TP-CLI-04/10 | open watch |
 | L-UNIN-01 | Non-interactive uninstall succeeds without force | TP-LC-05 confirm fail-closed | open watch |
 | L-INST-MODE-01 | Install leaves `0711`/`0700` (chmod +x after mktemp) so non-owners cannot run shell ship unit | absolute `chmod 0755` + heal on reinstall; TP-LC-09/10; local-self-management §2.3.1 | open watch |
@@ -30,7 +31,7 @@ Durable failure modes. **Always re-check on product review.**
 | L-NEX-01 | JSON/sudoers grant samples freeze a session Unix login | Samples use `id -un`; TP-CLI-18; **PO-NON-EXPOSE-LOCAL-MACHINE** | open watch |
 | L-MENU-01 | Termux / Git Bash / Windows cmd main menu still lists backup / sync-auth / sudoers (or omits the not-available line) | Hide those rows; print `backup, sync-auth and sudoers features are not available in {{label}}.`; TP-CLI-19 | open watch |
 | L-MENU-02 | Logged-in main menu still lists sync-auth / sync-auth-from-remote, or the logged-in not-available line replaces the host line | Hide those two rows; **append** `sync-auth and sync-auth-from-remote features are not available for logged-in environment.`; TP-CLI-20 | open watch |
-| L-MENU-03 | Termux numbered menu freezes after the header (grok/proot ignores SIGTERM; `timeout` without `-k` waits forever; reprint re-probes) | Always bound `grok -p hello`; GNU `timeout -k` or POSIX watchdog; reuse `GC_SESSION_STATUS_CACHE` on reprint; TP-GROK-CLI-44/45 · TP-CLI-21 | open watch |
+| L-MENU-03 | Termux numbered menu freezes after the header (grok/proot ignores SIGTERM; `timeout` without `-k` waits forever; reprint re-probes) | Always bound `grok -p hello`; GNU `timeout -k` or POSIX watchdog; reuse `GC_SESSION_STATUS_CACHE` on reprint; TP-GROK-CLI-44/45 · TP-CLI-21; **INC-20260907-001** | open watch |
 | L-REMOTE-01 | TTY `sync-auth-from-remote` forgets the last SPEC, or default is not at the end of the prompt | Persistence `preferred-remote`; prompt `[SPEC]`; Enter uses default; TP-GROK-CLI-41 | open watch |
 | L-SYNC-02 | `sync-auth` / `sync-auth-from-remote` overwrite a grok home that is already logged in | Live `grok -p hello` first (or menu cache); skip with `No sync-auth for logged-in environment.`; TP-GROK-CLI-42/43 | open watch |
 

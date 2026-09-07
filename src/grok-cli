@@ -30,6 +30,7 @@
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-shell-script-coding.md
 # - requirement-shell-termux-coding.md  (Termux/Android: PREFIX, pkg, noexec; not FHS)
+# - requirement-shell-internal-volatile-timer.md  (named volatile stages; --debug menu elapsed)
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
 # - requirement-grok-crontab.md      (add-crontab: per-login backup/sync-auth jobs)
 # - requirement-grok-setup.md        (setup: xAI channel + artifact; smoke from GROK_HOME/downloads; MUST NOT exec install.sh)
@@ -40,7 +41,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.14"
+# VERSION: hard-assign VERSION="1.8.18"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -56,8 +57,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.14"
-: "${VERSION:=1.8.14}"
+VERSION="1.8.18"
+: "${VERSION:=1.8.18}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -70,6 +71,11 @@ APP_VERSION="${VERSION}"
 : "${FORCE:=0}"
 : "${FORCE_REINSTALL:=0}"
 : "${DEBUG:=0}"
+: "${UTIL_INT_TIMER_MAP:=}"
+: "${UTIL_INT_TIMER_LAST_ELAPSED:=0}"
+: "${UTIL_INT_TIMER_LAST_NAME:=}"
+: "${UTIL_INT_TIMER_NAME:=}"
+: "${UTIL_INT_TIMER_EPOCH:=0}"
 : "${TTY:=0}"
 : "${PROMPT_ASK_VALUE:=}"
 : "${GC_SESSION_STATUS_CACHE:=}"
@@ -1141,6 +1147,247 @@ util_mktemp() {
     mktemp "${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.${_suffix}.XXXXXX" 2>/dev/null \
         || mktemp "${TMPDIR:-/tmp}/${APP_NAME}.${_suffix}.XXXXXX" 2>/dev/null \
         || mktemp
+}
+
+# =============================================================================
+# util_int_timer_*() - Named volatile internal-timer (process-scoped)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Sibling-timer contracts as in-process named stages: start, stop, status,
+# elapsed, reset, kill, list. State is UTIL_INT_TIMER_MAP (newline
+# name=epoch). Lost on process exit. Not domain CLI verbs. Call stop /
+# elapsed / reset bare — not $(util_int_timer_stop) — so this shell
+# clears the map.
+#
+# ALIGNMENT:
+# - requirement-shell-internal-volatile-timer.md
+#
+# Last updated: 2026-09-07
+# =============================================================================
+util_int_timer_now() {
+    date +%s 2>/dev/null
+}
+
+util_int_timer_sanitize() {
+    UTIL_INT_TIMER_NAME="${1:-}"
+    [ -n "${UTIL_INT_TIMER_NAME}" ] || UTIL_INT_TIMER_NAME="default"
+    # Allow-list only: case lookup uses "${name}="* as a glob, so [ ] would
+    # match the wrong map record. Hyphen/dot keep logged-in and sudoers.*.
+    case "${UTIL_INT_TIMER_NAME}" in
+        *[!-._a-zA-Z0-9]*|..|*..*)
+            out_debug "internal timer invalid name"
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+util_int_timer_lookup() {
+    UTIL_INT_TIMER_EPOCH=""
+    : "${UTIL_INT_TIMER_NAME:=}"
+    : "${UTIL_INT_TIMER_MAP:=}"
+    [ -n "${UTIL_INT_TIMER_NAME}" ] || return 1
+    [ -n "${UTIL_INT_TIMER_MAP}" ] || return 1
+    while IFS= read -r _it_line || [ -n "${_it_line}" ]; do
+        [ -n "${_it_line}" ] || continue
+        case "${_it_line}" in
+            "${UTIL_INT_TIMER_NAME}="*)
+                UTIL_INT_TIMER_EPOCH="${_it_line#*=}"
+                unset _it_line
+                return 0
+                ;;
+        esac
+    done <<EOF
+${UTIL_INT_TIMER_MAP}
+EOF
+    unset _it_line
+    return 1
+}
+
+util_int_timer_write() {
+    : "${UTIL_INT_TIMER_NAME:=}"
+    : "${UTIL_INT_TIMER_EPOCH:=}"
+    : "${UTIL_INT_TIMER_MAP:=}"
+    _it_new=""
+    _it_found=0
+    while IFS= read -r _it_line || [ -n "${_it_line}" ]; do
+        [ -n "${_it_line}" ] || continue
+        case "${_it_line}" in
+            "${UTIL_INT_TIMER_NAME}="*)
+                _it_new="${_it_new}${UTIL_INT_TIMER_NAME}=${UTIL_INT_TIMER_EPOCH}
+"
+                _it_found=1
+                ;;
+            *)
+                _it_new="${_it_new}${_it_line}
+"
+                ;;
+        esac
+    done <<EOF
+${UTIL_INT_TIMER_MAP}
+EOF
+    if [ "${_it_found}" -eq 0 ]; then
+        _it_new="${_it_new}${UTIL_INT_TIMER_NAME}=${UTIL_INT_TIMER_EPOCH}
+"
+    fi
+    UTIL_INT_TIMER_MAP="${_it_new}"
+    unset _it_new _it_found _it_line
+    return 0
+}
+
+util_int_timer_delete() {
+    : "${UTIL_INT_TIMER_NAME:=}"
+    : "${UTIL_INT_TIMER_MAP:=}"
+    _it_new=""
+    while IFS= read -r _it_line || [ -n "${_it_line}" ]; do
+        [ -n "${_it_line}" ] || continue
+        case "${_it_line}" in
+            "${UTIL_INT_TIMER_NAME}="*)
+                ;;
+            *)
+                _it_new="${_it_new}${_it_line}
+"
+                ;;
+        esac
+    done <<EOF
+${UTIL_INT_TIMER_MAP}
+EOF
+    UTIL_INT_TIMER_MAP="${_it_new}"
+    unset _it_new _it_line
+    return 0
+}
+
+util_int_timer_fmt() {
+    UTIL_INT_TIMER_LAST_ELAPSED="${1:-0}"
+    UTIL_INT_TIMER_MINUTES=$((UTIL_INT_TIMER_LAST_ELAPSED / 60))
+    UTIL_INT_TIMER_SECONDS=$((UTIL_INT_TIMER_LAST_ELAPSED % 60))
+}
+
+util_int_timer_start() {
+    if ! util_int_timer_sanitize "${1:-}"; then
+        return 1
+    fi
+    if util_int_timer_lookup; then
+        out_debug "internal timer '${UTIL_INT_TIMER_NAME}' already running"
+        return 1
+    fi
+    UTIL_INT_TIMER_EPOCH=$(util_int_timer_now) || return 1
+    [ -n "${UTIL_INT_TIMER_EPOCH}" ] || return 1
+    util_int_timer_write
+    return 0
+}
+
+util_int_timer_stop() {
+    if ! util_int_timer_sanitize "${1:-}"; then
+        UTIL_INT_TIMER_LAST_ELAPSED=0
+        return 1
+    fi
+    if ! util_int_timer_lookup; then
+        out_debug "internal timer '${UTIL_INT_TIMER_NAME}' not running"
+        UTIL_INT_TIMER_LAST_ELAPSED=0
+        util_int_timer_fmt 0
+        return 1
+    fi
+    _it_now=$(util_int_timer_now) || {
+        unset _it_now
+        UTIL_INT_TIMER_LAST_ELAPSED=0
+        return 1
+    }
+    UTIL_INT_TIMER_LAST_ELAPSED=$((_it_now - UTIL_INT_TIMER_EPOCH))
+    unset _it_now
+    UTIL_INT_TIMER_LAST_NAME="${UTIL_INT_TIMER_NAME}"
+    util_int_timer_fmt "${UTIL_INT_TIMER_LAST_ELAPSED}"
+    util_int_timer_delete
+    return 0
+}
+
+util_int_timer_status() {
+    if ! util_int_timer_sanitize "${1:-}"; then
+        UTIL_INT_TIMER_LAST_ELAPSED=0
+        return 1
+    fi
+    if ! util_int_timer_lookup; then
+        out_debug "internal timer '${UTIL_INT_TIMER_NAME}' not running"
+        UTIL_INT_TIMER_LAST_ELAPSED=0
+        util_int_timer_fmt 0
+        return 1
+    fi
+    _it_now=$(util_int_timer_now) || {
+        unset _it_now
+        UTIL_INT_TIMER_LAST_ELAPSED=0
+        return 1
+    }
+    UTIL_INT_TIMER_LAST_ELAPSED=$((_it_now - UTIL_INT_TIMER_EPOCH))
+    unset _it_now
+    UTIL_INT_TIMER_LAST_NAME="${UTIL_INT_TIMER_NAME}"
+    util_int_timer_fmt "${UTIL_INT_TIMER_LAST_ELAPSED}"
+    return 0
+}
+
+util_int_timer_elapsed() {
+    util_int_timer_status "${1:-}"
+}
+
+util_int_timer_reset() {
+    if ! util_int_timer_sanitize "${1:-}"; then
+        return 1
+    fi
+    if ! util_int_timer_lookup; then
+        out_debug "internal timer '${UTIL_INT_TIMER_NAME}' not running"
+        return 1
+    fi
+    util_int_timer_delete
+    UTIL_INT_TIMER_LAST_ELAPSED=0
+    UTIL_INT_TIMER_LAST_NAME="${UTIL_INT_TIMER_NAME}"
+    util_int_timer_fmt 0
+    return 0
+}
+
+util_int_timer_kill() {
+    util_int_timer_reset "${1:-}"
+}
+
+util_int_timer_list() {
+    : "${UTIL_INT_TIMER_MAP:=}"
+    UTIL_INT_TIMER_COUNT=0
+    while IFS= read -r _it_line || [ -n "${_it_line}" ]; do
+        [ -n "${_it_line}" ] || continue
+        UTIL_INT_TIMER_COUNT=$((UTIL_INT_TIMER_COUNT + 1))
+        out_debug "internal timer running ${_it_line%%=*}"
+    done <<EOF
+${UTIL_INT_TIMER_MAP}
+EOF
+    unset _it_line
+    return 0
+}
+
+# Menu debug wrappers: never fail the list (reset-then-start / elapsed 0).
+util_int_timer_debug_begin() {
+    : "${DEBUG:=0}"
+    [ "${DEBUG}" -eq 1 ] || return 0
+    _it_stage="${1:-default}"
+    if ! util_int_timer_start "${_it_stage}"; then
+        util_int_timer_reset "${_it_stage}" || true
+        util_int_timer_start "${_it_stage}" || true
+    fi
+    out_debug "menu step ${_it_stage}: start"
+    unset _it_stage
+    return 0
+}
+
+util_int_timer_debug_end() {
+    : "${DEBUG:=0}"
+    [ "${DEBUG}" -eq 1 ] || return 0
+    _it_stage="${1:-default}"
+    if util_int_timer_stop "${_it_stage}"; then
+        out_debug "menu step ${_it_stage}: elapsed ${UTIL_INT_TIMER_LAST_ELAPSED}s (${UTIL_INT_TIMER_MINUTES} min ${UTIL_INT_TIMER_SECONDS} sec)"
+    else
+        util_int_timer_fmt 0
+        out_debug "menu step ${_it_stage}: elapsed 0s (0 min 0 sec)"
+    fi
+    unset _it_stage
+    return 0
 }
 
 # =============================================================================
@@ -6061,6 +6308,7 @@ EOF
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
+# - requirement-shell-internal-volatile-timer.md
 #
 # Last updated: 2026-09-07
 # =============================================================================
@@ -6071,7 +6319,13 @@ app_default_print_menu() {
     : "${QUIET:=0}"
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
 
+    util_int_timer_debug_begin "paint"
+
+    util_int_timer_debug_begin "header"
     out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"
+    util_int_timer_debug_end "header"
+
+    util_int_timer_debug_begin "session"
     if [ -n "${GC_SESSION_STATUS_CACHE:-}" ]; then
         _st="${GC_SESSION_STATUS_CACHE}"
     else
@@ -6084,12 +6338,21 @@ app_default_print_menu() {
     else
         out_plain "logged out"
     fi
+    util_int_timer_debug_end "session"
+
+    util_int_timer_debug_begin "host"
     if gc_host_is_normal_user_only; then
         out_plain "backup, sync-auth and sudoers features are not available in $(gc_host_normal_user_only_label)."
     fi
+    util_int_timer_debug_end "host"
+
+    util_int_timer_debug_begin "logged-in"
     if [ "${_st}" = "valid" ]; then
         out_plain "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
     fi
+    util_int_timer_debug_end "logged-in"
+
+    util_int_timer_debug_begin "rows"
     _n=0
     while IFS= read -r _tok; do
         [ -n "${_tok}" ] || continue
@@ -6099,6 +6362,9 @@ app_default_print_menu() {
 $(gc_menu_main_tokens)
 EOF
     out_menu_choice "9" "Exit"
+    util_int_timer_debug_end "rows"
+
+    util_int_timer_debug_end "paint"
 }
 
 # =============================================================================
@@ -6110,15 +6376,22 @@ EOF
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
+# - requirement-shell-internal-volatile-timer.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-07
 # =============================================================================
 app_default_print_sudoers_menu() {
     : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
 
+    util_int_timer_debug_begin "sudoers.paint"
+
+    util_int_timer_debug_begin "sudoers.header"
     out_info "$(util_app_ident) — sudoers (grant and drafts)"
+    util_int_timer_debug_end "sudoers.header"
+
+    util_int_timer_debug_begin "sudoers.rows"
     out_menu_choice "1" "generate-sudoer-request" "Write a JSON grant you can read"
     out_menu_choice "2" "submit-sudoer-request" "Queue the JSON grant inbound"
     out_menu_choice "3" "print-sudoers" "Emit sudoers draft"
@@ -6126,6 +6399,9 @@ app_default_print_sudoers_menu() {
     out_menu_choice "5" "remove-project-sudoers" "Remove sudoers draft only"
     out_menu_choice "8" "Back"
     out_menu_choice "9" "Exit"
+    util_int_timer_debug_end "sudoers.rows"
+
+    util_int_timer_debug_end "sudoers.paint"
 }
 
 # =============================================================================
@@ -6478,7 +6754,7 @@ app_help() {
     out_plain "  --allow-test-local   Allow print-sudoers / generate-sudoer-request / submit when only local/unmanaged (TEST MODE)"
     out_plain "  --update             Force submit-sudoer-request action=update"
     out_plain "  --add                Force submit-sudoer-request action=add"
-    out_plain "  --debug              Debug diagnostics on stderr"
+    out_plain "  --debug              Debug diagnostics on stderr (menu: elapsed of each paint step)"
     out_empty_line
     out_info "Environment:"
     out_plain "  SCRIPT_URL           grok-cli channel (default github raw src/grok-cli)"
@@ -6526,7 +6802,7 @@ app_help() {
     out_plain "  ${APP_NAME} add-crontab"
     out_empty_line
     out_info "Empty argv on a real terminal shows the numbered list. Off-TTY empty argv is channel install-ensure (curl|sh)."
-    out_info "Off-TTY empty argv shows help. Explicit help stays help."
+    out_info "Switches without a command (--debug, --quiet) still follow empty argv. ${APP_NAME} --json with no command is empty argv special case: JSON help (even on a TTY). Explicit help stays help."
     out_info "backup runs grok -p hello first, then passwordless sudo ${APP_NAME} backup (sudoer-adm)."
     out_info "sync-auth never uses sudo. Local install + sudoers is TEST MODE ONLY; prefer global."
 }
@@ -6537,7 +6813,9 @@ app_help() {
 #
 # GENERAL PURPOSE:
 # Single dispatcher for grok-cli (specialized from folder-backup; local Type 0 + grok auth domain).
-# Empty argv = TTY menu; off-TTY Type O channel ensure. Flags-only stay help.
+# Empty argv = no command token after flag parse (overlay --debug/--quiet follow).
+# TTY menu; off-TTY Type O channel ensure. --json with no command is 0-argv
+# special case: JSON help on TTY and off-TTY.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-interface.md
@@ -6547,10 +6825,10 @@ app_help() {
 #
 # !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
 #
-# Last updated: 2026-09-02
+# Last updated: 2026-09-07
 # =============================================================================
 app_main() {
-    : "${COMMAND:=help}"
+    COMMAND=""
     : "${QUIET:=0}"
     : "${JSON:=0}"
     : "${DEBUG:=0}"
@@ -6572,15 +6850,10 @@ app_main() {
     export EFFECTIVE_STORAGE_DIR STORAGE_DIR PERSISTENT_STORAGE_DIR
     export TMPDIR="${EFFECTIVE_STORAGE_DIR}"
 
-    # TTY empty argv → menu. Off-TTY empty argv → Type O ensure (not help).
-    if [ $# -eq 0 ]; then
-        if [ "${TTY}" -eq 1 ]; then
-            COMMAND=menu
-        else
-            COMMAND=ensure
-        fi
-    fi
-
+    # Empty argv = no command token after flag parse (overlay --debug/--quiet
+    # follow). TTY → menu. Off-TTY → Type O ensure.
+    # --json no-command is 0-argv special case → JSON help (TTY and off-TTY).
+    _saw_command=0
     _domain_arg=""
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -6613,6 +6886,7 @@ app_main() {
                 ;;
             version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|check-session|backup|sync-auth|sync-auth-from-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
                 COMMAND="$1"
+                _saw_command=1
                 ;;
             *)
                 # Positional operands for domain verbs
@@ -6634,6 +6908,16 @@ app_main() {
         esac
         shift
     done
+
+    if [ "${_saw_command}" -eq 0 ]; then
+        if [ "${JSON}" -eq 1 ]; then
+            COMMAND=help
+        elif [ "${TTY}" -eq 1 ]; then
+            COMMAND=menu
+        else
+            COMMAND=ensure
+        fi
+    fi
 
     out_debug "dispatch command=${COMMAND} quiet=${QUIET} json=${JSON} force=${FORCE} force_global=${FORCE_GLOBAL} allow_test_local=${ALLOW_TEST_LOCAL_SUDOERS}"
 

@@ -3,7 +3,7 @@
 # =============================================================================
 # Primary REQs: requirement-shell-cli-interface, requirement-shell-cli-zero-arguments,
 # requirement-shell-cli-default-interaction, requirement-shell-output-requirements,
-# requirement-shell-cli-storage
+# requirement-shell-cli-storage, requirement-shell-internal-volatile-timer
 # TP family: TP-CLI-*
 # =============================================================================
 
@@ -65,6 +65,8 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help SUDOER_PUBLIC_ROOT" "$_out" "SUDOER_PUBLIC_ROOT"
     assert_contains "TP-CLI-04 help GROK_CLI_ROOT" "$_out" "GROK_CLI_ROOT"
     assert_contains "TP-CLI-04 help --json" "$_out" "--json"
+    assert_contains "TP-CLI-04 help --debug" "$_out" "--debug"
+    assert_contains "TP-CLI-04 help --debug elapsed" "$_out" "elapsed of each paint step"
     assert_contains "TP-CLI-04 help self-update" "$_out" "self-update"
     assert_contains "TP-CLI-04 help self-uninstall" "$_out" "self-uninstall"
     assert_contains "TP-CLI-04 help version-check" "$_out" "version-check"
@@ -130,9 +132,52 @@ run_test_cli() {
         assert_contains "TP-CLI-07 TTY empty argv header app" "$_out" "${APP_NAME}"
         assert_contains "TP-CLI-07 TTY empty argv header version" "$_out" "${PRODUCT_VERSION}"
         assert_not_contains "TP-CLI-07 TTY empty argv not help dump" "$_out" "Usage:"
+        _jout=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" --json)
+        assert_contains "TP-CLI-07 TTY --json no command is JSON help" "$_jout" '"type":"success"'
+        assert_not_contains "TP-CLI-07 TTY --json no command not numbered list" "$_jout" "9. Exit"
+        assert_not_contains "TP-CLI-07 TTY --json no command not menu dispatch" "$_jout" "command=menu"
+        unset _jout
         ci_cleanup_env
     else
         t_skip "TP-CLI-07 TTY empty argv (no python3 for PTY)"
+        t_skip "TP-CLI-07 TTY --json no command (no python3 for PTY)"
+    fi
+
+    # TP-CLI-29 overlay flags-only follow empty argv; --json stays JSON help.
+    ci_isolated_env
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" install >/dev/null 2>&1
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" --debug 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-29 --debug no command off-TTY exit 0" 0 "$_ec"
+    assert_contains "TP-CLI-29 --debug no command off-TTY ensure" "$_out" "already installed"
+    assert_not_contains "TP-CLI-29 --debug no command off-TTY not help dump" "$_out" "Usage:"
+    assert_not_contains "TP-CLI-29 --debug no command off-TTY not numbered list" "$_out" "9. Exit"
+    _err=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" --debug 2>&1 >/dev/null)
+    assert_contains "TP-CLI-29 --debug no command off-TTY debug tag" "$_err" "[DEBUG]"
+    assert_contains "TP-CLI-29 --debug no command off-TTY dispatch ensure" "$_err" "command=ensure"
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" --quiet 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-29 --quiet no command off-TTY exit 0" 0 "$_ec"
+    assert_not_contains "TP-CLI-29 --quiet no command off-TTY not help dump" "$_out" "Usage:"
+    assert_not_contains "TP-CLI-29 --quiet no command off-TTY not numbered list" "$_out" "9. Exit"
+    _out=$(sh "${SCRIPT}" --json --debug 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-29 --json --debug no command exit 0" 0 "$_ec"
+    assert_contains "TP-CLI-29 --json --debug no command is JSON help" "$_out" '"type":"success"'
+    assert_not_contains "TP-CLI-29 --json --debug no command not numbered list" "$_out" "9. Exit"
+    ci_cleanup_env
+
+    if command -v python3 >/dev/null 2>&1; then
+        ci_isolated_env
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" --debug)
+        assert_contains "TP-CLI-29 TTY --debug no command is numbered list" "$_out" "9. Exit"
+        assert_contains "TP-CLI-29 TTY --debug no command backup first" "$_out" "1. backup:"
+        assert_contains "TP-CLI-29 TTY --debug no command dispatch menu" "$_out" "command=menu"
+        assert_contains "TP-CLI-29 TTY --debug no command paint start" "$_out" "menu step paint: start"
+        assert_not_contains "TP-CLI-29 TTY --debug no command not help dump" "$_out" "Usage:"
+        ci_cleanup_env
+    else
+        t_skip "TP-CLI-29 TTY --debug no command (no python3 for PTY)"
     fi
 
     # TP-CLI-08 unknown command fail-closed
@@ -463,9 +508,134 @@ AUTH
         else
             t_fail "TP-CLI-21 Termux menu froze for ${_elapsed}s"
         fi
+
+        # TP-CLI-22: a bad pick reprints the list; grok -p hello runs once.
+        _plog="${CI_HOME}/probe.log"
+        rm -f "${_plog}"
+        _start=$(date +%s)
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
+            GROK_PROMPT_TIMEOUT=1 GROK_PROMPT_KILL_AFTER=1 \
+            GROK_PROBE_LOG="${_plog}" \
+            PTY_TIMEOUT=12 PTY_IN="12
+9" ci_pty_capture "${SCRIPT}" menu)
+        _elapsed=$(($(date +%s) - _start))
+        _nprobe=$(wc -l < "${_plog}" 2>/dev/null | tr -d ' ')
+        [ -n "${_nprobe}" ] || _nprobe=0
+        assert_contains "TP-CLI-22 bad pick not a menu choice" "$_out" "Not a menu choice"
+        assert_contains "TP-CLI-22 reprint still Exit 9" "$_out" "9. Exit"
+        assert_eq "TP-CLI-22 hang grok probed once" "1" "${_nprobe}"
+        if [ "${_elapsed}" -lt 12 ]; then
+            t_pass "TP-CLI-22 reprint did not re-probe (${_elapsed}s, probes=${_nprobe})"
+        else
+            t_fail "TP-CLI-22 reprint froze for ${_elapsed}s (probes=${_nprobe})"
+        fi
         ci_cleanup_env
     else
         t_skip "TP-CLI-21 Termux hang-grok menu (no python3 for PTY)"
+        t_skip "TP-CLI-22 Termux reprint cache (no python3 for PTY)"
+    fi
+
+    # TP-CLI-23: ship unit always bounds the probe (timeout -k + watchdog).
+    _src=$(cat "${SCRIPT}")
+    assert_contains "TP-CLI-23 bounded helper" "${_src}" "gc_grok_prompt_run_bounded"
+    assert_contains "TP-CLI-23 GNU timeout -k" "${_src}" 'timeout -k'
+    assert_contains "TP-CLI-23 watchdog SIGKILL" "${_src}" "kill -9"
+
+    # TP-CLI-25 / 26 / 27 / 28: --debug menu elapsed (internal-timer).
+    _src=$(cat "${SCRIPT}")
+    assert_contains "TP-CLI-28 util_int_timer_start" "${_src}" "util_int_timer_start"
+    assert_contains "TP-CLI-28 util_int_timer_stop" "${_src}" "util_int_timer_stop"
+    assert_contains "TP-CLI-28 util_int_timer_status" "${_src}" "util_int_timer_status"
+    assert_contains "TP-CLI-28 util_int_timer_elapsed" "${_src}" "util_int_timer_elapsed"
+    assert_contains "TP-CLI-28 util_int_timer_reset" "${_src}" "util_int_timer_reset"
+    assert_contains "TP-CLI-28 util_int_timer_kill" "${_src}" "util_int_timer_kill"
+    assert_contains "TP-CLI-28 util_int_timer_list" "${_src}" "util_int_timer_list"
+    _help=$(sh "${SCRIPT}" help 2>/dev/null)
+    assert_contains "TP-CLI-28 help --debug" "${_help}" "--debug"
+    assert_not_contains "TP-CLI-28 help no timer start verb" "${_help}" "start [name]"
+    unset _help
+
+    # AC-6: source helpers (no app_main) and fail-close a second start of the same name.
+    _snip=$(mktemp)
+    sed '/^app_main "\$@"$/d' "${SCRIPT}" > "${_snip}"
+    _ac6=$(HOME="${HOME:-/tmp}" sh -c '
+        set -u
+        . "$1"
+        UTIL_INT_TIMER_MAP=""
+        util_int_timer_start ac6
+        printf "ec1=%s\n" "$?"
+        _map1="${UTIL_INT_TIMER_MAP}"
+        case "${_map1}" in
+            ac6=*[0-9]*) printf "map1_ok=1\n" ;;
+            *) printf "map1_ok=0\n" ;;
+        esac
+        util_int_timer_start ac6
+        printf "ec2=%s\n" "$?"
+        if [ "${UTIL_INT_TIMER_MAP}" = "${_map1}" ]; then
+            printf "same_map=1\n"
+        else
+            printf "same_map=0\n"
+        fi
+        util_int_timer_start "foo[ab]"
+        printf "ec_brack=%s\n" "$?"
+        util_int_timer_start "a;b"
+        printf "ec_semi=%s\n" "$?"
+        util_int_timer_start "x&y"
+        printf "ec_amp=%s\n" "$?"
+        DEBUG=1
+        util_int_timer_debug_begin ac6
+        printf "dbg=%s\n" "$?"
+    ' _ "${_snip}" 2>/dev/null)
+    rm -f "${_snip}"
+    assert_contains "TP-CLI-28 AC-6 first start ok" "${_ac6}" "ec1=0"
+    assert_contains "TP-CLI-28 AC-6 map has epoch" "${_ac6}" "map1_ok=1"
+    assert_contains "TP-CLI-28 AC-6 double-start fail-closed" "${_ac6}" "ec2=1"
+    assert_contains "TP-CLI-28 AC-6 epoch unchanged" "${_ac6}" "same_map=1"
+    assert_contains "TP-CLI-28 invalid name bracket" "${_ac6}" "ec_brack=1"
+    assert_contains "TP-CLI-28 invalid name semicolon" "${_ac6}" "ec_semi=1"
+    assert_contains "TP-CLI-28 invalid name ampersand" "${_ac6}" "ec_amp=1"
+    assert_contains "TP-CLI-28 debug wrapper still 0 after reset-then-start" "${_ac6}" "dbg=0"
+    unset _ac6 _snip
+
+    _json=$(sh "${SCRIPT}" --json --debug version 2>/dev/null)
+    _jec=$?
+    assert_eq "TP-CLI-27 --json --debug version exit 0" 0 "${_jec}"
+    assert_contains "TP-CLI-27 --json --debug stdout type" "${_json}" '"type":"version"'
+    assert_not_contains "TP-CLI-27 --json --debug no DEBUG on stdout" "${_json}" "[DEBUG]"
+    assert_not_contains "TP-CLI-27 --json --debug no menu step on stdout" "${_json}" "menu step"
+    unset _json _jec
+
+    if command -v python3 >/dev/null 2>&1; then
+        ci_isolated_env
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" --debug menu)
+        assert_contains "TP-CLI-25 debug menu still Exit 9" "$_out" "9. Exit"
+        assert_contains "TP-CLI-25 debug menu Choice" "$_out" "Choice:"
+        for _st in paint header session host logged-in rows; do
+            assert_contains "TP-CLI-25 menu step ${_st} start" "$_out" "menu step ${_st}: start"
+            assert_contains "TP-CLI-25 menu step ${_st} elapsed" "$_out" "menu step ${_st}: elapsed"
+        done
+        assert_not_contains "TP-CLI-25 elapsed not on choice row" "$_out" "1. backup: elapsed"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="5
+9" ci_pty_capture "${SCRIPT}" --debug menu)
+        assert_contains "TP-CLI-25 debug submenu still Exit 9" "$_out" "9. Exit"
+        for _st in sudoers.paint sudoers.header sudoers.rows; do
+            assert_contains "TP-CLI-25 menu step ${_st} start" "$_out" "menu step ${_st}: start"
+            assert_contains "TP-CLI-25 menu step ${_st} elapsed" "$_out" "menu step ${_st}: elapsed"
+        done
+        assert_not_contains "TP-CLI-25 submenu elapsed not on choice row" "$_out" \
+            "1. generate-sudoer-request: elapsed"
+        ci_cleanup_env
+
+        ci_isolated_env
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-26 no-debug still Exit 9" "$_out" "9. Exit"
+        assert_not_contains "TP-CLI-26 no menu step start" "$_out" "menu step "
+        assert_not_contains "TP-CLI-26 no DEBUG tag" "$_out" "[DEBUG]"
+        ci_cleanup_env
+    else
+        t_skip "TP-CLI-25 --debug menu elapsed (no python3 for PTY)"
+        t_skip "TP-CLI-26 no-debug menu (no python3 for PTY)"
     fi
 
     # TP-CLI-18: Active requirement bodies must not freeze a session Unix login

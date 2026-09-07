@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.7.6)  
+**Status**: Active (Version 2.7.9)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -46,7 +46,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 |------|-------------|----------|
 | `--quiet`, `-q` | `QUIET=1` | Suppress non-error human output; errors still visible |
 | `--json` | `JSON=1` (implies quiet) | Machine-readable structured output |
-| `--debug` | `DEBUG=1` | Extra diagnostics on stderr; must not break JSON purity on stdout |
+| `--debug` | `DEBUG=1` | Extra diagnostics on stderr; must not break JSON purity on stdout. Numbered-menu paint elapsed is `requirement-shell-internal-volatile-timer` |
 | `--force` | `FORCE=1` / force policy | Skip safe confirms or force reinstall only where documented |
 
 Additional flags **MAY** be added only when documented here (or a superseding requirement) and wired in the dispatcher.
@@ -55,7 +55,7 @@ Additional flags **MAY** be added only when documented here (or a superseding re
 
 1. **Single entry:** `app_main` **MUST** parse global flags and route commands.  
 2. **Unknown command:** **MUST** fail loudly with pointer to `help` (via output SSOT).  
-3. **Empty argv:** `requirement-shell-cli-zero-arguments.md`: TTY → numbered start list (same handler as `menu` / `main`); off-TTY → Type O install-ensure (**MUST NOT** help). Flags-only (`--json` with no command) stay help.  
+3. **Empty argv:** `requirement-shell-cli-zero-arguments.md`: **no command token** after flag parse (overlay switches such as `--debug` **do not** disqualify). TTY → numbered start list (same handler as `menu` / `main`); off-TTY → Type O install-ensure (**MUST NOT** help). `--json` with no command **is** empty argv; **special case** = JSON help on TTY **and** off-TTY (not the list, not ensure).  
 4. **No raw user I/O:** User-facing messages **MUST** go through `out_*`.  
 5. Script end **MUST** call `app_main "$@"` (no basename gate that blocks dispatch).
 
@@ -90,7 +90,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Command | Type | Handler family | Required behavior |
 |---------|------|----------------|-------------------|
-| *(no args — empty argv)* | Type 0 | TTY → `app_default`; off-TTY → `inst_channel_ensure` | TTY numbered menu; off-TTY Type O ensure (**MUST NOT** help) |
+| *(no command token — empty argv; overlay flags such as `--debug` allowed)* | Type 0 | TTY → `app_default`; off-TTY → `inst_channel_ensure` | TTY numbered menu; off-TTY Type O ensure (**MUST NOT** help). `--json` no-command is 0-argv **special case** → JSON help (TTY and off-TTY) |
 | `install` | Type 0 | `inst_local_install` | Checkout copy of the running ship unit; idempotent unless `--force` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
 | `version-check` | Type 0 | `ver_check` | Compare local vs remote VERSION on `SCRIPT_URL` |
@@ -120,7 +120,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 |------|-----------------|
 | `--quiet`, `-q` | `QUIET=1` in `app_main` |
 | `--json` | `JSON=1` and `QUIET=1` in `app_main` |
-| `--debug` | `DEBUG=1` in `app_main` |
+| `--debug` | `DEBUG=1` in `app_main`; TTY `menu` elapsed of each paint step (`requirement-shell-internal-volatile-timer`) |
 | `--force` | `FORCE=1` (and install reinstall policy when applicable) |
 | `--update` | `SUBMIT_ACTION=update` + explicit (submit only) |
 | `--add` | `SUBMIT_ACTION=add` + explicit (submit only) |
@@ -128,7 +128,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 #### Dispatcher acceptance criteria
 
 1. Unknown token after flag parse → `out_die` with pointer to `grok-cli help`.  
-2. Zero-arg → TTY numbered menu; off-TTY Type O ensure (never help, never `setup`).  
+2. Zero-arg (no command token, including overlay `--debug` / `--quiet`) → TTY numbered menu; off-TTY Type O ensure (never help, never `setup`). `--json` with no command is 0-argv special case → JSON help (TTY and off-TTY).  
 3. Command routing table in `app_main` **must** include every **Supported commands** row above.  
 4. Help text **must** stay aligned with that table.  
 5. Domain catalog detail is owned by `requirement-domain-grok-cli.md` — this file owns the **listed verbs** and routing. Auth ops detail is `requirement-grok-auth-backup.md`. Peer grok install is `requirement-grok-setup.md`.
@@ -204,7 +204,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 |----|-----------|
 | AC-1 | All commands in the table are routed and listed in help |
 | AC-2 | Global flags wire QUIET/JSON/DEBUG/FORCE as specified |
-| AC-3 | Empty argv: TTY numbered menu; off-TTY Type O ensure; never help on the pipe |
+| AC-3 | Empty argv (no command token, including `--debug`): TTY numbered menu; off-TTY Type O ensure; never help on the pipe; `--json` no-command is 0-argv special case → JSON help (TTY and off-TTY) |
 | AC-4 | `version-check` / `self-update` / `self-uninstall` routed and listed |
 | AC-5 | Domain verbs point to domain requirement for deep semantics |
 | AC-6 | `submit-sudoer-request` is Type 0, routed, listed in help; does not write `/etc` or create inbound |
@@ -213,6 +213,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-9 | `add-crontab` is Type 0, routed, listed in help; does not write `/etc`; dual mention `requirement-grok-crontab` |
 | AC-10 | `sync-auth-from-remote` is Type 0, routed, listed in help; dual mention `requirement-grok-auth-backup` |
 | AC-11 | `setup` is Type 0, routed, listed in help; dual mention `requirement-grok-setup`; **MUST NOT** fetch or exec `install.sh` |
+| AC-12 | `--debug` listed in help; TTY `menu` elapsed owned by `requirement-shell-internal-volatile-timer` |
 
 ---
 
@@ -220,10 +221,11 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-shell-cli-zero-arguments` | Empty argv: TTY menu; off-TTY Type O ensure |
+| `requirement-shell-cli-zero-arguments` | Empty argv = no command token (overlay `--debug` follows); TTY menu; off-TTY Type O ensure |
 | `requirement-shell-online-install` | Dual mention of channel pipe / `SCRIPT_URL` |
 | `requirement-shell-self-management` | Dual mention of `version-check` / `self-update` / `self-uninstall` |
 | `requirement-shell-cli-default-interaction` | Numbered list body; TTY empty argv and `menu`/`main` |
+| `requirement-shell-internal-volatile-timer` | Dual mention of `--debug` menu elapsed (helpers, not domain verbs) |
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
 | `requirement-shell-output-requirements` | `out_*` catalog |
 | `requirement-domain-grok-cli` | Domain four pillars |
@@ -239,6 +241,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have |
+| **TP-CLI-29** | `tests/test_cli.sh` | have (overlay flags-only `--debug` / `--quiet` follow empty argv) |
+| **TP-CLI-25..28** | `tests/test_cli.sh` | have (`--debug` menu elapsed; dual mention `requirement-shell-internal-volatile-timer`) |
 | **TP-VCLI-01..09**, **11**–**18** | `tests/test_grok_setup.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
@@ -268,9 +272,12 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-04 | Active 2.7.4 | `setup` HTTP status on curl fail (dual mention `requirement-grok-setup` 2.5.0) |
 | 2026-09-04 | Active 2.7.5 | `setup` Android proot resolv bind (dual mention `requirement-grok-setup` 2.6.0) |
 | 2026-09-05 | Active 2.7.6 | `check-session` live `grok -p hello` (dual mention `requirement-grok-auth-backup` 1.2.0) |
+| 2026-09-07 | Active 2.7.7 | `--debug` dual mention of menu paint elapsed (`requirement-shell-internal-volatile-timer`) |
+| 2026-09-07 | Active 2.7.8 | Empty argv = no command token; overlay `--debug` follows 0-argv (`requirement-shell-cli-zero-arguments` 2.1.0) |
+| 2026-09-07 | Active 2.7.9 | `--json` no-command is 0-argv special case: JSON help even on a TTY (`requirement-shell-cli-zero-arguments` 2.2.0) |
 
 ---
 
-**Last Updated**: 2026-09-06  
+**Last Updated**: 2026-09-07  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

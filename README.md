@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.14-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.18-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -132,9 +132,9 @@ Choose a number, or type the command name. `9` exits. The line under the title i
 
 | How you run it | What you get |
 |----------------|--------------|
-| `grok-cli` at a real terminal | Numbered start list (`backup` is **1** on a multi-user host when logged out; **logged in** / **logged out** under the title from `grok -p hello`; Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers; logged-in session hides sync-auth / sync-auth-from-remote and appends a not-available line; **9** leaves). Same as `grok-cli menu`. |
+| `grok-cli` or `grok-cli --debug` at a real terminal | Numbered start list (`backup` is **1** on a multi-user host when logged out; **logged in** / **logged out** under the title from `grok -p hello`; Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers; logged-in session hides sync-auth / sync-auth-from-remote and appends a not-available line; **9** leaves). Same as `grok-cli menu`. Overlay switches with no command still follow empty argv. |
 | `curl -fsSL … \| sh` or `grok-cli` in a script (no args) | Install-ensure: places `~/.local/bin/grok-cli` or reports already installed. **Not** help. **Not** the menu. |
-| `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help |
+| `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help. `--json` with no command is empty argv **special case**: JSON help even at a prompt |
 | `grok-cli menu` in a script | Help (the list is TTY-only) |
 
 ```sh
@@ -170,6 +170,7 @@ grok-cli self-uninstall --force
 | `GROK_CHANNEL` | grok channel (`stable` / `alpha` / `enterprise`; default `stable`) |
 | `GROK_BIN` | Override path to peer `grok` |
 | `GROK_PROMPT_TIMEOUT` | Seconds to wait for `grok -p hello` (default 20; always bounded) |
+| `DEBUG` | `1` or flag `--debug`: stderr diagnostics; numbered menu prints elapsed of each paint step |
 | `GROK_PROMPT_KILL_AFTER` | SIGKILL grace after that deadline (default 2; GNU `timeout -k`) |
 | `GROK_CLI_ROOT` | Durable auth store (default `/var/grok-cli`; optional sharing) |
 | `ALLOW_TEST_LOCAL_SUDOERS` | `1` = allow test-mode sudoers emit without `--allow-test-local` |

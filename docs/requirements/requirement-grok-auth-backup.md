@@ -272,6 +272,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-GROK-CLI-45** | `tests/test_domain_grok_cli.sh` | have (same hang without GNU `timeout -k`; POSIX watchdog) |
 | **TP-CLI-06**, **TP-CLI-17** | `tests/test_cli.sh` | have (about session; menu logged in/out uses probe) |
 | **TP-CLI-21** | `tests/test_cli.sh` | have (Termux menu with hanging grok still prints the list and accepts Exit) |
+| **TP-CLI-22** | `tests/test_cli.sh` | have (reprint after a bad pick does not run a second probe) |
+| **TP-CLI-23** | `tests/test_cli.sh` | have (ship unit `timeout -k` + watchdog) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
