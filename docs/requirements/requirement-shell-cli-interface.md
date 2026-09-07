@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.8.0)  
+**Status**: Active (Version 2.8.1)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -94,7 +94,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `install` | Type 0 | `inst_local_install` | Checkout copy of the running ship unit; idempotent unless `--force` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
 | `version-check` | Type 0 | `ver_check` | Compare local vs remote VERSION on `SCRIPT_URL` |
-| `self-update` | Type 0 | `inst_self_update` | Re-download from `SCRIPT_URL` when remote is newer (or `--force`) |
+| `self-update` | Type 0 | `inst_self_update` | Re-download from `SCRIPT_URL` when remote is newer (or `--force`). Proceeding first INFO: `Starting the self-update of {{APP_NAME}}({{local}}) to new version:{{remote}}...` |
 | `self-uninstall` | Type 0 | `inst_self_uninstall` | Remove managed binary (channel name; same dest as `uninstall`) |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
@@ -279,9 +279,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active 2.7.8 | Empty argv = no command token; overlay `--debug` follows 0-argv (`requirement-shell-cli-zero-arguments` 2.1.0) |
 | 2026-09-07 | Active 2.7.9 | `--json` no-command is 0-argv special case: JSON help even on a TTY (`requirement-shell-cli-zero-arguments` 2.2.0) |
 | 2026-09-07 | Active 2.8.0 | `run` Type 0 — start peer grok without auto-update (Termux hang) |
+| 2026-09-07 | Active 2.8.1 | `self-update` first INFO names local and remote VERSION (dual mention) |
 
 ---
 
-**Last Updated**: 2026-09-07  
+**Last Updated**: 2026-09-07 (2.8.1 — version-aware self-update start line)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

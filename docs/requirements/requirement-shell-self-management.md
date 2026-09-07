@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-self-management.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0)  
 **Area**: shell  
 **Key**: `requirement-shell-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -35,6 +35,7 @@ This requirement is the **remote lifecycle Single Source of Truth** for grok-cli
 1. **MUST** route `version-check`, `self-update`, `self-uninstall` from `app_main`. Dual mention: this file **and** `requirement-shell-cli-interface`.  
 2. `version-check` **MUST** fetch remote `VERSION=` from `SCRIPT_URL` and compare with `inst_get_version`. Unreachable channel **MUST NOT** say “already latest.”  
 3. `self-update` **MUST** reuse `inst_perform_channel_install` with force when remote is newer, or when `--force`. **MUST NOT** downgrade without `--force`.  
+3b. The first human INFO line of a **proceeding** `self-update` **MUST** name both versions, after remote `VERSION=` is known: `Starting the self-update of {{APP_NAME}}({{local}}) to new version:{{remote}}...` (`{{local}}` = `inst_get_version`; `{{remote}}` = channel `VERSION=`). **MUST** fetch remote first. **MUST NOT** print a version-less start line (`Starting self-update of {{APP_NAME}}...`). Fetch fail **MUST** fail closed with Next (no start line). Already-at-remote without `--force` **MUST NOT** print that start line. Dual mention: `requirement-shell-cli-interface`.  
 4. `self-uninstall` **MUST** remove the managed binary (same dest as `uninstall`). Interactive confirm unless `--force` / off-TTY. Already absent → success.  
 5. **MUST NOT** appear on the TTY numbered main menu.  
 6. Core tests fake the channel.
@@ -93,6 +94,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-1 | Three verbs routed and listed in help |
 | AC-2 | version-check fails loud when the channel is unreachable |
 | AC-3 | self-update reuses channel install |
+| AC-5 | Proceeding `self-update` first INFO names `{{APP_NAME}}({{local}}) to new version:{{remote}}` (TP-ONL-05) |
 | AC-4 | self-uninstall removes the managed binary |
 
 ### 2.6 Invocation samples (dual mention)
@@ -120,7 +122,7 @@ grok-cli self-uninstall --force
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-ONL-03** · **TP-ONL-04** | `tests/test_online_install.sh` | have |
+| **TP-ONL-03** · **TP-ONL-04** · **TP-ONL-05** | `tests/test_online_install.sh` | have |
 | **TP-CLI-04** · **TP-CLI-10** | `tests/test_cli.sh` | have |
 
 ## 7. Status history
@@ -128,7 +130,8 @@ grok-cli self-uninstall --force
 | Date | Status | Note |
 |------|--------|------|
 | 2026-09-02 | Active (1.0.0) | Specialized from selfmanaged lifecycle |
+| 2026-09-07 | Active (1.1.0) | `self-update` first INFO names local and remote VERSION |
 
-**Last Updated**: 2026-09-06  
+**Last Updated**: 2026-09-07 (1.1.0 — version-aware self-update start line)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

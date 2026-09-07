@@ -41,7 +41,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.22"
+# VERSION: hard-assign VERSION="1.8.23"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -57,8 +57,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.22"
-: "${VERSION:=1.8.22}"
+VERSION="1.8.23"
+: "${VERSION:=1.8.23}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -2047,7 +2047,7 @@ ver_check() {
 # =============================================================================
 #
 # ALIGNMENT: requirement-shell-self-management.md
-# Last updated: 2026-09-02
+# Last updated: 2026-09-07
 # =============================================================================
 inst_self_update() {
     : "${APP_NAME:=grok-cli}"
@@ -2057,7 +2057,6 @@ inst_self_update() {
     if [ "${FORCE}" -eq 1 ]; then
         FORCE_REINSTALL=1
     fi
-    out_info "Starting self-update of ${APP_NAME}..."
     REMOTE_VERSION=$(util_fetch_remote_version "${SCRIPT_URL}") || REMOTE_VERSION=""
     if [ -z "${REMOTE_VERSION}" ]; then
         out_die "Failed to fetch remote version from ${SCRIPT_URL}. Next: check network, then ${APP_NAME} self-update."
@@ -2066,14 +2065,17 @@ inst_self_update() {
     if [ "${FORCE}" -ne 1 ] && [ "${_isu_local}" != "not installed" ]; then
         if [ "${_isu_local}" = "${REMOTE_VERSION}" ]; then
             out_success "${APP_NAME} is already at ${REMOTE_VERSION}."
+            unset _isu_local
             return 0
         fi
         if ver_gt "${_isu_local}" "${REMOTE_VERSION}" 2>/dev/null; then
             out_die "Local ${_isu_local} is newer than remote ${REMOTE_VERSION}. Next: ${APP_NAME} self-update --force to replace anyway."
         fi
     fi
+    out_info "Starting the self-update of ${APP_NAME}(${_isu_local}) to new version:${REMOTE_VERSION}..."
     FORCE_REINSTALL=1
     inst_perform_channel_install
+    unset _isu_local
 }
 
 # =============================================================================

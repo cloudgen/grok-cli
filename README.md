@@ -1,22 +1,38 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.22-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.23-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
 
-**grok-cli** is an alternative online installer for xAI’s `grok` CLI. The official one-liner on [x.ai](https://x.ai) (`curl -fsSL https://x.ai/cli/install.sh | bash`) is not intended for systems such as Termux. This program fetches the same vendor `grok` binary from xAI’s CLI channel and places it under `~/.grok` — it does **not** download or run `install.sh`.
+**grok-cli** is an alternative online installer for xAI’s `grok` CLI. The official one-liner on [x.ai](https://x.ai) (`curl -fsSL https://x.ai/cli/install.sh | bash`) is built for macOS, Linux, and Windows. It is **not** intended for Termux or other “this login only” phones. This program fetches the **same** vendor `grok` binary from xAI’s CLI channel and places it under `~/.grok` — it does **not** download or run `install.sh`.
+
+### Why grok-cli is a better alternative
+
+x.ai’s installer is the right path on a laptop. On a phone (and on any host that installer does not cover) it typically fails in ways that look like a broken download: wrong CPU if you `scp` grok from an x86_64 PC onto aarch64 Termux; Android’s linker refuses the static Linux file (`unexpected e_type: 2`); Termux has no `nameserver` in `/etc/resolv.conf` so `grok login` hits a DNS error; after a correct install, `grok -p hello` prints the answer and then **hangs until Ctrl-Z**.
+
+This program is a better alternative **there** because it is written for that host instead of hoping `install.sh` will cope:
+
+| Official `install.sh` | grok-cli |
+|-----------------------|----------|
+| One-liner assumes macOS / Linux / Windows | POSIX `/bin/sh` (does **not** need bash); Termux `PREFIX` / `pkg` as this login |
+| Places whatever the script assumes | `setup` fetches the matching `linux-aarch64` / `linux-x86_64` (or Darwin) artifact and **smokes `--version` on this host** |
+| No check that an x86_64 copy runs on a phone | Wrong ELF is **not** “already installed”; `--force` replaces it |
+| Android `ET_EXEC` refusal looks like a truncated file | Retries `TERMUX_EXEC_OPTOUT`, may `pkg install -y proot` (no sudo), wraps grok **without editing vendor bytes** |
+| musl grok reads `/etc/resolv.conf` with no nameserver | Binds `~/.grok/resolv.conf` over `/etc/resolv.conf` via PRoot |
+| `grok -p` hangs: leftover Termux `runsvdir` keep PRoot in `do_wait` | From **1.8.22**: bind a no-op over `start-services.sh` so login-shell env capture does not spawn those daemons; reaper as safety net so `-p` returns |
+| Login truth is “the file is there” | `check-session` / the numbered list run live `grok -p hello` |
+
+It is **not** a second grok program and **not** official x.ai Termux support. After `setup`, open a new terminal if `grok` is not on this session’s PATH, then `grok login` (or set `XAI_API_KEY`). Sharing `~/.grok/auth.*` across logins on one host is optional later work (`backup` / `sync-auth`), not the reason this tool exists.
 
 | You | Official x.ai installer | Not this |
 |-----|-------------------------|----------|
 | Install grok-cli, then `grok-cli setup` (no sudo) | `curl -fsSL https://x.ai/cli/install.sh \| bash` on macOS / Linux / Windows | A second grok binary; executing x.ai’s `install.sh`; claiming official Termux support |
 
-After `setup`, open a new terminal if `grok` is not on this session’s PATH, then `grok login` (or set `XAI_API_KEY`). Sharing `~/.grok/auth.*` across logins on one host is optional later work (`backup` / `sync-auth`), not the reason this tool exists.
-
 ## Features
 
 - **Install grok without x.ai’s `install.sh`**: type `grok-cli setup`. It detects this computer, downloads the matching grok program from xAI, checks that `--version` runs from `~/.grok/downloads` (not `/tmp` or the cache folder — some phones refuse to run files from there), and places `~/.grok/bin/grok`. Skip if grok already **runs on this host**. An x86_64 file copied onto an aarch64 phone is replaced. On Termux, if the phone will not run the vendor file, setup may install `proot` with `pkg` (this login, no sudo) and place a wrapper — it still does **not** edit the vendor file. `--force` downloads again. POSIX `/bin/sh` (does **not** need bash).
-- **Termux-aware place**: uses `${PREFIX}/bin` when `PREFIX` is set. A missing `/etc/resolv.conf` is a note, not an install failure, when `--version` succeeded. If grok still will not run: `pkg install proot`, then `grok-cli setup --force`. From **1.8.19** the PRoot wrapper makes `grok -p` return to the shell (see **Platform Compatibility**).
+- **Termux-aware place**: uses `${PREFIX}/bin` when `PREFIX` is set. A missing `/etc/resolv.conf` is a note, not an install failure, when `--version` succeeded. If grok still will not run: `pkg install proot`, then `grok-cli setup --force`. From **1.8.22** the PRoot wrapper stops leftover `runsvdir` from freezing `grok -p` (see **Platform Compatibility**).
 - **Install this program**: paste the curl one-liner; later `version-check`, `self-update`, `self-uninstall`
 - **Install from a checkout**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
 - **Start grok without auto-update**: type `grok-cli run` (or `grok-cli run -p hello`). On Termux this avoids the hang until Ctrl-Z. Missing grok → `grok-cli setup`.
@@ -104,7 +120,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.22*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.23*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -118,7 +134,7 @@ On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** a
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.22*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.23*) — Alternative online installer for xAI grok
 logged in
 sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
@@ -226,11 +242,42 @@ grok-cli add-crontab
 
 | Includes | Excludes |
 |----------|----------|
-| What PRoot is; why grok-cli uses it; why `-p` can hang after the answer; why Ctrl-C fails and Ctrl-Z works; what **1.8.19** does | Claiming official x.ai Termux support; editing vendor grok bytes; treating PRoot as `sudo` or as `proot-distro` |
+| What PRoot is; why grok-cli uses it; the causal chain of the `-p` hang; why Ctrl-C fails and Ctrl-Z works; what **1.8.22** does | Claiming official x.ai Termux support; editing vendor grok bytes; treating PRoot as `sudo` or as `proot-distro` |
 
 **What PRoot is.** PRoot (Ptrace ROOT) rewrites grok’s system calls with `ptrace`. It does **not** give you root. grok-cli uses it because the vendor `linux-aarch64` file is a static Linux executable (`ET_EXEC`). Android’s linker refuses that file (`unexpected e_type: 2`). Termux’s `/etc/resolv.conf` also has no `nameserver`, so musl inside grok fails DNS unless PRoot binds a file that does. The wrapper unsets `LD_PRELOAD` (termux-exec would re-hit `e_type` 2) and runs `proot` plus the **unmodified** vendor file.
 
-**Why `-p` does not exit.** Official grok `-p` is one-shot: print, then exit. On-device study: `grok-linux` **does** `_exit` after the reply (`grok --help` under the same PRoot returns in 0.3s). PRoot’s loop is `wait4(-1, __WALL)` — it waits until **every remaining tracee** is dead, including daemons that reparent to PID 1. During init, grok starts two `bash -lc` env-capture processes. Those are Termux **login** shells, so they source `$PREFIX/etc/profile.d/start-services.sh`, which `start-stop-daemon -b` a new `runsvdir`. That `runsvdir` stays a PRoot tracee. Two login shells ⇒ two extra `runsvdir` per `grok -p`. `bash -c` / `bash --noprofile` do **not** hang. Unsetting `SVDIR` does not help (the profile script sets it again). Matching leftovers by truncated `comm` never fires (`/data/data/com.`).
+**Why `-p` does not exit.** Official grok `-p` is one-shot: print, then exit. On-device study (Termux aarch64, `proot` 5.1, `termux-services` + `runit`): `grok-linux` **does** `_exit` after the reply. `grok --help` under the **same** PRoot returns in ~0.3s — proof PRoot can exit when it has no leftover daemons. PRoot’s loop is `wait4(-1, …, __WALL)` (`wchan=do_wait`): it does not return until **every remaining tracee is dead**, including processes that later daemonize and reparent to PID 1. There is **no** `proot -r` rootfs; PRoot is only a syscall translator.
+
+The leftover processes are **not** grok helpers. During session init, grok starts **two login shells** to snapshot the user environment (`bash -lc 'source "$HOME/.bashrc"; …'`). Termux login shells source `$PREFIX/etc/profile`, which sources `profile.d/start-services.sh`, which runs `(service-daemon start &)` → `start-stop-daemon -S -b … runsvdir $SVDIR`. `-b` double-forks. On a normal Termux login that is what you want. **Under PRoot it is fatal:** the new `runsvdir` remains a tracee and lives forever as a supervisor. Two login shells ⇒ two extra `runsvdir` per `grok -p`. They race `$PREFIX/var/run/service-daemon.pid` and usually cannot see Termux’s already-running `runsvdir`, so they start extras instead of no-op’ing.
+
+**Causal chain**
+
+```text
+grok -p hello
+  → wrapper execs proot (no rootfs) over grok-linux-aarch64
+    → grok-linux starts two `bash -lc` env-capture processes
+      → bash -l sources $PREFIX/etc/profile
+        → profile.d/start-services.sh
+          → (service-daemon start &)
+            → start-stop-daemon -S -b … runsvdir $SVDIR
+              → runsvdir double-forks, PPID=1, STILL a PRoot tracee
+    → grok-linux prints the reply and _exit()s
+    → proot wait4(-1, __WALL)    # leftover runsvdir still alive
+      → grok -p never returns
+```
+
+Isolation (same PRoot flags as the wrapper: `proot -b ~/.grok/resolv.conf:/etc/resolv.conf <cmd>`):
+
+| Command | Result |
+|---------|--------|
+| `grok -p hello` | Reply prints; hang until SIGKILL; two leftover `runsvdir` |
+| `grok --help` | Exits in ~0.3s (no env-capture login shells) |
+| `proot … bash -lc 'echo LOGIN_OK'` | Hang — **does not need grok at all** |
+| `proot … bash -c 'echo NONLOGIN_OK'` | Exits at once |
+| `proot … bash --noprofile --norc -lc '…'` | Exits at once |
+| `env -u SVDIR grok -p hello` | Still hangs (`start-services.sh` re-exports `SVDIR`) |
+
+Matching leftovers by `ps -o comm=` never fires on Termux (`comm` truncates to `/data/data/com.`). Match **args / exe paths**. Do **not** kill Termux’s own `runsvdir` (sshd / ssh-agent live there). Nested PRoot deadlocks (`ptrace_stop`); do not debug this hang by launching `grok -p` from an agent already under grok’s PRoot.
 
 **Why Ctrl-C fails and Ctrl-Z works.** Ctrl-C is `SIGINT` — grok/PRoot often ignore it (or treat it as “cancel this turn”). Ctrl-Z is `SIGTSTP` — the shell’s job control, usually not caught — so you get `Stopped`. An old wrapper did `exec proot grok …`, so there was no parent left to SIGKILL.
 
@@ -263,4 +310,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-07 — version **1.8.22**: PRoot hang is leftover `runsvdir` from `bash -lc` → `start-services.sh`; wrapper binds a no-op over that file and keeps the reaper. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-07 — version **1.8.23**: `self-update` first line names local and remote VERSION. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

@@ -103,4 +103,23 @@ run_test_online_install() {
     HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" --force self-uninstall >/dev/null 2>&1
     assert_file_missing "TP-ONL-04 self-uninstall removed binary" "${CI_USER_BIN}/grok-cli"
     ci_cleanup_env
+
+    # TP-ONL-05 proceeding self-update first INFO names local and remote VERSION.
+    ci_isolated_env
+    ci_write_channel_curl "${CI_HOME}/fakecurl"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" install >/dev/null 2>&1
+    _local=$(grep '^VERSION="' "${CI_USER_BIN}/grok-cli" | cut -d'"' -f2)
+    sed 's/^VERSION="[^"]*"/VERSION="9.9.9"/' "${SCRIPT}" > "${CI_HOME}/fakecurl/payload"
+    sha256sum "${CI_HOME}/fakecurl/payload" | awk '{ print $1 }' > "${CI_HOME}/fakecurl/payload.sha256"
+    # out_info writes [INFO] to stdout; capture stdout+stderr (do not send stdout to /dev/null).
+    _all=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
+            PATH="${CI_HOME}/fakecurl:${PATH}" \
+            SCRIPT_URL="https://example.invalid/grok-cli" \
+            sh "${SCRIPT}" self-update 2>&1
+    )
+    assert_contains "TP-ONL-05 start names app(local)" "${_all}" "Starting the self-update of grok-cli(${_local})"
+    assert_contains "TP-ONL-05 start names new version" "${_all}" "to new version:9.9.9"
+    assert_not_contains "TP-ONL-05 not version-less start" "${_all}" "Starting self-update of grok-cli..."
+    ci_cleanup_env
 }

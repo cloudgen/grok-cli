@@ -20,7 +20,7 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 | `test_local_lifecycle.sh` | install / uninstall / where-is-me | **TP-LC-*** |
 | `test_domain_grok_cli.sh` | live `grok -p hello` session gate (incl. elevated `SUDO_USER` home; SIGTERM-ignoring hang bound; `proot` on PATH → reaper else simple `-p`) + backup/sync-auth + sync-auth-from-remote (incl. TTY menu row 3 SPEC prompt + preferred-remote default) + add-crontab + sudoers print + JSON grant + submit inbound | **TP-GROK-CLI-*** |
 | `test_grok_setup.sh` | `setup` fetches xAI channel + artifact (fake curl; no public net; no `install.sh`); Android wrapper `--kill-on-exit` / `proot-exit-reaper` / `-p` SIGKILL; heal stale wrapper on skip | **TP-VCLI-*** |
-| `test_online_install.sh` | Channel `curl|sh` ensure, checksum mismatch, version-check, self-uninstall (fake curl) | **TP-ONL-*** |
+| `test_online_install.sh` | Channel `curl|sh` ensure, checksum mismatch, version-check, version-aware self-update start line, self-uninstall (fake curl) | **TP-ONL-*** |
 
 ## Isolation
 

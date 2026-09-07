@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-07 (1.8.22 start-services bind)  
-**Product VERSION:** 1.8.22  
+**Updated:** 2026-09-07 (1.8.23 version-aware self-update)  
+**Product VERSION:** 1.8.23  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -19,7 +19,7 @@
 | requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); this-login-only lists `run` first; session line from `grok -p hello`; hide backup/sync-auth/sudoers on that class; logged-in hide; Termux menu does not freeze |
 | requirement-shell-local-self-management | shell | TP-LC-* | checkout install/uninstall/where-is-me; 0755; Termux dest is `USER_BIN` |
 | requirement-shell-online-install | shell | TP-ONL-01 · TP-CLI-07 | Channel `SCRIPT_URL`; pipe place |
-| requirement-shell-self-management | shell | TP-ONL-03 · 04 · TP-CLI-04 · 10 | version-check / self-update / self-uninstall |
+| requirement-shell-self-management | shell | TP-ONL-03 · 04 · 05 · TP-CLI-04 · 10 | version-check / self-update (start line names versions) / self-uninstall |
 | requirement-shell-automatic-checksum | shell | TP-ONL-02 | Companion mismatch abort |
 | requirement-shell-output-requirements | shell | TP-CLI-03,05,08,09 · TP-CLI-17 | JSON / quiet / errors; `out_menu_choice` SGR 3+37 |
 | requirement-operator-readable-error | shell | TP-GROK-CLI-25* · TP-GROK-CLI-40 · TP-VCLI-16 · TP-VCLI-19 | Operator-facing `[ERROR]` |

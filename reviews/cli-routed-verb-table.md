@@ -5,8 +5,8 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 **Ship unit:** `src/grok-cli`  
 **Dispatcher:** `app_main`  
 **Scan date:** 2026-09-07  
-**Mode:** incremental (`run`)  
-**Copied:** prior live · **Re-checked:** `run` (`gc_run_grok`)  
+**Mode:** incremental (`self-update`)  
+**Copied:** prior live · **Re-checked:** `self-update` (`inst_self_update`)  
 **Inventory:** dispatcher `case "${COMMAND}"` — not `app_help` for routing; help one-liners copied into **human-readable**
 
 ## Live commands
@@ -23,7 +23,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | menu | `app_default` | you (Type 0) | 2026-09-03 | `menu: Show the numbered list of live commands` |
 | install | `inst_local_install` | you (Type 0) | 2026-08-09 | `install: Install grok-cli (root→global, user→~/.local/bin)` |
 | version-check | `ver_check` | you (Type 0) | 2026-09-02 | `version-check: Compare local vs remote VERSION on SCRIPT_URL` |
-| self-update | `inst_self_update` | you (Type 0) | 2026-09-02 | `self-update: Re-download grok-cli from SCRIPT_URL` |
+| self-update | `inst_self_update` | you (Type 0) | 2026-09-07 | `self-update: Re-download grok-cli from SCRIPT_URL (start line names local and remote VERSION)` |
 | self-uninstall | `inst_self_uninstall` | you (Type 0) | 2026-09-02 | `self-uninstall: Same remove as uninstall (channel name)` |
 | setup | `gc_setup` | you (Type 0) | 2026-09-04 | `setup: Install grok from x.ai (channel + artifact; skip if grok already runs here)` |
 | run | `gc_run_grok` | you (Type 0) | 2026-09-07 | `run: Start grok without auto-update` |

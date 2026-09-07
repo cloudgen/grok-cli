@@ -5,11 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.23] - 2026-09-07
+
+### Changed
+
+- **`self-update` start line names versions:** first INFO is `Starting the self-update of grok-cli({{local}}) to new version:{{remote}}...` after the channel `VERSION=` is fetched. No version-less `Starting self-update of grok-cli...`. Already-at-remote without `--force` does not print that start line. Law: `requirement-shell-self-management` **1.1.0** · `requirement-shell-cli-interface` **2.8.1**. Suite **TP-ONL-05**.
+
 ## [1.8.22] - 2026-09-07
 
 ### Fixed
 
-- **On-device PRoot hang chain:** grok-linux **does** `_exit` after the reply (`grok --help` under the same PRoot returns). PRoot `wait4(-1, __WALL)` waits for leftover `runsvdir` spawned because grok’s env capture uses `bash -lc`, which sources Termux `profile.d/start-services.sh`. The wrapper now binds `/dev/null` over that file when `PREFIX` is set (does not edit Termux). The 1.8.21 reaper stays as the safety net. Law: `requirement-shell-termux-coding` **1.5.0** · `requirement-grok-setup` **2.10.0**. Suite **TP-VCLI-31**.
+- **On-device PRoot hang chain:** grok-linux **does** `_exit` after the reply (`grok --help` under the same PRoot returns). PRoot `wait4(-1, __WALL)` waits for leftover `runsvdir` spawned because grok’s env capture uses `bash -lc`, which sources Termux `profile.d/start-services.sh`. The wrapper now binds `/dev/null` over that file when `PREFIX` is set (does not edit Termux). The 1.8.21 reaper stays as the safety net. Law: `requirement-shell-termux-coding` **1.5.0** · `requirement-grok-setup` **2.10.0**. Suite **TP-VCLI-31**. README Introduction states why grok-cli is a better alternative than `install.sh` on Termux; Platform Compatibility prints the causal chain.
 
 ## [1.8.21] - 2026-09-07
 

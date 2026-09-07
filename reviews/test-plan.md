@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.22  
+**Product VERSION:** 1.8.23  
 **Last plan update:** 2026-09-07  
-**Last suite run:** `./tests/run.sh` (1.8.22: PASS=694 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.8.23: PASS=697 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -36,7 +36,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Operator-readable inbound-fidelity `[ERROR]` | have | TP-GROK-CLI-25* |
 | add-crontab grant gate + isolated jobs + idempotent | have | TP-GROK-CLI-26..29 |
 | sync-auth-from-remote four SPEC forms + fake scp; TTY menu row 3 SPEC prompt | have | TP-GROK-CLI-30..34 |
-| Online curl / companion checksum / version-check / self-uninstall | have | TP-ONL-01..04 · TP-CLI-10 |
+| Online curl / companion checksum / version-check / self-update start line / self-uninstall | have | TP-ONL-01..05 · TP-CLI-10 |
 | Folder tar.gz restore / retention | n/a | Superseded; TP-GROK-CLI-11 proves `restore` unknown |
 
 ---
@@ -134,6 +134,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-ONL-02 | companion digest mismatch aborts | test_online_install | requirement-shell-automatic-checksum | **have** |
 | TP-ONL-03 | `version-check --json` reports remote_version | test_online_install | requirement-shell-self-management | **have** |
 | TP-ONL-04 | `self-uninstall --force` removes managed binary | test_online_install | requirement-shell-self-management | **have** |
+| TP-ONL-05 | proceeding `self-update` first INFO is `Starting the self-update of {{APP_NAME}}({{local}}) to new version:{{remote}}...` | test_online_install | requirement-shell-self-management · requirement-shell-cli-interface | **have** |
 
 ### TP-GROK-CLI (domain + privilege + auth ops)
 

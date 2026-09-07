@@ -5,7 +5,7 @@
 **Always load first:** `reviews/lessons.md`
 
 **Last plan update:** 2026-09-07  
-**Ship unit VERSION:** 1.8.22  
+**Ship unit VERSION:** 1.8.23  
 **Suite baseline:** `reviews/test-plan.md`
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + domain grok-cli + grok-auth-backup + three-layer |
-| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.22**) |
+| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.23**) |
 | P3 | Load `reviews/lessons.md` and re-check every open L-* | Mandatory (esp. **L-SUDOERS-01/02** · **L-SUDOERS-06** · **L-OUTPUT-01** · **L-AUTH-01** · **L-PROMPT-CAPTURE-01**) |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP; **must include TP-GROK-CLI-22e** and **TP-24*/25*** when generate/submit is in scope |
 | P5 | Confirm install **channel** | `SCRIPT_URL` default github raw `src/grok-cli`; companion `.sha256`; dual-mode matrix |
@@ -28,7 +28,7 @@
 | P12 | **Session gate + sync-auth** | TP-GROK-CLI-03..10 · 12 |
 | P13 | **sync-auth-from-remote** | TP-GROK-CLI-30..34 · **41** (preferred SPEC) · **42/43** (skip when logged in) |
 | P14 | **Empty argv split** | TTY menu; off-TTY Type O; TP-CLI-07/13 · TP-ONL-01 |
-| P15 | **Online lifecycle** | version-check / self-update / self-uninstall; TP-ONL-02..04 · TP-CLI-10 |
+| P15 | **Online lifecycle** | version-check / self-update (start line names local and remote VERSION) / self-uninstall; TP-ONL-02..05 · TP-CLI-10 |
 | P16 | **Human-readable law** | Every Active REQ has §1.1 Human-facing; grant samples use `id -un`; no frozen login (TP-CLI-18) |
 | P17 | **Command line for normal user only** | Related shell REQs print that exact heading; Termux/Git Bash/Windows cmd stay this-login; main menu hides backup/sync-auth/sudoers, lists **`run` first**, and prints the not-available line (TP-CLI-19); logged-in session hides sync-auth / sync-auth-from-remote and **appends** the logged-in not-available line (TP-CLI-20) |
 | P18 | **`run` without auto-update** | Dispatcher `gc_run_grok`; inject `--no-auto-update`; `--json` fail-closed Next `run`; missing grok Next `setup`; dual mention grok-setup + CLI-interface + domain; TP-GROK-CLI-46 · TP-CLI-04 |
