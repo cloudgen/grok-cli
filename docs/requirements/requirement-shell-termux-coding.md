@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-termux-coding.md  
-**Status**: Active (Version 1.1.0)  
+**Status**: Active (Version 1.2.0)  
 **Area**: shell  
 **Key**: `requirement-shell-termux-coding`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -107,7 +107,7 @@ Rules:
 
 A credential file on the phone can look valid while grok cannot reach `auth.x.ai` (no nameserver, wrapper missing, `ET_EXEC`). Writers **MUST** exec the **resolved peer** (`{{GROK_HOME}}/bin/grok` wrapper when that is what `setup` placed).
 
-21b. The session probe **MUST** be `grok -p hello` with stdin closed. **MUST NOT** hang under `--json` / off-TTY / the numbered menu. When `timeout` is on PATH, **MUST** bound the probe.  
+21b. The session probe **MUST** be `grok -p hello` with stdin closed. **MUST NOT** hang under `--json` / off-TTY / the numbered menu. **MUST** bound the probe even when `timeout` is missing. When GNU `timeout` is on PATH, **MUST** use kill-after (`timeout -k`) so a `proot` child that ignores SIGTERM cannot freeze the menu. When that `timeout` is missing or does not support kill-after, **MUST** still bound with a POSIX watchdog (`kill` then `kill -9`). Procedure SSOT remains `requirement-grok-auth-backup`.  
 22b. **MUST** exec the path `gc_resolve_grok_peer` returns (the POSIX wrapper when setup wrote one). **MUST NOT** smoke `grok -p hello` from cache/`/tmp`/`/dev/shm`.  
 23b. **MUST NOT** print grok’s answer. Core tests **MUST** fake `GROK_BIN` (no xAI).  
 24b. A `dns error` from the probe is a **session** failure (`requirement-grok-auth-backup`), not an install failure. Next stays `grok login` (or `export XAI_API_KEY`). Do **not** invent a Termux `/var/grok-cli`.
@@ -219,7 +219,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 11. Hit packages.termux.org from Core tests.  
 12. Require `bash` because Termux happens to ship it.  
 13. Treat `auth.json` parse as logged-in on Termux without `grok -p hello` (DNS / wrapper / `ET_EXEC` would stay hidden).  
-14. Hang the session probe or the numbered menu waiting for an interactive `grok login`.
+14. Hang the session probe or the numbered menu waiting for an interactive `grok login`, or freeze them because `timeout` is missing or `proot`/grok ignores SIGTERM (no kill-after / no watchdog).
 
 15. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
@@ -240,6 +240,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-7 | Ship unit shebang is `#!/bin/sh` (no bash required) |
 | AC-8 | No Termux-local substitute for `/var/grok-cli` in the ship unit |
 | AC-9 | Session probe is `grok -p hello` on the resolved peer, stdin closed, Core tests fake `GROK_BIN` |
+| AC-10 | Hanging peer (SIGTERM ignored) does not freeze `check-session` or the Termux numbered menu (TP-GROK-CLI-44 · TP-GROK-CLI-45 · TP-CLI-21) |
 
 ---
 
@@ -264,6 +265,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 |------|--------|------|
 | 2026-09-04 | Active (1.0.0) | Termux/Android host writing SSOT: PREFIX, pkg, noexec, FHS-not-assumed; points at setup/folder/storage |
 | 2026-09-05 | Active (1.1.0) | Session probe writing: exec resolved peer `grok -p hello` (stdin closed; no hang; fake in Core tests) |
+| 2026-09-07 | Active (1.2.0) | Probe always bounded; GNU `timeout -k` or POSIX watchdog so Termux `proot` ignoring SIGTERM cannot freeze the menu |
 
 ---
 
@@ -277,10 +279,12 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-LC-01** | `tests/test_local_lifecycle.sh` | have — grok-cli install → `USER_BIN` (not PREFIX) |
 | **TP-CLI-01** | `tests/test_cli.sh` | have — `sh -n`; shebang `/bin/sh` |
 | **TP-GROK-CLI-35**–**38** | `tests/test_domain_grok_cli.sh` | have — live `grok -p hello` fake peer; no xAI; no hang |
+| **TP-GROK-CLI-44**, **TP-GROK-CLI-45** | `tests/test_domain_grok_cli.sh` | have — SIGTERM-ignoring grok fail-closes (`timeout -k` / watchdog) |
+| **TP-CLI-21** | `tests/test_cli.sh` | have — Termux menu with hanging grok still prints the list |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-06  
+**Last Updated**: 2026-09-07 (1.2.0 — always-bounded probe; Termux menu must not freeze)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

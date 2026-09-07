@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 2.6.0)  
+**Status**: Active (Version 2.7.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -73,7 +73,7 @@ After flag parse, when the command token is `menu` or `main`, **or** when argv w
 8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut) when that verb is listed on this host’s menu. Live verbs excluded from both lists **MUST NOT** run from the pick prompt (typed `check-session` **MAY** still run as a shortcut). Hidden **backup** / **sync-auth** / **sudoers** on this-login-only hosts **MUST NOT** run from a listed number. Hidden **sync-auth** / **sync-auth-from-remote** when **logged in** **MUST NOT** run from a listed number.  
 9. The choice **MUST** be read in the **current shell**. **MUST NOT** `$()` / backticks a helper whose body contains `read` (**do-not-capture-read** / **PP-A-22**; current-shell `PROMPT_ASK_VALUE`).  
 10. **Header (mandatory — default CLI main menu style):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the product short description (`SHORT_DESCRIPTION` / `APP_DESC`). Typical: `out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"` which prints **Alternative online installer for xAI grok**. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header. **MUST NOT** the generic board title “numbered list of live commands”.  
-11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. That word **MUST** use the live `grok -p hello` probe (`requirement-grok-auth-backup`) — **MUST NOT** treat `auth.json` parse alone as logged-in. The probe **MUST** close stdin and **MUST NOT** hang the menu (`GROK_PROMPT_TIMEOUT`; default 20 when `timeout` is present). **MUST NOT** make this a numbered row.  
+11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. That word **MUST** use the live `grok -p hello` probe (`requirement-grok-auth-backup`) — **MUST NOT** treat `auth.json` parse alone as logged-in. The probe **MUST** close stdin and **MUST NOT** hang the menu — **MUST** bound even when `timeout` is missing, and **MUST** SIGKILL-follow (`timeout -k` or POSIX watchdog) so a Termux `proot` child that ignores SIGTERM cannot freeze after the header. A reprint after a bad pick **MUST NOT** run a second probe (reuse `GC_SESSION_STATUS_CACHE`). **MUST NOT** make this a numbered row.  
 12. **Not-available line (mandatory on this-login-only hosts):** immediately under the session line, when the host is Termux / Git Bash / Windows cmd (detect in **Under command line for normal user only**), print exactly **`backup, sync-auth and sudoers features are not available in {{label}}.`** where **label** is **`termux`**, **`gitbash`**, or **`windows-cmd`**. **MUST NOT** make this a numbered row. **MUST NOT** print this line on a multi-user host.  
 13. **Logged-in not-available line (mandatory when session is valid):** when `gc_session_status_word` is `valid`, **MUST NOT** display **sync-auth** or **sync-auth-from-remote**. Immediately under the host not-available line when that line is printed, otherwise immediately under the session line, **MUST** print exactly **`sync-auth and sync-auth-from-remote features are not available for logged-in environment.`** This line **MUST** be an **additional** `out_plain` line — **MUST NOT** replace, rewrite, or drop the host not-available line. **MUST NOT** make this a numbered row. **MUST NOT** print this line when the session is not valid.
 
@@ -169,7 +169,7 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 | **Interactive + `--json`** | Ignore json on `menu`/`main`; still the menu |
 | **Non-interactive** | `app_help` (human; `--quiet` still prints help) |
 | **Look** | **default CLI main menu style** — header `APP_NAME(APP_VERSION)`; TTY explain *italic* + light gray (SGR 3+37) via `out_menu_choice`; number and name unstyled |
-| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title from live `grok -p hello`; host not-available line on Termux / Git Bash / Windows cmd; logged-in not-available line **appended** when session is valid; main **N = 5 / 3 / 2 / 1** (multi-user logged out / multi-user logged in / this-login-only logged out / this-login-only logged in); submenu **N = 5**; Exit **9**; Back **8**. |
+| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title from live `grok -p hello` (always bounded; reprint reuses `GC_SESSION_STATUS_CACHE`); host not-available line on Termux / Git Bash / Windows cmd; logged-in not-available line **appended** when session is valid; main **N = 5 / 3 / 2 / 1** (multi-user logged out / multi-user logged in / this-login-only logged out / this-login-only logged in); submenu **N = 5**; Exit **9**; Back **8**. |
 | **Host detect** | `gc_host_is_normal_user_only` / `gc_host_normal_user_only_label` (`termux` · `gitbash` · `windows-cmd`) |
 
 ### 2.6 Why this requirement exists (CIAO)
@@ -232,6 +232,7 @@ Future agents **MUST NOT**:
 17. Omit the **host not-available** line on that class, print it on a multi-user host, or invent a different wording / host label (`termux` · `gitbash` · `windows-cmd`).  
 18. Display **sync-auth** or **sync-auth-from-remote** on the main list when the session is **logged in**, or omit the logged-in not-available line on that session.  
 19. Replace the host not-available line with the logged-in line, merge them into one sentence, or skip the host line because the session is logged in. The logged-in line **MUST** append.  
+20. Freeze the numbered menu on Termux (or any host) while waiting for `grok -p hello` — missing `timeout`, a peer that ignores SIGTERM, or a second probe on reprint.  
 
 
 ## Design-time verification
@@ -243,12 +244,13 @@ Future agents **MUST NOT**:
 | **TP-CLI-17** | `tests/test_cli.sh` | have (default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; board title **Alternative online installer for xAI grok**; numbered explain italic + light gray SGR 3+37; number/name unstyled; logged in/out from live `grok -p hello`; no check-session row) |
 | **TP-CLI-19** | `tests/test_cli.sh` | have (Termux / Git Bash / Windows cmd: hide backup / sync-auth / sudoers; not-available line under session; remaining rows from **1**) |
 | **TP-CLI-20** | `tests/test_cli.sh` | have (logged in: hide sync-auth / sync-auth-from-remote; append logged-in not-available line; host line still present on this-login-only; remaining rows from **1**; listed sudoers number opens submenu) |
+| **TP-CLI-21** | `tests/test_cli.sh` | have (Termux menu with a SIGTERM-ignoring grok still prints the list and accepts Exit; no freeze) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
 
 ---
 
-**Last Updated**: 2026-09-07 (2.6.0 — logged-in session hides sync-auth / sync-auth-from-remote and **appends** the logged-in not-available line)  
+**Last Updated**: 2026-09-07 (2.7.0 — Termux menu must not freeze on `grok -p hello`; always-bounded probe + cache reprint)  
 **Owner**: product  
 **Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-grok-auth-backup` (session probe) · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

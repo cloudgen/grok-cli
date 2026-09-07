@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-grok-auth-backup.md  
-**Status**: Active (Version 1.4.1)  
+**Status**: Active (Version 1.5.0)  
 **Area**: backup  
 **Key**: `requirement-grok-auth-backup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -50,14 +50,14 @@ A file under grok home can look valid while grok cannot talk to xAI (revoked ref
 
 1. **MUST** run **`grok -p hello`** **before** any `auth.json` parse, copy, or elev. That live prompt **is** the session check. Operand **MUST** be exactly `-p` then `hello` (one non-interactive prompt).  
 2. Peer path **MUST** use the same resolve as `setup` (`GROK_BIN` when set and executable, else `command -v grok`, else `{{GROK_HOME}}/bin/grok`, else `{{USER_BIN}}/grok`). Missing peer **MUST** fail closed. Next: `{{APP_NAME}} setup`, then `grok login`, then `{{APP_NAME}} check-session`.  
-3. The probe **MUST** close stdin (`</dev/null`). **MUST NOT** hang under `--json` / off-TTY waiting for `grok login`. When `timeout` is on PATH, **MUST** bound the probe (`GROK_PROMPT_TIMEOUT` seconds; default **20**). Timeout or non-zero exit **MUST** fail closed. Next: `grok login`, then `{{APP_NAME}} check-session` (backup: then `{{APP_NAME}} backup`).  
+3. The probe **MUST** close stdin (`</dev/null`). **MUST NOT** hang under `--json` / off-TTY / the numbered menu waiting for `grok login` or for a child that ignores SIGTERM (Termux `proot` wrapper). **MUST** bound the probe to `GROK_PROMPT_TIMEOUT` seconds (default **20**) even when `timeout` is missing from PATH. When GNU `timeout` is on PATH, **MUST** use kill-after (`timeout -k`; `GROK_PROMPT_KILL_AFTER` seconds; default **2**) so SIGKILL follows SIGTERM. When that `timeout` is missing or does not support kill-after, **MUST** still bound with a POSIX watchdog (background, wait, `kill` then `kill -9`). Timeout or non-zero exit **MUST** fail closed. Next: `grok login`, then `{{APP_NAME}} check-session` (backup: then `{{APP_NAME}} backup`).  
 4. **MUST NOT** print grok’s answer, stdout, or stderr to the operator (may contain model text). **MUST NOT** print token, refresh_token, or JWT values. A blocking error **MAY** name `exit N` and a short class (`dns error`, `login required`) without dumping grok output.  
 5. Probe success (exit 0) **MUST** mean session **valid** — even if `auth.json` is missing or `expires_at` looks past. Probe failure **MUST** mean **invalid** — even if `auth.json` has a refresh_token and a future `expires_at`.  
 6. **MUST** resolve grok home as `GROK_HOME` when set, else `{{invoking-home}}/.grok`. When running as root via sudo, invoking-home **MUST** be `SUDO_USER`’s passwd home (not `/root`) unless `GROK_HOME` is explicit.  
 6b. The live probe **MUST** exec `grok -p hello` with **`HOME={{invoking-home}}`** and **`GROK_HOME={{resolved grok home}}`** on that command (not inherited sudo env). `sudo` `env_reset` **MUST NOT** make grok read `/root/.grok` after the unprivileged probe already succeeded. Peer resolve **MUST** still find this login’s `{{invoking-home}}/.local/bin/grok` when root’s `USER_BIN` is `/root/.local/bin`.  
 7. `check-session` **MUST** fail closed with an operator-readable next step when the peer is missing (rule 2) or the probe fails (rule 3).  
 8. `backup` **MUST** run the same live probe before any copy or elev. After a successful probe, `auth.*` files **MUST** still exist (grok may have refreshed them). Probe success with no `auth.*` **MUST** fail closed. Next: `grok login` so grok writes `auth.json`, then `{{APP_NAME}} backup`.  
-9. Menu **logged in** / **logged out** and `about` session **MUST** use this same probe (`gc_session_status_word`: `valid` / `invalid` / `missing` peer). **MUST NOT** hang the menu: same stdin-closed + timeout rules.  
+9. Menu **logged in** / **logged out** and `about` session **MUST** use this same probe (`gc_session_status_word`: `valid` / `invalid` / `missing` peer). **MUST NOT** hang the menu: same stdin-closed + always-bounded + kill-after rules. A TTY menu reprint after a bad pick **MUST NOT** run a second probe (reuse `GC_SESSION_STATUS_CACHE`).  
 10. Core tests **MUST** inject a fake `grok` (`GROK_BIN`) that handles `-p` without the public network. **MUST NOT** run real `grok -p hello` against xAI from Core tests.  
 11. Termux writing for this exec (stdin closed, no hang, exec the resolved peer wrapper — not cache/`/tmp`) is **`requirement-shell-termux-coding`**. This file keeps the **session procedure**.
 
@@ -131,8 +131,8 @@ grok-cli sync-auth-from-remote user@host.example.com
 | Product | `grok-cli` |
 | Handlers | `gc_grok_prompt_hello`, `gc_session_status_word`, `gc_session_is_valid`, `gc_sync_skip_if_logged_in`, `gc_check_session`, `gc_backup`, `gc_sync_auth`, `gc_sync_auth_from_remote`, `gc_preferred_remote_load`, `gc_preferred_remote_save` |
 | Menu session cache | `GC_SESSION_STATUS_CACHE` set by `app_default_print_menu` (`valid` / `invalid` / `missing`); sync verbs reuse it in the same process |
-| Live probe | `grok -p hello` (stdin closed; `timeout` when present; `HOME` + `GROK_HOME` pinned to invoking grok home) |
-| Probe timeout | `GROK_PROMPT_TIMEOUT` default `20` |
+| Live probe | `grok -p hello` (stdin closed; always bounded; GNU `timeout -k` when it works; else POSIX watchdog; `HOME` + `GROK_HOME` pinned to invoking grok home) |
+| Probe timeout | `GROK_PROMPT_TIMEOUT` default `20`; `GROK_PROMPT_KILL_AFTER` default `2` |
 | Peer override | `GROK_BIN` (tests **MUST** fake this) |
 | Remote pull | `scp -o BatchMode=yes`; `GROK_CLI_SCP` / `GROK_CLI_REMOTE_ROOT` for tests |
 | Preferred remote | Persistence leaf `${HOME}/.local/${APP_NAME}/preferred-remote` (helpers `gc_preferred_remote_load` / `gc_preferred_remote_save`) |
@@ -186,7 +186,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 2b. Run the live probe as root against `/root/.grok` when `SUDO_USER` is a normal login (sudo `env_reset` / `HOME=/root`).  
 3. Treat `auth.json` parse (refresh_token / `expires_at` / `key`) as logged-in without a successful `grok -p hello`.  
 4. Print grok’s `-p hello` answer, tokens, refresh_token, or JWT values.  
-5. Hang under `--json` / off-TTY / menu waiting for an interactive `grok login`.  
+5. Hang under `--json` / off-TTY / menu waiting for an interactive `grok login`, or freeze the menu because `timeout` is missing or the peer ignores SIGTERM (no kill-after / no watchdog).  
 6. Hit xAI from Core tests (must fake `GROK_BIN`).  
 7. Leave store files owner-only (`0600`) so other logins cannot sync-auth.  
 8. Restore folder-archive tar.gz behavior as this product’s backup.
@@ -212,6 +212,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-9 | `sync-auth-from-remote` accepts the four SPEC forms; dest `auth.json` is 0600; no sudo; Core tests use a fake `scp` |
 | AC-10 | TTY menu `sync-auth-from-remote` row (main **3**) shows a visible SPEC prompt; SPEC is `PROMPT_ASK_VALUE` (not `$()`); TP-GROK-CLI-34 · TP-CLI-15 (INC-20260902-001) |
 | AC-11 | Menu **logged in** only after probe success; **logged out** when peer missing or probe fails; MUST NOT hang |
+| AC-17 | Peer that ignores SIGTERM still fail-closes within `GROK_PROMPT_TIMEOUT` + kill-after (no menu freeze); GNU `timeout -k` or POSIX watchdog (TP-GROK-CLI-44 · TP-GROK-CLI-45 · TP-CLI-21) |
 | AC-12 | grok `-p hello` stdout/stderr is not printed (no token leak) |
 | AC-13 | Elevated backup (`uid 0` + `SUDO_USER`) probe uses invoking grok home, not `/root/.grok` (TP-GROK-CLI-39) |
 | AC-14 | When the passwordless grant already ran and the child failed, Next is `grok login` then backup — **MUST NOT** `generate-sudoer-request` (TP-GROK-CLI-40) |
@@ -250,6 +251,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active (1.3.0) | Preferred remote SPEC in persistence; TTY prompt default at end of prompt; Enter uses stored value |
 | 2026-09-07 | Active (1.4.0) | `sync-auth` / `sync-auth-from-remote` skip copy when grok is already logged in; reuse main-menu session cache |
 | 2026-09-07 | Active (1.4.1) | Dual mention: TTY main menu hides these two verbs when logged in and appends the not-available line |
+| 2026-09-07 | Active (1.5.0) | Probe always bounded; GNU `timeout -k` (SIGKILL follow-up) or POSIX watchdog; Termux menu must not freeze when grok/proot ignores SIGTERM |
 
 ---
 
@@ -266,11 +268,14 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-GROK-CLI-41** | `tests/test_domain_grok_cli.sh` | have (preferred remote SPEC persisted; TTY prompt shows `[SPEC]` default; Enter uses it) |
 | **TP-GROK-CLI-42** | `tests/test_domain_grok_cli.sh` | have (`sync-auth` skip when session valid; dest unchanged; menu hides the row) |
 | **TP-GROK-CLI-43** | `tests/test_domain_grok_cli.sh` | have (`sync-auth-from-remote` skip when session valid; no scp) |
+| **TP-GROK-CLI-44** | `tests/test_domain_grok_cli.sh` | have (SIGTERM-ignoring grok fail-closes; GNU `timeout -k`; no freeze) |
+| **TP-GROK-CLI-45** | `tests/test_domain_grok_cli.sh` | have (same hang without GNU `timeout -k`; POSIX watchdog) |
 | **TP-CLI-06**, **TP-CLI-17** | `tests/test_cli.sh` | have (about session; menu logged in/out uses probe) |
+| **TP-CLI-21** | `tests/test_cli.sh` | have (Termux menu with hanging grok still prints the list and accepts Exit) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07  
+**Last Updated**: 2026-09-07 (1.5.0 — always-bounded probe; `timeout -k` / watchdog)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

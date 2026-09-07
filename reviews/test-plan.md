@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.13  
+**Product VERSION:** 1.8.14  
 **Last plan update:** 2026-09-07  
-**Last suite run:** `./tests/run.sh` (1.8.13: PASS=554 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.8.14: PASS=568 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -19,14 +19,14 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Active REQ samples do not freeze a session login | have | TP-CLI-18 |
 | version / help / about human + JSON | have | TP-CLI-02..06 |
 | Empty argv: TTY menu; off-TTY Type O ensure (not help) | have | TP-CLI-07 · TP-ONL-01 |
-| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 · TP-CLI-19 |
+| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Cache folder + persistence storage | have | TP-CLI-12 |
 | Termux/Android host writing (`PREFIX`, `pkg`, `noexec` smoke) | have | TP-VCLI-15..25 · TP-LC-01 |
 | Help lists setup / check-session / backup / sync-auth / sync-auth-from-remote / add-crontab; no restore operand | have | TP-CLI-04 |
 | `setup` grok channel + artifact (fake curl; no `install.sh`) | have | TP-VCLI-01..09 · 11..16 |
 | Local install / idempotent / uninstall / mode 0755 | have | TP-LC-01..10 |
-| Session gate | have | TP-GROK-CLI-03..06 |
+| Session gate | have | TP-GROK-CLI-03..06 · 44 · 45 |
 | Backup to writable GROK_CLI_ROOT + overwrite | have | TP-GROK-CLI-07/08 |
 | sync-auth no sudo + dest 0600 | have | TP-GROK-CLI-09/10 |
 | Production `/var/grok-cli` without global binary fail-closed | have | TP-GROK-CLI-12 |
@@ -64,6 +64,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-18 | Active `requirement-*.md` samples do not freeze a session Unix login | `tests/test_cli.sh` | requirement-sudoer-json-file · requirement-three-layer-privilege-model · requirement-domain-grok-cli | **have** |
 | TP-CLI-19 | Termux / Git Bash / Windows cmd main menu hides backup / sync-auth / sudoers; not-available line under session; remaining rows from **1**; pick **5** does not open sudoers; multi-user host unchanged | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-20 | Logged-in main menu hides sync-auth / sync-auth-from-remote; appends logged-in not-available line; host not-available line kept on this-login-only; remaining rows from **1**; listed sudoers number opens submenu; pick of hidden verb is not a menu choice | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-21 | Termux menu with a SIGTERM-ignoring grok still prints the list and accepts Exit (no freeze) | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup · requirement-shell-termux-coding | **have** |
 
 ### TP-LC (local lifecycle)
 
@@ -164,3 +165,5 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-41 | successful `sync-auth-from-remote` saves SPEC to persistence `preferred-remote` (0600); TTY prompt shows `[SPEC]` at the end; Enter uses that default | test_domain_grok_cli | grok-auth-backup · shell-cli-storage | **have** |
 | TP-GROK-CLI-42 | `sync-auth` with valid live session does not copy; prints `No sync-auth for logged-in environment.`; dest unchanged; menu hides the row | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-43 | `sync-auth-from-remote` with valid live session does not scp; same skip message; dest unchanged | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-44 | SIGTERM-ignoring grok still fail-closes `check-session` within the bound (GNU `timeout -k`; no freeze) | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
+| TP-GROK-CLI-45 | same hang without GNU `timeout -k` uses POSIX watchdog; still fail-closes | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |

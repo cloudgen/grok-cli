@@ -30,6 +30,7 @@ Durable failure modes. **Always re-check on product review.**
 | L-NEX-01 | JSON/sudoers grant samples freeze a session Unix login | Samples use `id -un`; TP-CLI-18; **PO-NON-EXPOSE-LOCAL-MACHINE** | open watch |
 | L-MENU-01 | Termux / Git Bash / Windows cmd main menu still lists backup / sync-auth / sudoers (or omits the not-available line) | Hide those rows; print `backup, sync-auth and sudoers features are not available in {{label}}.`; TP-CLI-19 | open watch |
 | L-MENU-02 | Logged-in main menu still lists sync-auth / sync-auth-from-remote, or the logged-in not-available line replaces the host line | Hide those two rows; **append** `sync-auth and sync-auth-from-remote features are not available for logged-in environment.`; TP-CLI-20 | open watch |
+| L-MENU-03 | Termux numbered menu freezes after the header (grok/proot ignores SIGTERM; `timeout` without `-k` waits forever; reprint re-probes) | Always bound `grok -p hello`; GNU `timeout -k` or POSIX watchdog; reuse `GC_SESSION_STATUS_CACHE` on reprint; TP-GROK-CLI-44/45 · TP-CLI-21 | open watch |
 | L-REMOTE-01 | TTY `sync-auth-from-remote` forgets the last SPEC, or default is not at the end of the prompt | Persistence `preferred-remote`; prompt `[SPEC]`; Enter uses default; TP-GROK-CLI-41 | open watch |
 | L-SYNC-02 | `sync-auth` / `sync-auth-from-remote` overwrite a grok home that is already logged in | Live `grok -p hello` first (or menu cache); skip with `No sync-auth for logged-in environment.`; TP-GROK-CLI-42/43 | open watch |
 

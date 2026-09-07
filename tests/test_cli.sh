@@ -443,6 +443,31 @@ AUTH
         t_skip "TP-CLI-20 Termux logged-in append (no python3 for PTY)"
     fi
 
+    # TP-CLI-21: Termux menu must not freeze when grok -p hello hangs (SIGTERM ignored).
+    if command -v python3 >/dev/null 2>&1; then
+        ci_isolated_env
+        ci_fake_grok_hang
+        _start=$(date +%s)
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
+            GROK_PROMPT_TIMEOUT=1 GROK_PROMPT_KILL_AFTER=1 \
+            PTY_TIMEOUT=12 PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        _elapsed=$(($(date +%s) - _start))
+        assert_contains "TP-CLI-21 Termux hang-grok still prints menu" "$_out" "9. Exit"
+        assert_contains "TP-CLI-21 Termux hang-grok logged out" "$_out" "logged out"
+        assert_contains "TP-CLI-21 Termux hang-grok not-available line" "$_out" \
+            "backup, sync-auth and sudoers features are not available in termux."
+        assert_contains "TP-CLI-21 Termux hang-grok Choice prompt" "$_out" "Choice:"
+        if [ "${_elapsed}" -lt 12 ]; then
+            t_pass "TP-CLI-21 Termux menu did not freeze (${_elapsed}s)"
+        else
+            t_fail "TP-CLI-21 Termux menu froze for ${_elapsed}s"
+        fi
+        ci_cleanup_env
+    else
+        t_skip "TP-CLI-21 Termux hang-grok menu (no python3 for PTY)"
+    fi
+
     # TP-CLI-18: Active requirement bodies must not freeze a session Unix login
     # Needle is split so this test file is not itself a login leak.
     _needle="leo""lio"

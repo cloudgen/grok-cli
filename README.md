@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.13-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.14-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -103,7 +103,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.13*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.14*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -117,7 +117,7 @@ On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** a
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.13*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.14*) — Alternative online installer for xAI grok
 logged in
 sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
@@ -169,7 +169,8 @@ grok-cli self-uninstall --force
 | `GROK_VENDOR_BASE_URL` | xAI grok channel/artifact base (default `https://x.ai/cli`) |
 | `GROK_CHANNEL` | grok channel (`stable` / `alpha` / `enterprise`; default `stable`) |
 | `GROK_BIN` | Override path to peer `grok` |
-| `GROK_PROMPT_TIMEOUT` | Seconds to wait for `grok -p hello` (default 20; needs `timeout` on PATH) |
+| `GROK_PROMPT_TIMEOUT` | Seconds to wait for `grok -p hello` (default 20; always bounded) |
+| `GROK_PROMPT_KILL_AFTER` | SIGKILL grace after that deadline (default 2; GNU `timeout -k`) |
 | `GROK_CLI_ROOT` | Durable auth store (default `/var/grok-cli`; optional sharing) |
 | `ALLOW_TEST_LOCAL_SUDOERS` | `1` = allow test-mode sudoers emit without `--allow-test-local` |
 | `SUDOER_CLI` | Override path to `sudoer-cli` |
@@ -227,4 +228,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-07 — version **1.8.13**: when grok is already logged in, the main menu hides **sync-auth** and **sync-auth-from-remote** and **appends** `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` Direct `sync-auth` / `sync-auth-from-remote` skip the same way (`No sync-auth for logged-in environment.`). Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers. `sync-auth-from-remote` remembers the last remote. Elevated `backup` probes this login’s grok home, not root’s. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-07 — version **1.8.14**: the Termux numbered menu no longer freezes after the header when `grok -p hello` hangs (`proot` ignoring SIGTERM). The live probe is always bounded (`timeout -k` or a watchdog). Full history: [`CHANGELOG.md`](./CHANGELOG.md).

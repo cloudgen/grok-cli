@@ -40,7 +40,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.13"
+# VERSION: hard-assign VERSION="1.8.14"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -56,8 +56,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.13"
-: "${VERSION:=1.8.13}"
+VERSION="1.8.14"
+: "${VERSION:=1.8.14}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -117,8 +117,9 @@ fi
 : "${GROK_PEER_NAME:=grok}"
 # GROK_SETUP_VERSION optional pin (skip channel pointer). GROK_BIN_DIR optional.
 # GROK_BIN optional absolute override for the peer executable.
-# GROK_PROMPT_TIMEOUT seconds for grok -p hello (when timeout is on PATH).
+# GROK_PROMPT_TIMEOUT seconds for grok -p hello (always bounded; kill-after if GNU timeout).
 : "${GROK_PROMPT_TIMEOUT:=20}"
+: "${GROK_PROMPT_KILL_AFTER:=2}"
 # GROK_HOME is resolved at call time (SUDO_USER-aware). Tests may export it.
 # Optional sudoer-cli compose (Type 0 submit into approval inbound)
 : "${SUDOER_CLI:=}"
@@ -3125,6 +3126,96 @@ gc_iso_to_epoch() {
 }
 
 # =============================================================================
+# gc_grok_prompt_int() - Class B: positive integer or default
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Coerce GROK_PROMPT_TIMEOUT / GROK_PROMPT_KILL_AFTER to a positive integer.
+# Empty, 0, and non-digits fall back to $2 (default 20 / 2).
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
+# =============================================================================
+gc_grok_prompt_int() {
+    _gpi="${1-}"
+    _gpid="${2-20}"
+    case "${_gpi}" in
+        ''|*[!0-9]*)
+            printf '%s' "${_gpid}"
+            ;;
+        0)
+            printf '%s' "${_gpid}"
+            ;;
+        *)
+            printf '%s' "${_gpi}"
+            ;;
+    esac
+}
+
+# =============================================================================
+# gc_grok_prompt_run_bounded() - Run grok -p hello with a hard deadline
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Always bound the live probe. GNU timeout without --kill-after waits forever
+# if the child ignores SIGTERM (Termux proot wrapper / vendor grok). Prefer
+# timeout -k (SIGKILL after grace). Otherwise a POSIX watchdog (background,
+# sleep, kill then kill -9). Optional setsid -w detaches the controlling TTY
+# so grok cannot steal the numbered menu. Sets _ec. Consumes _peer _out
+# _ihome _ghome _login.
+#
+# ALIGNMENT: requirement-grok-auth-backup.md · requirement-shell-termux-coding.md
+# Last updated: 2026-09-07
+# =============================================================================
+gc_grok_prompt_run_bounded() {
+    : "${GROK_PROMPT_TIMEOUT:=20}"
+    : "${GROK_PROMPT_KILL_AFTER:=2}"
+    _lim=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT}" 20)
+    _killafter=$(gc_grok_prompt_int "${GROK_PROMPT_KILL_AFTER}" 2)
+    _ec=1
+
+    if command -v timeout >/dev/null 2>&1 \
+        && timeout -k "${_killafter}" 1 true >/dev/null 2>&1; then
+        if command -v setsid >/dev/null 2>&1 \
+            && setsid -w true >/dev/null 2>&1; then
+            HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
+                timeout -k "${_killafter}" "${_lim}" setsid -w "${_peer}" -p hello \
+                </dev/null >"${_out}" 2>&1
+            _ec=$?
+        else
+            HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
+                timeout -k "${_killafter}" "${_lim}" "${_peer}" -p hello \
+                </dev/null >"${_out}" 2>&1
+            _ec=$?
+        fi
+        unset _lim _killafter
+        return 0
+    fi
+
+    HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
+        "${_peer}" -p hello </dev/null >"${_out}" 2>&1 &
+    _gpid=$!
+    _n=0
+    while [ "${_n}" -lt "${_lim}" ]; do
+        if ! kill -0 "${_gpid}" 2>/dev/null; then
+            wait "${_gpid}"
+            _ec=$?
+            unset _gpid _n _lim _killafter
+            return 0
+        fi
+        sleep 1
+        _n=$((_n + 1))
+    done
+    kill "${_gpid}" 2>/dev/null || true
+    sleep "${_killafter}"
+    kill -9 "${_gpid}" 2>/dev/null || true
+    wait "${_gpid}" 2>/dev/null || true
+    _ec=124
+    unset _gpid _n _lim _killafter
+    return 0
+}
+
+# =============================================================================
 # gc_grok_prompt_hello() - Live session probe: grok -p hello
 # =============================================================================
 #
@@ -3136,6 +3227,8 @@ gc_iso_to_epoch() {
 # When this process is root via sudo, grok MUST see the invoking login's
 # home (SUDO_USER), not /root — sudo env_reset otherwise makes grok say
 # "login required" after the unprivileged probe already succeeded.
+# The probe is always time-bounded (GNU timeout -k, else POSIX watchdog)
+# so a Termux proot child that ignores SIGTERM cannot freeze the menu.
 #
 # ALIGNMENT: requirement-grok-auth-backup.md
 #
@@ -3143,8 +3236,11 @@ gc_iso_to_epoch() {
 # 2026-09-06: sudo -n grok-cli backup re-probed as root with HOME=/root, so
 # grok read /root/.grok and failed "login required" despite a valid adm01
 # session and an installed NOPASSWD grant. Pin HOME + GROK_HOME on the exec.
+# 2026-09-07: Termux menu froze after the header: grok -p hello under proot
+# ignored SIGTERM, and timeout without --kill-after waited forever. Always
+# bound; SIGKILL follow-up; watchdog when GNU timeout -k is missing.
 #
-# Last updated: 2026-09-06
+# Last updated: 2026-09-07
 # =============================================================================
 gc_grok_prompt_hello() {
     GC_GROK_PROMPT_STATUS="missing"
@@ -3164,6 +3260,7 @@ gc_grok_prompt_hello() {
         return 1
     fi
     : "${GROK_PROMPT_TIMEOUT:=20}"
+    : "${GROK_PROMPT_KILL_AFTER:=2}"
     : "${HOME:=/tmp}"
     _ihome=$(gc_invoking_home)
     _ghome=$(gc_resolve_grok_home)
@@ -3172,15 +3269,7 @@ gc_grok_prompt_hello() {
     : "${_ghome:=${_ihome}/.grok}"
     : "${_login:=$(id -un 2>/dev/null || echo unknown)}"
     _ec=1
-    if command -v timeout >/dev/null 2>&1; then
-        HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
-            timeout "${GROK_PROMPT_TIMEOUT}" "${_peer}" -p hello </dev/null >"${_out}" 2>&1
-        _ec=$?
-    else
-        HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
-            "${_peer}" -p hello </dev/null >"${_out}" 2>&1
-        _ec=$?
-    fi
+    gc_grok_prompt_run_bounded
     if [ "${_ec}" -eq 0 ]; then
         GC_GROK_PROMPT_STATUS="ok"
         GC_GROK_PROMPT_DETAIL=""
@@ -3198,8 +3287,8 @@ gc_grok_prompt_hello() {
             GC_GROK_PROMPT_DETAIL="exit ${_ec}: login required"
             ;;
         *)
-            if [ "${_ec}" -eq 124 ]; then
-                GC_GROK_PROMPT_DETAIL="exit 124: probe timed out"
+            if [ "${_ec}" -eq 124 ] || [ "${_ec}" -eq 137 ]; then
+                GC_GROK_PROMPT_DETAIL="exit ${_ec}: probe timed out"
             else
                 GC_GROK_PROMPT_DETAIL="exit ${_ec}"
             fi
@@ -5967,6 +6056,8 @@ EOF
 # appended logged-in not-available when session is valid, then remaining
 # listed rows from 1, then Exit 9. Session status is under the title
 # (not a row). Host not-available is never replaced by the logged-in line.
+# Reuse GC_SESSION_STATUS_CACHE on reprint so a bad pick does not run
+# grok -p hello again (Termux freeze).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -5981,9 +6072,13 @@ app_default_print_menu() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
 
     out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"
-    _st=$(gc_session_status_word) || true
-    GC_SESSION_STATUS_CACHE="${_st}"
-    export GC_SESSION_STATUS_CACHE
+    if [ -n "${GC_SESSION_STATUS_CACHE:-}" ]; then
+        _st="${GC_SESSION_STATUS_CACHE}"
+    else
+        _st=$(gc_session_status_word) || true
+        GC_SESSION_STATUS_CACHE="${_st}"
+        export GC_SESSION_STATUS_CACHE
+    fi
     if [ "${_st}" = "valid" ]; then
         out_plain "logged in"
     else
@@ -6399,7 +6494,8 @@ app_help() {
     out_plain "  GROK_CHANNEL            grok channel (stable|alpha|enterprise; default stable)"
     out_plain "  GROK_SETUP_VERSION      pin grok version (skip channel pointer)"
     out_plain "  GROK_BIN             override path to peer grok"
-    out_plain "  GROK_PROMPT_TIMEOUT  seconds for grok -p hello (default 20; needs timeout)"
+    out_plain "  GROK_PROMPT_TIMEOUT  seconds for grok -p hello (default 20; always bounded)"
+    out_plain "  GROK_PROMPT_KILL_AFTER  SIGKILL grace after the probe deadline (default 2)"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers / generate / submit"
     out_plain "  SUDOER_CLI              override path to sudoer-cli"

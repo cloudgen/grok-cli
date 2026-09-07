@@ -1038,5 +1038,54 @@ FAKESUDO
     assert_not_contains "TP-GROK-CLI-40 not generate-sudoer-request" "${_err}" "generate-sudoer-request"
     rm -f "${CI_HOME}/bin/sudo" "${CI_SUDOERS_D}/grok-cli-${_user40}" "${CI_GLOBAL_BIN}/grok-cli"
 
+    # TP-GROK-CLI-44 hanging grok that ignores SIGTERM still fail-closes
+    # (GNU timeout -k / watchdog). Outer timeout keeps the suite from freezing
+    # if the product bound is missing.
+    ci_fake_grok_hang
+    gc_write_valid_auth "${CI_HOME}/.grok"
+    _start=$(date +%s)
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        GROK_PROMPT_TIMEOUT=1 GROK_PROMPT_KILL_AFTER=1 \
+        timeout 12 sh "${SCRIPT}" check-session 2>&1 >/dev/null)
+    _ec=$?
+    _elapsed=$(($(date +%s) - _start))
+    assert_eq "TP-GROK-CLI-44 hang grok check-session exit 1" 1 "${_ec}"
+    assert_contains "TP-GROK-CLI-44 not logged in" "${_err}" "not logged in"
+    assert_contains "TP-GROK-CLI-44 probe timed out" "${_err}" "timed out"
+    assert_contains "TP-GROK-CLI-44 next grok login" "${_err}" "grok login"
+    if [ "${_elapsed}" -lt 12 ]; then
+        t_pass "TP-GROK-CLI-44 hang grok did not freeze (${_elapsed}s)"
+    else
+        t_fail "TP-GROK-CLI-44 hang grok froze for ${_elapsed}s"
+    fi
+
+    # TP-GROK-CLI-45 same hang without GNU timeout -k (POSIX watchdog).
+    # Stub timeout is on the child's PATH; the suite guard must be GNU timeout
+    # resolved before the stub is written (ci PATH puts USER_BIN first).
+    _gnu_timeout=$(PATH="/usr/bin:/bin" command -v timeout)
+    if [ -z "${_gnu_timeout}" ] || [ ! -x "${_gnu_timeout}" ]; then
+        t_skip "TP-GROK-CLI-45 no GNU timeout for suite guard"
+    else
+        _stubto="${CI_USER_BIN}/timeout"
+        printf '#!/bin/sh\nexit 2\n' > "${_stubto}"
+        chmod 0755 "${_stubto}"
+        _start=$(date +%s)
+        _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            GROK_PROMPT_TIMEOUT=1 GROK_PROMPT_KILL_AFTER=1 \
+            PATH="${CI_USER_BIN}:${CI_GLOBAL_BIN}:/usr/bin:/bin" \
+            "${_gnu_timeout}" 12 sh "${SCRIPT}" check-session 2>&1 >/dev/null)
+        _ec=$?
+        _elapsed=$(($(date +%s) - _start))
+        assert_eq "TP-GROK-CLI-45 watchdog hang grok exit 1" 1 "${_ec}"
+        assert_contains "TP-GROK-CLI-45 not logged in" "${_err}" "not logged in"
+        assert_contains "TP-GROK-CLI-45 probe timed out" "${_err}" "timed out"
+        if [ "${_elapsed}" -lt 12 ]; then
+            t_pass "TP-GROK-CLI-45 watchdog did not freeze (${_elapsed}s)"
+        else
+            t_fail "TP-GROK-CLI-45 watchdog froze for ${_elapsed}s"
+        fi
+        rm -f "${_stubto}"
+    fi
+
     ci_cleanup_env
 }

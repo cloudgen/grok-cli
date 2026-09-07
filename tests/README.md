@@ -16,9 +16,9 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 |------|--------|-------------|
 | `run.sh` | Entrypoint | — |
 | `helpers.sh` | Asserts + isolated HOME | — |
-| `test_cli.sh` | CLI surface, empty argv (TTY menu / off-TTY Type O), this-login-only menu hide, logged-in hide of sync-auth / sync-auth-from-remote, help lists online verbs | **TP-CLI-*** |
+| `test_cli.sh` | CLI surface, empty argv (TTY menu / off-TTY Type O), this-login-only menu hide, logged-in hide of sync-auth / sync-auth-from-remote, Termux menu does not freeze on hanging grok, help lists online verbs | **TP-CLI-*** |
 | `test_local_lifecycle.sh` | install / uninstall / where-is-me | **TP-LC-*** |
-| `test_domain_grok_cli.sh` | live `grok -p hello` session gate (incl. elevated `SUDO_USER` home) + backup/sync-auth + sync-auth-from-remote (incl. TTY menu row 3 SPEC prompt + preferred-remote default) + add-crontab + sudoers print + JSON grant + submit inbound | **TP-GROK-CLI-*** |
+| `test_domain_grok_cli.sh` | live `grok -p hello` session gate (incl. elevated `SUDO_USER` home; SIGTERM-ignoring hang bound) + backup/sync-auth + sync-auth-from-remote (incl. TTY menu row 3 SPEC prompt + preferred-remote default) + add-crontab + sudoers print + JSON grant + submit inbound | **TP-GROK-CLI-*** |
 | `test_grok_setup.sh` | `setup` fetches xAI channel + artifact (fake curl; no public net; no `install.sh`) | **TP-VCLI-*** |
 | `test_online_install.sh` | Channel `curl|sh` ensure, checksum mismatch, version-check, self-uninstall (fake curl) | **TP-ONL-*** |
 

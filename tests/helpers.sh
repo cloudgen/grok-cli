@@ -153,6 +153,30 @@ ci_fake_grok_fail() {
     export GROK_BIN="${CI_USER_BIN}/grok"
 }
 
+# Fake grok that ignores SIGTERM and never exits (Termux proot hang class).
+ci_write_fake_grok_hang() {
+    _fp="${1:-}"
+    if [ -z "${_fp}" ]; then
+        return 1
+    fi
+    mkdir -p "$(dirname "${_fp}")"
+    cat > "${_fp}" <<'FAKE'
+#!/bin/sh
+# Core-test hang grok — ignores SIGTERM so timeout without -k would freeze.
+trap '' TERM INT HUP
+while :; do
+    sleep 1
+done
+FAKE
+    chmod +x "${_fp}"
+}
+
+ci_fake_grok_hang() {
+    mkdir -p "${CI_USER_BIN}"
+    ci_write_fake_grok_hang "${CI_USER_BIN}/grok"
+    export GROK_BIN="${CI_USER_BIN}/grok"
+}
+
 ci_cleanup_env() {
     if [ -n "${CI_HOME:-}" ] && [ -d "${CI_HOME}" ]; then
         rm -rf "${CI_HOME}"

@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.14] - 2026-09-07
+
+### Fixed
+
+- **Main menu freeze on Termux:** `grok -p hello` under the Termux `proot` wrapper can ignore SIGTERM, so GNU `timeout` without `--kill-after` waited forever after the header. The live probe is **always** bounded (`GROK_PROMPT_TIMEOUT`, default 20) even when `timeout` is missing. GNU `timeout -k` (`GROK_PROMPT_KILL_AFTER`, default 2) sends SIGKILL after the deadline; otherwise a POSIX watchdog (`kill` then `kill -9`). A bad menu pick no longer runs a second probe. Law: `requirement-grok-auth-backup` **1.5.0** · `requirement-shell-termux-coding` **1.2.0** · `requirement-shell-cli-default-interaction` **2.7.0**. Suite **TP-GROK-CLI-44** · **TP-GROK-CLI-45** · **TP-CLI-21**.
+
 ## [1.8.13] - 2026-09-07
 
 ### Changed
