@@ -1087,4 +1087,61 @@ FAKESUDO
     fi
 
     ci_cleanup_env
+
+    # TP-GROK-CLI-46 run starts grok with --no-auto-update
+    ci_isolated_env
+    _log="${CI_HOME}/grok-run.log"
+    cat > "${CI_USER_BIN}/grok" <<'EOS'
+#!/bin/sh
+printf 'ARGS'
+for _a in "$@"; do
+    printf ' %s' "${_a}"
+done
+printf '\n'
+exit 0
+EOS
+    chmod +x "${CI_USER_BIN}/grok"
+    _out=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" GROK_BIN="${CI_USER_BIN}/grok" \
+            PATH="${CI_USER_BIN}:${CI_GLOBAL_BIN}:/usr/bin:/bin" \
+            sh "${SCRIPT}" run 2>/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-GROK-CLI-46 run exit 0" 0 "${_ec}"
+    assert_contains "TP-GROK-CLI-46 injects --no-auto-update" "${_out}" "--no-auto-update"
+    _out=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" GROK_BIN="${CI_USER_BIN}/grok" \
+            PATH="${CI_USER_BIN}:${CI_GLOBAL_BIN}:/usr/bin:/bin" \
+            sh "${SCRIPT}" run -p hello 2>/dev/null
+    )
+    assert_contains "TP-GROK-CLI-46 run -p hello keeps --no-auto-update" "${_out}" "--no-auto-update"
+    assert_contains "TP-GROK-CLI-46 run -p hello passes -p hello" "${_out}" "-p hello"
+    _out=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" GROK_BIN="${CI_USER_BIN}/grok" \
+            PATH="${CI_USER_BIN}:${CI_GLOBAL_BIN}:/usr/bin:/bin" \
+            sh "${SCRIPT}" run --no-auto-update -p hello 2>/dev/null
+    )
+    _nau=$(printf '%s' "${_out}" | tr ' ' '\n' | grep -c -- '--no-auto-update' || true)
+    assert_eq "TP-GROK-CLI-46 does not duplicate --no-auto-update" 1 "${_nau}"
+    _err=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" GROK_BIN="${CI_USER_BIN}/grok" \
+            PATH="${CI_USER_BIN}:${CI_GLOBAL_BIN}:/usr/bin:/bin" \
+            sh "${SCRIPT}" --json run 2>&1 >/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-GROK-CLI-46 --json run exit 1" 1 "${_ec}"
+    assert_contains "TP-GROK-CLI-46 --json run Next is run" "${_err}" "Next:"
+    assert_contains "TP-GROK-CLI-46 --json run Next names run" "${_err}" " run"
+    ci_cleanup_env
+
+    ci_isolated_env
+    _err=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
+            PATH="${CI_USER_BIN}:${CI_GLOBAL_BIN}:/usr/bin:/bin" \
+            sh "${SCRIPT}" run 2>&1 >/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-GROK-CLI-46 missing grok exit 1" 1 "${_ec}"
+    assert_contains "TP-GROK-CLI-46 missing grok Next setup" "${_err}" "setup"
+    ci_cleanup_env
 }

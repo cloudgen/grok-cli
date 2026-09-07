@@ -45,6 +45,7 @@ run_test_cli() {
     assert_eq "TP-CLI-04 help exit 0" 0 "$_ec"
     assert_contains "TP-CLI-04 help install" "$_out" "install"
     assert_contains "TP-CLI-04 help setup" "$_out" "setup"
+    assert_contains "TP-CLI-04 help run" "$_out" "run"
     assert_contains "TP-CLI-04 help menu" "$_out" "menu"
     assert_contains "TP-CLI-04 help uninstall" "$_out" "uninstall"
     assert_contains "TP-CLI-04 help where-is-me" "$_out" "where-is-me"
@@ -383,9 +384,10 @@ AUTH
         assert_not_contains "TP-CLI-19 Termux no backup row" "$_out" "1. backup:"
         assert_not_contains "TP-CLI-19 Termux no sync-auth row" "$_out" "sync-auth:"
         assert_not_contains "TP-CLI-19 Termux no sudoers row" "$_out" "sudoers:"
-        assert_contains "TP-CLI-19 Termux row 1 is sync-auth-from-remote" "$_out" \
-            "1. sync-auth-from-remote:"
-        assert_contains "TP-CLI-19 Termux row 2 is add-crontab" "$_out" "2. add-crontab:"
+        assert_contains "TP-CLI-19 Termux row 1 is run" "$_out" "1. run:"
+        assert_contains "TP-CLI-19 Termux row 2 is sync-auth-from-remote" "$_out" \
+            "2. sync-auth-from-remote:"
+        assert_contains "TP-CLI-19 Termux row 3 is add-crontab" "$_out" "3. add-crontab:"
         assert_contains "TP-CLI-19 Termux Exit 9" "$_out" "9. Exit"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
@@ -399,11 +401,19 @@ AUTH
         assert_contains "TP-CLI-19 Git Bash not-available line" "$_out" \
             "backup, sync-auth and sudoers features are not available in gitbash."
         assert_not_contains "TP-CLI-19 Git Bash no backup row" "$_out" "1. backup:"
+        assert_contains "TP-CLI-19 Git Bash row 1 is run" "$_out" "1. run:"
+        assert_contains "TP-CLI-19 Git Bash row 2 is sync-auth-from-remote" "$_out" \
+            "2. sync-auth-from-remote:"
+        assert_contains "TP-CLI-19 Git Bash row 3 is add-crontab" "$_out" "3. add-crontab:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             OS="Windows_NT" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-19 Windows cmd not-available line" "$_out" \
             "backup, sync-auth and sudoers features are not available in windows-cmd."
         assert_not_contains "TP-CLI-19 Windows cmd no backup row" "$_out" "1. backup:"
+        assert_contains "TP-CLI-19 Windows cmd row 1 is run" "$_out" "1. run:"
+        assert_contains "TP-CLI-19 Windows cmd row 2 is sync-auth-from-remote" "$_out" \
+            "2. sync-auth-from-remote:"
+        assert_contains "TP-CLI-19 Windows cmd row 3 is add-crontab" "$_out" "3. add-crontab:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         assert_not_contains "TP-CLI-19 multi-user has no not-available line" "$_out" \
@@ -477,15 +487,28 @@ AUTH
             "backup, sync-auth and sudoers features are not available in termux."
         assert_contains "TP-CLI-20 Termux logged-in line after host line" "${_after}" \
             "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
-        assert_contains "TP-CLI-20 Termux add-crontab is 1" "$_out" "1. add-crontab:"
+        assert_contains "TP-CLI-20 Termux run is 1" "$_out" "1. run:"
+        assert_contains "TP-CLI-20 Termux add-crontab is 2" "$_out" "2. add-crontab:"
         assert_not_contains "TP-CLI-20 Termux no from-remote row" "$_out" \
             "sync-auth-from-remote:"
         assert_not_contains "TP-CLI-20 Termux no backup row" "$_out" "1. backup:"
         assert_not_contains "TP-CLI-20 Termux no sudoers row" "$_out" "sudoers:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            MSYSTEM="MINGW64" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 Git Bash run is 1" "$_out" "1. run:"
+        assert_contains "TP-CLI-20 Git Bash add-crontab is 2" "$_out" "2. add-crontab:"
+        assert_not_contains "TP-CLI-20 Git Bash no from-remote row" "$_out" \
+            "sync-auth-from-remote:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            OS="Windows_NT" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 Windows cmd run is 1" "$_out" "1. run:"
+        assert_contains "TP-CLI-20 Windows cmd add-crontab is 2" "$_out" "2. add-crontab:"
         ci_cleanup_env
     else
         t_skip "TP-CLI-20 multi-user logged-in menu (no python3 for PTY)"
         t_skip "TP-CLI-20 Termux logged-in append (no python3 for PTY)"
+        t_skip "TP-CLI-20 Git Bash logged-in run first (no python3 for PTY)"
+        t_skip "TP-CLI-20 Windows cmd logged-in run first (no python3 for PTY)"
     fi
 
     # TP-CLI-21: Termux menu must not freeze when grok -p hello hangs (SIGTERM ignored).

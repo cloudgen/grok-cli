@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-07 (1.8.19 Termux grok wrapper `--kill-on-exit` / `-p` SIGKILL)  
-**Product VERSION:** 1.8.19  
+**Updated:** 2026-09-07 (1.8.20 `run` starts grok without auto-update)  
+**Product VERSION:** 1.8.20  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -12,11 +12,11 @@
 | requirement-three-layer-privilege-model | architecture | TP-GROK-CLI-01, 01b, 02, 12, 14, 15, 15b, 19, 20, 21, 21b, 22e, 23, 23b, 23c, 24* | Trust tiers; submit; independent generate; inbound; host-probe add/update |
 | requirement-sudoer-json-file | architecture | TP-GROK-CLI-22* · 24* | JSON grant is `grok-cli backup` only |
 | requirement-grok-auth-backup | backup | TP-GROK-CLI-03..10, 12 · 30..45 | Live `grok -p hello` session gate (before `auth.json`); always bounded (`timeout -k` / watchdog); elevated probe uses `SUDO_USER` home; grant-present child fail is not missing sudoers; deposit; sync-auth; sync-auth-from-remote; skip sync when already logged in; preferred SPEC in persistence; TTY menu SPEC prompt; production dest fail-closed |
-| requirement-grok-setup | domain | TP-VCLI-01..09 · 11..28 · TP-CLI-04 · TP-CLI-13 | Peer grok channel + artifact; Android ET_EXEC wrapper; Termux proot `--kill-on-exit` + `grok -p` SIGKILL; heal stale wrapper on skip; resolv bind; HTTP status on curl fail; keep `.failed` artifact; Termux writing dual-mention |
+| requirement-grok-setup | domain | TP-VCLI-01..09 · 11..28 · TP-CLI-04 · TP-CLI-13 · TP-GROK-CLI-46 | Peer grok channel + artifact; Android ET_EXEC wrapper; Termux proot `--kill-on-exit` + `grok -p` SIGKILL; heal stale wrapper on skip; `run` starts grok without auto-update |
 | requirement-grok-crontab | domain | TP-GROK-CLI-26..29 · TP-CLI-04 · TP-CLI-13 | Per-login crontab jobs; grant gate is this `id -un` |
-| requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* | Commands, flags, dispatch; `setup`; online verbs; TP-CLI-18 no frozen login in Active REQ samples; `--debug` dual mention TP-CLI-25..28 |
+| requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* · TP-GROK-CLI-46 | Commands, flags, dispatch; `setup`; `run`; online verbs; TP-CLI-18 no frozen login in Active REQ samples; `--debug` dual mention TP-CLI-25..28 |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-CLI-29 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure; overlay `--debug` / `--quiet` follow empty argv |
-| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); default CLI main menu style; session line from `grok -p hello`; this-login-only hide; logged-in hide; Termux menu does not freeze; reprint does not re-probe; probe always bounded; `--debug` elapsed of each paint step |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); this-login-only lists `run` first; session line from `grok -p hello`; hide backup/sync-auth/sudoers on that class; logged-in hide; Termux menu does not freeze |
 | requirement-shell-local-self-management | shell | TP-LC-* | checkout install/uninstall/where-is-me; 0755; Termux dest is `USER_BIN` |
 | requirement-shell-online-install | shell | TP-ONL-01 · TP-CLI-07 | Channel `SCRIPT_URL`; pipe place |
 | requirement-shell-self-management | shell | TP-ONL-03 · 04 · TP-CLI-04 · 10 | version-check / self-update / self-uninstall |

@@ -33,7 +33,7 @@
 # - requirement-shell-internal-volatile-timer.md  (named volatile stages; --debug menu elapsed)
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
 # - requirement-grok-crontab.md      (add-crontab: per-login backup/sync-auth jobs)
-# - requirement-grok-setup.md        (setup: xAI channel + artifact; smoke from GROK_HOME/downloads; MUST NOT exec install.sh)
+# - requirement-grok-setup.md        (setup: xAI channel + artifact; run: start grok without auto-update; MUST NOT exec install.sh)
 # - requirement-domain-grok-cli.md   (domain surface four pillars)
 # Plus CIAO Protection Zones and "DO NOT MODIFY" rules.
 #
@@ -41,7 +41,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.19"
+# VERSION: hard-assign VERSION="1.8.20"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -55,10 +55,10 @@ APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
 : "${APP_DESC:=Alternative online installer for xAI grok}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.19"
-: "${VERSION:=1.8.19}"
+VERSION="1.8.20"
+: "${VERSION:=1.8.20}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -2230,6 +2230,52 @@ gc_resolve_grok_peer() {
         return 0
     fi
     printf ''
+}
+
+# =============================================================================
+# gc_run_grok() - Start peer grok without auto-update
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Exec the xAI grok peer with --no-auto-update so Termux/proot is not
+# left waiting on grok's updater. Remaining argv is passed through
+# (grok-cli run -p hello → grok --no-auto-update -p hello). Missing
+# grok fail-closes. --json does not exec (TUI / one-shot is not JSON).
+#
+# ALIGNMENT:
+# - requirement-grok-setup.md
+# - requirement-shell-cli-interface.md
+# - requirement-domain-grok-cli.md
+#
+# Lessons Learned (CIAO Reflection):
+# 2026-09-07: operator grok hung after the answer until Ctrl-Z (PRoot
+# leftover children / auto-update). A named verb starts grok without
+# that updater. INC-20260907-002.
+#
+# Last updated: 2026-09-07
+# =============================================================================
+gc_run_grok() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    if [ "${JSON}" -eq 1 ]; then
+        out_die "run starts grok in the terminal, so --json cannot be used. Next: ${APP_NAME} run"
+    fi
+    _peer=$(gc_resolve_grok_peer)
+    if [ -z "${_peer}" ] || [ ! -x "${_peer}" ]; then
+        out_die "grok is not installed, so ${APP_NAME} cannot start it. Next: ${APP_NAME} setup"
+    fi
+    _has_nau=0
+    for _a in "$@"; do
+        if [ "${_a}" = "--no-auto-update" ]; then
+            _has_nau=1
+        fi
+    done
+    if [ "${_has_nau}" -eq 1 ]; then
+        exec "${_peer}" "$@"
+        out_die "Could not start grok at ${_peer}. Next: ${APP_NAME} setup"
+    fi
+    exec "${_peer}" --no-auto-update "$@"
+    out_die "Could not start grok at ${_peer}. Next: ${APP_NAME} setup"
 }
 
 # =============================================================================
@@ -6377,7 +6423,8 @@ gc_host_normal_user_only_label() {
 # GENERAL PURPOSE:
 # Class B: print the listed main-menu tokens for this host and session.
 # Consumes GC_SESSION_STATUS_CACHE (valid = logged in). Hide backup /
-# sync-auth / sudoers on this-login-only hosts. Hide sync-auth and
+# sync-auth / sudoers on this-login-only hosts. Those hosts list run
+# first (start grok without auto-update). Hide sync-auth and
 # sync-auth-from-remote when the session is valid.
 #
 # ALIGNMENT:
@@ -6386,6 +6433,9 @@ gc_host_normal_user_only_label() {
 # Last updated: 2026-09-07
 # =============================================================================
 gc_menu_main_tokens() {
+    if gc_host_is_normal_user_only; then
+        printf '%s\n' "run"
+    fi
     if ! gc_host_is_normal_user_only; then
         printf '%s\n' "backup"
         if [ "${GC_SESSION_STATUS_CACHE-}" != "valid" ]; then
@@ -6407,6 +6457,7 @@ gc_menu_main_tokens() {
 gc_menu_row_explain() {
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
     case "${1-}" in
+        run) printf '%s' "Start grok without auto-update" ;;
         backup) printf '%s' "Push ~/.grok/auth.* to ${GROK_CLI_ROOT}" ;;
         sync-auth) printf '%s' "Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok" ;;
         sync-auth-from-remote) printf '%s' "Copy a remote host's auth.* into ~/.grok" ;;
@@ -6630,6 +6681,9 @@ $(gc_menu_main_tokens)
 EOF
 
     case "${_run}" in
+        run)
+            gc_run_grok
+            ;;
         backup)
             gc_backup
             ;;
@@ -6827,11 +6881,11 @@ app_default() {
 # app_help() - Usage (local Type 0 + domain)
 # =============================================================================
 #
-# Last updated: 2026-09-02
+# Last updated: 2026-09-07
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
-    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
@@ -6866,6 +6920,7 @@ app_help() {
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
     out_plain "  setup                Install grok from x.ai (channel + artifact; skip if grok already runs here)"
+    out_plain "  run [GROK-ARGS]      Start grok without auto-update (avoids Termux hang)"
     out_plain "  check-session        Confirm grok is logged in (runs grok -p hello first)"
     out_plain "  backup               Push ~/.grok/auth.* to ${GROK_CLI_ROOT}/"
     out_plain "                       (runs grok -p hello first; sudo -n ${GLOBAL_BIN}/${APP_NAME} backup after sudoer-adm grant;"
@@ -6943,6 +6998,8 @@ app_help() {
     out_plain "  curl -fsSL https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli | sh"
     out_plain "  ${APP_NAME} install"
     out_plain "  ${APP_NAME} setup                 # install grok from x.ai channel + artifact (not ${APP_NAME})"
+    out_plain "  ${APP_NAME} run                   # start grok without auto-update (Termux)"
+    out_plain "  ${APP_NAME} run -p hello          # one-shot prompt, still no auto-update"
     out_plain "  sudo ${APP_NAME} install          # global (production sudoers trust)"
     out_plain "  ${APP_NAME} print-sudoers --allow-test-local  # → sudoers.fragment-<user>"
     out_plain "  ${APP_NAME} print-sudoers-install-script   # → /dev/shm/…-sudoers-admin.sh"
@@ -7046,6 +7103,12 @@ app_main() {
                 COMMAND="$1"
                 _saw_command=1
                 ;;
+            run)
+                COMMAND="$1"
+                _saw_command=1
+                shift
+                break
+                ;;
             *)
                 # Positional operands for domain verbs
                 if [ "${COMMAND}" = "print-sudoers" ] \
@@ -7091,6 +7154,7 @@ app_main() {
         self-update)  inst_self_update ;;
         self-uninstall) inst_self_uninstall ;;
         setup)        gc_setup ;;
+        run)          gc_run_grok "$@" ;;
         check-session) gc_check_session ;;
         backup)       gc_backup ;;
         sync-auth)    gc_sync_auth ;;

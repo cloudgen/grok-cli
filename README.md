@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.19-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.20-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -19,6 +19,7 @@ After `setup`, open a new terminal if `grok` is not on this session’s PATH, th
 - **Termux-aware place**: uses `${PREFIX}/bin` when `PREFIX` is set. A missing `/etc/resolv.conf` is a note, not an install failure, when `--version` succeeded. If grok still will not run: `pkg install proot`, then `grok-cli setup --force`. From **1.8.19** the PRoot wrapper makes `grok -p` return to the shell (see **Platform Compatibility**).
 - **Install this program**: paste the curl one-liner; later `version-check`, `self-update`, `self-uninstall`
 - **Install from a checkout**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
+- **Start grok without auto-update**: type `grok-cli run` (or `grok-cli run -p hello`). On Termux this avoids the hang until Ctrl-Z. Missing grok → `grok-cli setup`.
 - **Prove grok is logged in**: `check-session` asks grok a one-line question (`grok -p hello`). A credential file that only *looks* valid is not enough. Missing grok → `grok-cli setup`, then `grok login`.
 - **Optional shared login on one Linux host**: `backup` copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644` (elevated probe uses **this** login’s grok home, not root’s); `sync-auth` copies that store into this login’s `~/.grok` with **no sudo** (skipped if grok is already logged in — prints `No sync-auth for logged-in environment.`); `sync-auth-from-remote` uses `scp` (same skip) and remembers the last remote; `add-crontab` adds this login’s timers after **this** login’s backup grant exists
 - **Optional passwordless backup grant** (only if you use `backup`): `print-sudoers` prints one line so this login may run `sudo grok-cli backup` without a password. A host admin installs that line. `generate-sudoer-request` / `submit-sudoer-request` hand the same grant to the named approver (`sudoer-adm`).
@@ -103,7 +104,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.19*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.20*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -113,11 +114,11 @@ logged out
 9. Exit
 ```
 
-On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. The line under **logged in** / **logged out** says those features are not available on that host. Remaining rows start at **1**. When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are omitted on every host, and a second line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Live capture on a multi-user host that is **logged in**:
+On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. The line under **logged in** / **logged out** says those features are not available on that host. Remaining rows start at **1** with **run** (start grok without auto-update). When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are omitted on every host, and a second line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Live capture on a multi-user host that is **logged in**:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.19*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.20*) — Alternative online installer for xAI grok
 logged in
 sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
@@ -147,6 +148,8 @@ grok-cli version-check
 grok-cli self-update
 
 grok-cli setup                 # install grok from x.ai (not grok-cli; not install.sh)
+grok-cli run                   # start grok without auto-update (Termux)
+grok-cli run -p hello
 grok-cli check-session
 grok-cli backup
 grok-cli sync-auth
@@ -183,7 +186,8 @@ grok-cli self-uninstall --force
 # Place xAI grok (skip if already installed)
 grok-cli setup
 # open a new terminal if grok is not on this session PATH yet
-grok login
+grok-cli run                   # Termux: start grok without auto-update
+# or: grok login
 
 # Optional: confirm grok actually answers, then share auth.* on this host
 grok-cli check-session    # runs grok -p hello first
@@ -230,14 +234,15 @@ grok-cli add-crontab
 
 **Why Ctrl-C fails and Ctrl-Z works.** Ctrl-C is `SIGINT` — grok/PRoot often ignore it (or treat it as “cancel this turn”). Ctrl-Z is `SIGTSTP` — the shell’s job control, usually not caught — so you get `Stopped`. An old wrapper did `exec proot grok …`, so there was no parent left to SIGKILL.
 
-**What grok-cli does (1.8.19).** The wrapper passes `proot --kill-on-exit` when PRoot advertises it (never `-k` — that is `--kernel-release`), injects grok `--no-auto-update` for `-p` / `--single`, and SIGKILLs the child on Ctrl-C. Interactive `grok` still `exec`s so the TUI owns the terminal. `grok-cli setup` rewrites a stale wrapper even when grok already runs (no `--force`). After `self-update` to **1.8.19**:
+**What grok-cli does (1.8.19).** The wrapper passes `proot --kill-on-exit` when PRoot advertises it (never `-k` — that is `--kernel-release`), injects grok `--no-auto-update` for `-p` / `--single`, and SIGKILLs the child on Ctrl-C. Interactive `grok` still `exec`s so the TUI owns the terminal. `grok-cli setup` rewrites a stale wrapper even when grok already runs (no `--force`). After `self-update` to **1.8.20**:
 
 ```sh
 grok-cli setup
-grok -p hello    # must return to ~ $ without Ctrl-Z
+grok-cli run          # start grok without auto-update
+grok-cli run -p hello # must return to ~ $ without Ctrl-Z
 ```
 
-`grep kill-on-exit ~/.grok/bin/grok` should match. grok-cli’s own menu (Choice **9**) was already closable in **1.8.14**; that bound only the menu probe, not operator-facing `grok`.
+`grep kill-on-exit ~/.grok/bin/grok` should match. grok-cli’s own menu (Choice **9**) was already closable in **1.8.14**; that bound only the menu probe, not operator-facing `grok`. On Termux the numbered list starts with **run**.
 
 ## Related Projects
 
@@ -258,4 +263,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-07 — version **1.8.19**: Termux `grok -p` returns to the shell (wrapper `proot --kill-on-exit` + Ctrl-C SIGKILL). README **Platform Compatibility** explains why PRoot can hang until Ctrl-Z. `grok-cli setup` heals a stale wrapper without `--force`. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-07 — version **1.8.20**: `grok-cli run` starts grok without auto-update (Termux numbered list row **1**). Full history: [`CHANGELOG.md`](./CHANGELOG.md).

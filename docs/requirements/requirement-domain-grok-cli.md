@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-grok-cli.md  
-**Status**: Active (Version 1.4.6)  
+**Status**: Active (Version 1.5.0)  
 **Area**: domain  
 **Key**: `requirement-domain-grok-cli`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -16,11 +16,11 @@ This file is the sole Active **`requirement-domain-*`** (four pillars). It super
 
 ### 1.1 Human-facing
 
-This file lists the grok-cli commands a login types after install: place the xAI `grok` program (`setup`), check that grok is signed in, push `~/.grok/auth.*` into `/var/grok-cli`, or copy those files back into `~/.grok` without sudo.
+This file lists the grok-cli commands a login types after install: place the xAI `grok` program (`setup`), start grok without auto-update (`run`), check that grok is signed in, push `~/.grok/auth.*` into `/var/grok-cli`, or copy those files back into `~/.grok` without sudo.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Run `setup`, `check-session`, `backup`, `sync-auth`, `sync-auth-from-remote`, `add-crontab`, and the sudoer generate/submit verbs | sudoer-adm approves the JSON grant so `sudo grok-cli backup` is passwordless | Folder tar.gz backup; writing `/etc` yourself; typing `restore` (retired — the program must say unknown); using `setup` to install grok-cli |
+| Run `setup`, `run`, `check-session`, `backup`, `sync-auth`, `sync-auth-from-remote`, `add-crontab`, and the sudoer generate/submit verbs | sudoer-adm approves the JSON grant so `sudo grok-cli backup` is passwordless | Folder tar.gz backup; writing `/etc` yourself; typing `restore` (retired — the program must say unknown); using `setup` to install grok-cli |
 
 **Includes:** verb catalog, help rows, about fields, pointers to ops and privilege law.  
 **Excludes:** JWT/token parsing rules, chown/chmod numbers, sudoers schema (peer files).
@@ -33,6 +33,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
 | Place grok | grok-cli fetches xAI’s version pointer and matching `grok` binary (does not run `install.sh`) | `grok-cli setup` |
+| Start grok on Termux | grok-cli starts grok with auto-update off so PRoot is not left hanging | `grok-cli run` |
 | Confirm login | grok-cli runs `grok -p hello` first (a file that only looks valid is not enough) | `grok-cli check-session` |
 | Push shared auth | After a valid session, grok-cli copies `auth.*` into `/var/grok-cli` as root | `grok-cli backup` |
 | Pull shared auth | A normal login copies from `/var/grok-cli` into `~/.grok` with no sudo | `grok-cli sync-auth` |
@@ -48,6 +49,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | Command | Operands / flags | Handler prefix | Behavior summary | Behavior SSOT |
 |---------|------------------|----------------|------------------|---------------|
 | `setup` | `--force` | `gc_*` | Fetch xAI channel + artifact and place peer `grok`; **MUST NOT** exec `install.sh`; skip if grok already runs on this host; Android ET_EXEC may place an exec wrapper | **`requirement-grok-setup`** |
+| `run` | remaining grok argv | `gc_*` | Start peer grok with `--no-auto-update` (unless already passed); missing grok Next `setup`; `--json` does not exec | **`requirement-grok-setup`** |
 | `check-session` | none | `gc_*` | Confirm grok is logged in (`grok -p hello` first) | **`requirement-grok-auth-backup`** |
 | `backup` | none | `gc_*` | Check session, then elevated deposit of `auth.*` into `/var/grok-cli` | **`requirement-grok-auth-backup`** |
 | `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo**; skip when already logged in | **`requirement-grok-auth-backup`** |
@@ -67,6 +69,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | Feature area | Domain role | Full law |
 |--------------|-------------|----------|
 | Peer grok install | Expose `setup` (channel + artifact procedure; not grok-cli install; not `install.sh`) | `requirement-grok-setup` |
+| Start grok without auto-update | Expose `run` | `requirement-grok-setup` |
 | Grok session gate | Expose `check-session`; backup MUST call the same gate | `requirement-grok-auth-backup` |
 | Auth deposit | Expose `backup` | `requirement-grok-auth-backup` |
 | Unprivileged sync | Expose `sync-auth` | `requirement-grok-auth-backup` |
@@ -121,6 +124,7 @@ sudoer-{{YYYYMMDD}}-grok-cli-{{username}}-{{action}}-{{n}}.json
 | Help row | Text intent |
 |----------|-------------|
 | `setup` | Install grok from x.ai (channel + artifact; skip if grok already runs here) |
+| `run` | Start grok without auto-update (avoids Termux hang) |
 | `check-session` | Confirm grok is logged in (`grok -p hello` first) |
 | `backup` | Check session, push `~/.grok/auth.*` to `/var/grok-cli` (passwordless `sudo grok-cli backup` after sudoer-adm) |
 | `sync-auth` | Copy `/var/grok-cli/auth.*` into `~/.grok` with no sudo |
@@ -138,6 +142,8 @@ Examples in help **MUST** include:
 ```text
 grok-cli install
 grok-cli setup
+grok-cli run
+grok-cli run -p hello
 grok-cli check-session
 grok-cli generate-sudoer-request
 grok-cli submit-sudoer-request
@@ -202,7 +208,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 
 Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
 
-**This requirement:** `backup` / sudoers verbs stay **unused** on this class. The numbered start list omits those rows and prints the not-available line (`requirement-shell-cli-default-interaction`). When **logged in**, that REQ also omits **sync-auth-from-remote** and **appends** the logged-in not-available line. `setup` and `check-session` stay this-login work.
+**This requirement:** `backup` / sudoers verbs stay **unused** on this class. The numbered start list omits those rows, lists **`run` first**, and prints the not-available line (`requirement-shell-cli-default-interaction`). When **logged in**, that REQ also omits **sync-auth-from-remote** and **appends** the logged-in not-available line. `setup`, `run`, and `check-session` stay this-login work.
 
 ---
 
@@ -236,7 +242,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | `help` lists setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab and sudoer verbs |
+| AC-1 | `help` lists setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab and sudoer verbs |
 | AC-2 | `about --json` reports grok_cli_root, deposit_dir, session |
 | AC-3 | Dispatcher routes those verbs; `restore` is unknown |
 | AC-4 | JSON grant sample in this file names backup only |
@@ -251,7 +257,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `docs/requirements/index.md` | Registry SSOT |
 | `docs/requirements/requirement-grok-auth-backup.md` | Ops SSOT |
 | `docs/requirements/requirement-grok-crontab.md` | `add-crontab` ops SSOT |
-| `docs/requirements/requirement-grok-setup.md` | `setup` / peer grok channel + artifact |
+| `docs/requirements/requirement-grok-setup.md` | `setup` / `run` / peer grok channel + artifact |
 | `docs/requirements/requirement-three-layer-privilege-model.md` | Privilege workflow |
 | `docs/requirements/requirement-sudoer-json-file.md` | JSON grant body |
 | `docs/requirements/requirement-shell-cli-interface.md` | Dual mention of verbs |
@@ -274,6 +280,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-04 | Active (1.4.4) | `setup` HTTP status on curl fail; keep Android `.failed` artifact (dual mention `requirement-grok-setup` 2.5.0) |
 | 2026-09-04 | Active (1.4.5) | `setup` Android proot resolv bind (dual mention `requirement-grok-setup` 2.6.0) |
 | 2026-09-05 | Active (1.4.6) | `check-session` live `grok -p hello` (dual mention `requirement-grok-auth-backup` 1.2.0) |
+| 2026-09-07 | Active (1.5.0) | `run` starts peer grok without auto-update (dual mention `requirement-grok-setup` 2.8.0) |
 
 ---
 
@@ -287,10 +294,11 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-GROK-CLI-01**, **01b**, **02**, **11**, **14**, **15**, **15b**, **19**–**25** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-26**–**29** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-30**–**38** | `tests/test_domain_grok_cli.sh` | have |
+| **TP-GROK-CLI-46** | `tests/test_domain_grok_cli.sh` | have — `run` `--no-auto-update` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-06  
+**Last Updated**: 2026-09-07 (1.5.0)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

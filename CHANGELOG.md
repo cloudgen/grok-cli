@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.20] - 2026-09-07
+
+### Added
+
+- **`run`:** start the peer grok without auto-update (`grok-cli run`, `grok-cli run -p hello`). On Termux / Git Bash / Windows cmd the numbered list puts **run** first so you do not type bare `grok` and hang until Ctrl-Z. `--json` does not exec grok. Missing grok → Next `grok-cli setup`. Law: `requirement-grok-setup` **2.8.0** · `requirement-shell-cli-interface` **2.8.0** · `requirement-domain-grok-cli` **1.5.0** · `requirement-shell-cli-default-interaction` **2.9.0**. Suite **TP-GROK-CLI-46** · **TP-CLI-04** · **TP-CLI-19** · **TP-CLI-20**.
+
 ## [1.8.19] - 2026-09-07
 
 ### Fixed

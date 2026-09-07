@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.19  
+**Product VERSION:** 1.8.20  
 **Last plan update:** 2026-09-07  
-**Last suite run:** `./tests/run.sh` (1.8.19: PASS=654 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.8.20: PASS=678 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -64,8 +64,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-15 | Static: ship unit has no `$(prompt_ask` / `$(prompt_yes_no` (T1-PROMPT-CAPTURE; **TP-ELEV-10**) | `tests/test_cli.sh` | requirement-shell-script-coding · interactive-vs-noninteractive | **have** |
 | TP-CLI-17 | Default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; numbered explain italic + light gray SGR 3+37; number/name unstyled; not SGR 90; session line under title; no `check-session` row; submenu nametag; inherited `APP_VERSION` ignored | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-output-requirements | **have** |
 | TP-CLI-18 | Active `requirement-*.md` samples do not freeze a session Unix login | `tests/test_cli.sh` | requirement-sudoer-json-file · requirement-three-layer-privilege-model · requirement-domain-grok-cli | **have** |
-| TP-CLI-19 | Termux / Git Bash / Windows cmd main menu hides backup / sync-auth / sudoers; not-available line under session; remaining rows from **1**; pick **5** does not open sudoers; multi-user host unchanged | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
-| TP-CLI-20 | Logged-in main menu hides sync-auth / sync-auth-from-remote; appends logged-in not-available line; host not-available line kept on this-login-only; remaining rows from **1**; listed sudoers number opens submenu; pick of hidden verb is not a menu choice | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-19 | Termux / Git Bash / Windows cmd main menu hides backup / sync-auth / sudoers; **run** is **1**; not-available line under session; remaining rows from **1**; pick **5** does not open sudoers; multi-user host unchanged | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-20 | Logged-in main menu hides sync-auth / sync-auth-from-remote; appends logged-in not-available line; host not-available line kept on this-login-only; **run** stays **1** on that class; remaining rows from **1**; listed sudoers number opens submenu; pick of hidden verb is not a menu choice | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-21 | Termux menu with a SIGTERM-ignoring grok still prints the list and accepts Exit (no freeze) | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup · requirement-shell-termux-coding | **have** |
 | TP-CLI-22 | Termux hang-grok: bad pick reprints the list; `grok -p hello` runs once | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup | **have** |
 | TP-CLI-23 | Ship unit always bounds the probe (`timeout -k` + watchdog `kill -9`) | `tests/test_cli.sh` | requirement-grok-auth-backup · requirement-shell-termux-coding | **have** |
@@ -121,6 +121,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-VCLI-26 | Android `proot` wrapper source contains `--kill-on-exit` (not `-k`) | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
 | TP-VCLI-27 | Android wrapper injects `--no-auto-update` for `-p` and SIGKILLs the child on SIGINT | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
 | TP-VCLI-28 | Already-installed Android `proot` wrapper lacking `--kill-on-exit` is rewritten with no curl | test_grok_setup | requirement-grok-setup | **have** |
+| TP-GROK-CLI-46 | `run` injects `--no-auto-update`; missing grok Next setup; `--json` does not exec | test_domain_grok_cli | requirement-grok-setup · requirement-shell-cli-interface · requirement-domain-grok-cli | **have** |
 
 ### TP-ONL (grok-cli channel install)
 

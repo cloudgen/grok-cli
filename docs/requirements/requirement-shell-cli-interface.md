@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.7.9)  
+**Status**: Active (Version 2.8.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -36,7 +36,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 | Category | Privilege | Meaning |
 |----------|-----------|---------|
 | **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu` (`main` alias), `version-check`, `self-update`, `self-uninstall` |
-| **Type 0 – Domain (user work)** | Invoking user | `setup` (peer grok channel + artifact), session/sync, sudoers fragment **print** |
+| **Type 0 – Domain (user work)** | Invoking user | `setup` (peer grok channel + artifact), `run` (start grok without auto-update), session/sync, sudoers fragment **print** |
 | **Type 1 – Narrow elevated deposit** | Controlled sudo (allowlisted only) | Copy `~/.grok/auth.*` into `/var/grok-cli` only |
 | **Type 2 – Dedicated system user app ops** | Dedicated app user | **Not in scope** for this product |
 
@@ -103,6 +103,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
 | `main` | Type 0 | `app_default` (alias) | Same as `menu` |
 | `setup` | Type 0 | `gc_setup` (domain) | Perform the studied xAI grok procedure (platform, channel pointer, artifact, `~/.grok` place) so peer `grok` is installed; **MUST NOT** fetch or exec `install.sh`; skip if grok already **runs on this host** unless `--force`. Stale session PATH is not an error. **MUST NOT** install grok-cli |
+| `run` | Type 0 | `gc_run_grok` (domain) | Start peer grok with `--no-auto-update` (unless already in argv) then remaining grok args. Missing grok → Next `{{APP_NAME}} setup`. `--json` **MUST NOT** exec grok. Dual mention `requirement-grok-setup` · `requirement-domain-grok-cli` |
 | `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in by running `grok -p hello` first (not `auth.json` parse alone) |
 | `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
 | `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo; **skip** when grok is already logged in |
@@ -214,6 +215,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-10 | `sync-auth-from-remote` is Type 0, routed, listed in help; dual mention `requirement-grok-auth-backup` |
 | AC-11 | `setup` is Type 0, routed, listed in help; dual mention `requirement-grok-setup`; **MUST NOT** fetch or exec `install.sh` |
 | AC-12 | `--debug` listed in help; TTY `menu` elapsed owned by `requirement-shell-internal-volatile-timer` |
+| AC-13 | `run` is Type 0, routed, listed in help; starts grok with `--no-auto-update`; dual mention `requirement-grok-setup` · `requirement-domain-grok-cli` |
 
 ---
 
@@ -229,7 +231,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
 | `requirement-shell-output-requirements` | `out_*` catalog |
 | `requirement-domain-grok-cli` | Domain four pillars |
-| `requirement-grok-setup` | Dual mention of `setup` |
+| `requirement-grok-setup` | Dual mention of `setup` and `run` |
 | `requirement-grok-crontab` | Dual mention of `add-crontab` |
 | `requirement-three-layer-privilege-model` | Elevation model |
 | `docs/requirements/index.md` | Registry |
@@ -244,6 +246,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-CLI-29** | `tests/test_cli.sh` | have (overlay flags-only `--debug` / `--quiet` follow empty argv) |
 | **TP-CLI-25..28** | `tests/test_cli.sh` | have (`--debug` menu elapsed; dual mention `requirement-shell-internal-volatile-timer`) |
 | **TP-VCLI-01..09**, **11**–**18** | `tests/test_grok_setup.sh` | have |
+| **TP-GROK-CLI-46** | `tests/test_domain_grok_cli.sh` | have — `run` `--no-auto-update` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -275,6 +278,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active 2.7.7 | `--debug` dual mention of menu paint elapsed (`requirement-shell-internal-volatile-timer`) |
 | 2026-09-07 | Active 2.7.8 | Empty argv = no command token; overlay `--debug` follows 0-argv (`requirement-shell-cli-zero-arguments` 2.1.0) |
 | 2026-09-07 | Active 2.7.9 | `--json` no-command is 0-argv special case: JSON help even on a TTY (`requirement-shell-cli-zero-arguments` 2.2.0) |
+| 2026-09-07 | Active 2.8.0 | `run` Type 0 — start peer grok without auto-update (Termux hang) |
 
 ---
 
