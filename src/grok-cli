@@ -41,7 +41,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.20"
+# VERSION: hard-assign VERSION="1.8.21"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -57,8 +57,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.20"
-: "${VERSION:=1.8.20}"
+VERSION="1.8.21"
+: "${VERSION:=1.8.21}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -3013,20 +3013,95 @@ else
   _nau=""
 fi
 if [ "\${_pflag}" -eq 1 ]; then
+  # grok-cli proot-exit-reaper
+  # Guest already exited; PRoot cannot determine that (do_wait).
+  # Match args/exe, not truncated comm. Reap only NEW runsvdir.
+  _tmp="\${TMPDIR:-\${TMP:-/tmp}}"
+  _out=\$(mktemp "\${_tmp}/grok-p-out.XXXXXX") || exit 1
+  _err=\$(mktemp "\${_tmp}/grok-p-err.XXXXXX") || exit 1
+  _before=\$(mktemp "\${_tmp}/grok-p-rsv.XXXXXX") || exit 1
+  ps -eo pid= -o args= 2>/dev/null | awk '
+    \$2 ~ /\\/runsvdir\$/ || \$2 == "runsvdir" { print \$1 }
+  ' | sort >"\${_before}" 2>/dev/null || :
   trap '
     if [ -n "\${_pid:-}" ]; then
       kill -TERM "\${_pid}" 2>/dev/null || true
       sleep 1
       kill -KILL "\${_pid}" 2>/dev/null || true
     fi
+    rm -f "\${_out}" "\${_err}" "\${_before}"
     exit 130
   ' INT TERM
-  "\${_p}" \${_k} ${_gew_bind}"\${_g}" \${_nau} "\$@" &
+  "\${_p}" \${_k} ${_gew_bind}"\${_g}" \${_nau} "\$@" >"\${_out}" 2>"\${_err}" &
   _pid=\$!
-  wait "\${_pid}"
-  _ec=\$?
+  (
+    _seen=0
+    _osize=0
+    _idle_since=0
+    _start=\$(date +%s)
+    while :; do
+      _now=\$(date +%s)
+      if [ \$((_now - _start)) -ge 180 ]; then
+        break
+      fi
+      if ! kill -0 "\${_pid}" 2>/dev/null; then
+        exit 0
+      fi
+      _child=\$(ps -eo pid= -o ppid= -o args= 2>/dev/null | awk -v pp="\${_pid}" '
+        \$2 == pp && (\$3 ~ /\\/grok-linux/ || \$3 ~ /grok-linux/) {
+          print \$1
+          exit
+        }
+      ')
+      if [ -n "\${_child}" ]; then
+        _seen=1
+      elif [ "\${_seen}" -eq 1 ]; then
+        break
+      fi
+      _sz=\$(wc -c <"\${_out}" 2>/dev/null | tr -d ' \\t\\n')
+      _sz=\${_sz:-0}
+      if [ "\${_sz}" -gt 0 ]; then
+        if [ "\${_sz}" -ne "\${_osize}" ]; then
+          _osize=\${_sz}
+          _idle_since=\${_now}
+        elif [ "\${_idle_since}" -gt 0 ] && [ \$((_now - _idle_since)) -ge 1 ]; then
+          break
+        fi
+      fi
+      sleep 1
+    done
+    ps -eo pid= -o args= 2>/dev/null | awk '
+      \$2 ~ /\\/runsvdir\$/ || \$2 == "runsvdir" { print \$1 }
+    ' | sort | while read -r _rpid; do
+      [ -n "\${_rpid}" ] || continue
+      if ! grep -qx "\${_rpid}" "\${_before}" 2>/dev/null; then
+        kill "\${_rpid}" 2>/dev/null || :
+      fi
+    done
+    _dl=\$(( \$(date +%s) + 2 ))
+    while [ "\$(date +%s)" -lt "\${_dl}" ]; do
+      kill -0 "\${_pid}" 2>/dev/null || exit 0
+      sleep 1
+    done
+    kill "\${_pid}" 2>/dev/null || :
+    sleep 1
+    kill -KILL "\${_pid}" 2>/dev/null || :
+    exit 0
+  ) &
+  _reaper=\$!
+  wait "\${_pid}" 2>/dev/null || :
+  wait "\${_reaper}" 2>/dev/null || :
   trap - INT TERM
-  exit "\${_ec}"
+  if [ -s "\${_err}" ]; then
+    cat "\${_err}" >&2
+  fi
+  if [ -s "\${_out}" ]; then
+    cat "\${_out}"
+    rm -f "\${_out}" "\${_err}" "\${_before}"
+    exit 0
+  fi
+  rm -f "\${_out}" "\${_err}" "\${_before}"
+  exit 1
 fi
 exec "\${_p}" \${_k} ${_gew_bind}"\${_g}" "\$@"
 EOF
@@ -3150,8 +3225,10 @@ gc_setup_heal_android_wrapper() {
     esac
     if grep -q kill-on-exit "${_haw_peer}" 2>/dev/null; then
         if grep -q no-auto-update "${_haw_peer}" 2>/dev/null; then
-            unset _haw_peer _haw_head
-            return 0
+            if grep -q proot-exit-reaper "${_haw_peer}" 2>/dev/null; then
+                unset _haw_peer _haw_head
+                return 0
+            fi
         fi
     fi
     _haw_g=$(grep '^_g=' "${_haw_peer}" 2>/dev/null | head -n1 | sed "s/^_g=//; s/^'//; s/'\$//")
@@ -3178,7 +3255,7 @@ gc_setup_heal_android_wrapper() {
     _haw_dir=$(dirname "${_haw_peer}")
     if gc_setup_write_exec_wrapper "${_haw_peer}" "${_haw_g}" "${_haw_method}" "${_haw_resolv}"; then
         ln -sf grok "${_haw_dir}/agent" 2>/dev/null || true
-        out_info "Rewrote ${_haw_peer} so grok -p can exit (proot --kill-on-exit; vendor binary unchanged). Next: grok -p hello"
+        out_info "Rewrote ${_haw_peer} so grok -p can exit (proot-exit-reaper; vendor binary unchanged). Next: grok -p hello"
         GC_SETUP_WRAPPER_HEALED=1
     fi
     unset _haw_peer _haw_head _haw_g _haw_method _haw_home _haw_plat _haw_resolv _haw_dir
@@ -3604,6 +3681,125 @@ gc_grok_prompt_int() {
 }
 
 # =============================================================================
+# gc_grok_p_once_run() - grok -p under PRoot: guest death is the done signal
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# PRoot often cannot determine grok-linux exited and stays in do_wait.
+# Two jobs: collector (peer -p hello → files) and reaper (when grok-linux
+# is gone or stdout idle, kill only NEW runsvdir, then SIGKILL collector).
+# Match args/exe, not truncated comm. Nested PRoot: run the vendor file.
+# Sets _ec. Consumes _peer _out _ihome _ghome _login. INC-20260907-003.
+#
+# ALIGNMENT: requirement-shell-termux-coding.md · requirement-grok-auth-backup.md
+#
+# Last updated: 2026-09-07
+# =============================================================================
+gc_grok_p_once_run() {
+    _gpt=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT:-20}" 20)
+    _idle="${GROK_P_IDLE:-1}"
+    _reapw="${GROK_P_REAP_WAIT:-2}"
+    _gbin="${_peer}"
+    case "${TERMUX_EXEC__PROC_SELF_EXE:-}" in
+        *proot*)
+            _ghome_p=$(gc_resolve_grok_home)
+            _plat_p=$(gc_setup_detect_platform 2>/dev/null || true)
+            if [ -n "${_plat_p}" ] && [ -x "${_ghome_p}/downloads/grok-${_plat_p}" ]; then
+                _gbin="${_ghome_p}/downloads/grok-${_plat_p}"
+            fi
+            unset _ghome_p _plat_p
+            ;;
+    esac
+    _pout=$(util_mktemp grokpo)
+    _perr=$(util_mktemp grokpe)
+    _pbefore=$(util_mktemp grokpb)
+    if [ -z "${_pout}" ] || [ -z "${_perr}" ] || [ -z "${_pbefore}" ]; then
+        _ec=1
+        unset _gpt _idle _reapw _gbin _pout _perr _pbefore
+        return 0
+    fi
+    ps -eo pid= -o args= 2>/dev/null | awk '
+        $2 ~ /\/runsvdir$/ || $2 == "runsvdir" { print $1 }
+    ' | sort >"${_pbefore}" 2>/dev/null || :
+    HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
+        "${_gbin}" -p hello </dev/null >"${_pout}" 2>"${_perr}" &
+    _pcol=$!
+    (
+        _seen=0
+        _osize=0
+        _idle_since=0
+        _start=$(date +%s)
+        while :; do
+            _now=$(date +%s)
+            if [ $((_now - _start)) -ge "${_gpt}" ]; then
+                break
+            fi
+            if ! kill -0 "${_pcol}" 2>/dev/null; then
+                exit 0
+            fi
+            _child=$(ps -eo pid= -o ppid= -o args= 2>/dev/null | awk -v pp="${_pcol}" '
+                $2 == pp && ($3 ~ /\/grok-linux/ || $3 ~ /grok-linux/) {
+                    print $1
+                    exit
+                }
+            ')
+            if [ -n "${_child}" ]; then
+                _seen=1
+            elif [ "${_seen}" -eq 1 ]; then
+                break
+            fi
+            if [ "${_idle}" -gt 0 ]; then
+                _sz=$(wc -c <"${_pout}" 2>/dev/null | tr -d ' \t\n')
+                _sz=${_sz:-0}
+                if [ "${_sz}" -gt 0 ]; then
+                    if [ "${_sz}" -ne "${_osize}" ]; then
+                        _osize=${_sz}
+                        _idle_since=${_now}
+                    elif [ "${_idle_since}" -gt 0 ] && [ $((_now - _idle_since)) -ge "${_idle}" ]; then
+                        break
+                    fi
+                fi
+            fi
+            sleep 1
+        done
+        sleep 1
+        ps -eo pid= -o args= 2>/dev/null | awk '
+            $2 ~ /\/runsvdir$/ || $2 == "runsvdir" { print $1 }
+        ' | sort | while read -r _rpid; do
+            [ -n "${_rpid}" ] || continue
+            if ! grep -qx "${_rpid}" "${_pbefore}" 2>/dev/null; then
+                kill "${_rpid}" 2>/dev/null || :
+            fi
+        done
+        _deadline=$(( $(date +%s) + _reapw ))
+        while [ "$(date +%s)" -lt "${_deadline}" ]; do
+            kill -0 "${_pcol}" 2>/dev/null || exit 0
+            sleep 1
+        done
+        kill "${_pcol}" 2>/dev/null || :
+        sleep 1
+        kill -9 "${_pcol}" 2>/dev/null || :
+        exit 0
+    ) &
+    _preap=$!
+    wait "${_pcol}" 2>/dev/null || :
+    wait "${_preap}" 2>/dev/null || :
+    : >"${_out}"
+    if [ -s "${_perr}" ]; then
+        cat "${_perr}" >>"${_out}" 2>/dev/null || :
+    fi
+    if [ -s "${_pout}" ]; then
+        cat "${_pout}" >>"${_out}" 2>/dev/null || :
+        _ec=0
+    else
+        _ec=1
+    fi
+    rm -f "${_pout}" "${_perr}" "${_pbefore}"
+    unset _gpt _idle _reapw _gbin _pout _perr _pbefore _pcol _preap
+    return 0
+}
+
+# =============================================================================
 # gc_grok_prompt_run_bounded() - Run grok -p hello with a hard deadline
 # =============================================================================
 #
@@ -3624,6 +3820,13 @@ gc_grok_prompt_run_bounded() {
     _lim=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT}" 20)
     _killafter=$(gc_grok_prompt_int "${GROK_PROMPT_KILL_AFTER}" 2)
     _ec=1
+
+    # PRoot on PATH: guest-death reaper (INC-20260907-003). Else simple -p.
+    if command -v proot >/dev/null 2>&1; then
+        gc_grok_p_once_run
+        unset _lim _killafter
+        return 0
+    fi
 
     if command -v timeout >/dev/null 2>&1 \
         && timeout -k "${_killafter}" 1 true >/dev/null 2>&1; then

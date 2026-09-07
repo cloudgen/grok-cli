@@ -5,7 +5,7 @@
 **Always load first:** `reviews/lessons.md`
 
 **Last plan update:** 2026-09-07  
-**Ship unit VERSION:** 1.8.20  
+**Ship unit VERSION:** 1.8.21  
 **Suite baseline:** `reviews/test-plan.md`
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + domain grok-cli + grok-auth-backup + three-layer |
-| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.20**) |
+| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.21**) |
 | P3 | Load `reviews/lessons.md` and re-check every open L-* | Mandatory (esp. **L-SUDOERS-01/02** · **L-SUDOERS-06** · **L-OUTPUT-01** · **L-AUTH-01** · **L-PROMPT-CAPTURE-01**) |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP; **must include TP-GROK-CLI-22e** and **TP-24*/25*** when generate/submit is in scope |
 | P5 | Confirm install **channel** | `SCRIPT_URL` default github raw `src/grok-cli`; companion `.sha256`; dual-mode matrix |

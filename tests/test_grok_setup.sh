@@ -612,6 +612,8 @@ EOS
     assert_contains "TP-VCLI-21 wrapper unsets LD_PRELOAD" "${_wrap}" "unset LD_PRELOAD"
     assert_contains "TP-VCLI-21 wrapper sets TERMUX_EXEC_OPTOUT" "${_wrap}" "TERMUX_EXEC_OPTOUT=1"
     assert_contains "TP-VCLI-26 wrapper uses --kill-on-exit" "${_wrap}" "kill-on-exit"
+    assert_contains "TP-VCLI-29 wrapper has proot-exit-reaper" "${_wrap}" "proot-exit-reaper"
+    assert_contains "TP-VCLI-29 wrapper matches args not comm" "${_wrap}" "ps -eo pid="
     assert_not_contains "TP-VCLI-26 wrapper does not use -k for kill" "${_wrap}" " -k "
     assert_contains "TP-VCLI-27 wrapper injects --no-auto-update for -p" "${_wrap}" "--no-auto-update"
     assert_contains "TP-VCLI-27 wrapper SIGKILLs hung -p" "${_wrap}" "kill -KILL"
@@ -787,6 +789,73 @@ EOF
         t_fail "TP-VCLI-28 curl was invoked on wrapper heal"
     else
         t_pass "TP-VCLI-28 no curl on wrapper heal"
+    fi
+    ci_cleanup_env
+    unset CURL_LOG
+
+    # TP-VCLI-30 already-installed wrapper with kill-on-exit but no
+    # proot-exit-reaper is rewritten (no curl).
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    ci_write_android_uname "${_tb}"
+    cat > "${_tb}/proot" <<'EOS'
+#!/bin/sh
+GROK_UNDER_PROOT=1
+export GROK_UNDER_PROOT
+exec "$@"
+EOS
+    chmod +x "${_tb}/proot"
+    _host_m=$(uname -m 2>/dev/null || true)
+    _plat=""
+    case "${_host_m}" in
+        x86_64|amd64|AMD64) _plat="linux-x86_64" ;;
+        aarch64|arm64|ARM64) _plat="linux-aarch64" ;;
+    esac
+    if [ -z "${_plat}" ]; then
+        t_skip "TP-VCLI-30 host arch ${_host_m}"
+        ci_cleanup_env
+        return 0
+    fi
+    mkdir -p "${CI_HOME}/.grok/downloads" "${CI_HOME}/.grok/bin"
+    _vendor="${CI_HOME}/.grok/downloads/grok-${_plat}"
+    printf '%s\n' '#!/bin/sh' 'echo grok 0.0.0-test' > "${_vendor}"
+    chmod +x "${_vendor}"
+    cat > "${CI_HOME}/.grok/bin/grok" <<EOF
+#!/bin/sh
+unset LD_PRELOAD
+TERMUX_EXEC_OPTOUT=1
+export TERMUX_EXEC_OPTOUT
+_g='${_vendor}'
+_p=\$(command -v proot 2>/dev/null || true)
+_k=""
+if command -v grep >/dev/null 2>&1; then
+  if "\${_p}" --help 2>&1 | grep -q kill-on-exit; then
+    _k="--kill-on-exit"
+  fi
+fi
+_nau="--no-auto-update"
+exec "\${_p}" \${_k} "\${_g}" \${_nau} "\$@"
+EOF
+    chmod +x "${CI_HOME}/.grok/bin/grok"
+    ln -sf "${CI_HOME}/.grok/bin/grok" "${CI_USER_BIN}/grok"
+    CURL_LOG="${CI_HOME}/curl.log"
+    export CURL_LOG
+    _all=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
+            PATH="${CI_USER_BIN}:${_tb}:${CI_HOME}/fakecurl" \
+            sh "${SCRIPT}" setup 2>&1
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-30 heal setup exit 0" 0 "${_ec}"
+    assert_contains "TP-VCLI-30 already installed" "${_all}" "already installed"
+    assert_contains "TP-VCLI-30 INFO rewrote wrapper" "${_all}" "Rewrote"
+    _wrap=$(cat "${CI_HOME}/.grok/bin/grok" 2>/dev/null || true)
+    assert_contains "TP-VCLI-30 healed wrapper has proot-exit-reaper" "${_wrap}" "proot-exit-reaper"
+    if [ -f "${CURL_LOG}" ]; then
+        t_fail "TP-VCLI-30 curl was invoked on wrapper heal"
+    else
+        t_pass "TP-VCLI-30 no curl on wrapper heal"
     fi
     ci_cleanup_env
     unset CURL_LOG

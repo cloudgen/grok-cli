@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-grok-setup.md  
-**Status**: Active (Version 2.8.0)  
+**Status**: Active (Version 2.9.0)  
 **Area**: domain  
 **Key**: `requirement-grok-setup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -102,7 +102,7 @@ Studied installer behavior that this procedure **MUST** keep:
 18b. After download, if the file is ELF and `od` can read `e_machine`, **MUST** fail closed when `e_machine` does not match the detected arch (**MUST NOT** place). Smoke stderr that names `EM_X86_64` / `EM_AARCH64` **MUST** be reported as a wrong-architecture failure. **MUST NOT** treat that as a generic “check the download” miss.  
 18c. After a failed **direct** smoke on Android (Termux), **MUST** retry `--version` with `TERMUX_EXEC_OPTOUT=1` and `LD_PRELOAD` unset. Termux’s exec interceptor loads files through Android `linker64`, which refuses ELF `ET_EXEC` (`e_type` 2); xAI’s `linux-aarch64` grok is that kind of static Linux executable (verified channel artifact: ELF64 aarch64, statically linked, `e_type` 2 — not a truncated download). If that retry succeeds, **MUST** place a POSIX wrapper at `{{GROK_HOME}}/bin/grok` (and `agent`) that execs the **unmodified** vendor file the same way. If that retry fails and `proot` is on PATH, **MUST** retry `proot {{file}} --version` with the **same** `LD_PRELOAD` unset / `TERMUX_EXEC_OPTOUT=1` (Termux wiki: proot under `libtermux-exec` re-hits `e_type` 2). On success, place a wrapper that unsets `LD_PRELOAD` then execs `proot` plus the vendor file. **MUST NOT** byte-patch ELF `e_type` (or any other vendor bytes) to pass the linker. If every retry fails, fail closed; the blocking `Next:` for an `e_type` / ET_EXEC refusal **MUST** be `pkg install proot`, then `{{APP_NAME}} setup --force` (or run grok on a Linux host). **MUST NOT** use “check the download” as that Next — the artifact was the matching `{{os}}-{{arch}}` file. **MUST NOT** delete the smoked file: **MUST** leave it under `{{GROK_HOME}}/downloads` as `grok-{{os}}-{{arch}}.failed` and name that path in the error.  
 18d. After the opt-out retry in 18c fails, if `proot` is **not** on PATH and this host is Android **and** Termux `pkg` is available (`${PREFIX}/bin/pkg` when `PREFIX` is set, else `command -v pkg`), **MUST** run `pkg install -y proot` (stdin closed; `DEBIAN_FRONTEND=noninteractive`) and then retry the `proot` smoke (still with `LD_PRELOAD` unset). **MUST NOT** `sudo pkg`. **MUST NOT** run `pkg` or `apt` when `uname` is not Android (FreeBSD `pkg` is a different tool). **MUST NOT** hang under `--json` / off-TTY waiting for a `pkg` prompt. A failed `pkg install` is **not** itself a blocking error — **MUST** print WARN with exit/stderr snippet, then fall through to the 18c Next. **MUST NOT** install `proot` when opt-out already made `--version` succeed, or when `proot` is already on PATH.  
-18e. The Android wrapper **MUST** let `grok -p` return to the shell. When the method is `proot`, the wrapper **MUST** pass `proot --kill-on-exit` when `proot --help` advertises that option (long option only — **MUST NOT** pass `-k`, which is `--kernel-release`). When argv includes `-p` / `--single` / `--prompt-file` / `--prompt-json`, the wrapper **MUST** pass grok `--no-auto-update` unless the operator already did, **MUST NOT** `exec` (stay parent), and **MUST** SIGKILL the grok/proot child on SIGINT/SIGTERM (Ctrl-C). Interactive `grok` (no `-p`) **MUST** still `exec` so the TUI owns the TTY. **MUST NOT** byte-patch the vendor file. On Android, if grok already **runs** and `bin/grok` is a POSIX wrapper that lacks `--kill-on-exit` or `--no-auto-update`, `setup` **MUST** rewrite that wrapper from the existing vendor file with **no** network (**MUST NOT** require `--force` for this heal). JSON status stays `already_installed`.  
+18e. The Android wrapper **MUST** let `grok -p` return to the shell. When the method is `proot`, the wrapper **MUST** pass `proot --kill-on-exit` when `proot --help` advertises that option (long option only — **MUST NOT** pass `-k`, which is `--kernel-release`). When argv includes `-p` / `--single` / `--prompt-file` / `--prompt-json`, the wrapper **MUST** pass grok `--no-auto-update` unless the operator already did, **MUST NOT** `exec` (stay parent), **MUST** SIGKILL the grok/proot child on SIGINT/SIGTERM (Ctrl-C), **and MUST** include the **PRoot-exit reaper** (`proot-exit-reaper`): treat **guest disappearance** (or idle stdout) as done, match leftovers by **args/exe** not truncated `comm`, kill only **new** `runsvdir` PIDs, then SIGKILL PRoot if it still will not exit. `--kill-on-exit` **MUST NOT** be treated as a guest-exit detector (PRoot often cannot determine grok exited). Interactive `grok` (no `-p`) **MUST** still `exec` so the TUI owns the TTY. **MUST NOT** byte-patch the vendor file. On Android, if grok already **runs** and `bin/grok` is a POSIX wrapper that lacks `--kill-on-exit`, `--no-auto-update`, **or** `proot-exit-reaper`, `setup` **MUST** rewrite that wrapper from the existing vendor file with **no** network (**MUST NOT** require `--force` for this heal). JSON status stays `already_installed`. Writing SSOT for the hang class: `requirement-shell-termux-coding` 2.4c.  
 18f. Routed verb **`run`** **MUST** start the peer grok with `--no-auto-update` unless the operator already passed that flag, then remaining grok argv (`{{APP_NAME}} run -p hello` → `grok --no-auto-update -p hello`). Missing grok → Next `{{APP_NAME}} setup`. `--json` **MUST NOT** exec grok (Next `{{APP_NAME}} run`). **MUST** `exec` the peer so grok owns the TTY. Dual mention `requirement-shell-cli-interface` · `requirement-domain-grok-cli`.  
 19. Version string **MUST** match `X.Y.Z` or `X.Y.Z-suffix` (`[A-Za-z0-9._]+`). Invalid pointer → fail closed.  
 20. Relative symlink **MUST** be used when `bin` and `downloads` share a parent (default `~/.grok/bin` → `../downloads/grok-{{os}}-{{arch}}`), **except** when rule 18c requires an Android exec wrapper: then `bin/grok` is that POSIX script (vendor file under `downloads` stays unmodified; `agent` **MAY** be a symlink to `grok`).  
@@ -230,6 +230,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 26. Pass `proot -k` meaning kill-on-exit (`-k` is `--kernel-release`).  
 27. Require `setup --force` (a re-download) to rewrite a stale Android wrapper that already runs.  
 28. Exec grok under `--json` for **`run`**, skip `--no-auto-update` when the operator did not pass it, or fail missing grok without Next `{{APP_NAME}} setup`.  
+29. Treat `--kill-on-exit` as a grok-exit detector, omit `proot-exit-reaper` from the Android `-p` wrapper, match leftovers by truncated `comm`, or require `--force` to heal a wrapper that lacks the reaper.  
 
 **Violating this rule is a critical setup / install-class regression.**
 
@@ -265,6 +266,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-24 | Android wrapper injects `--no-auto-update` for `-p` / `--single` and SIGKILLs the child on SIGINT |
 | AC-25 | Already-installed Android `proot` wrapper that lacks `--kill-on-exit` is rewritten with no curl; JSON/human still `already_installed` |
 | AC-26 | `run` execs peer grok with `--no-auto-update` (unless already in argv); missing grok Next `setup`; `--json` does not exec |
+| AC-27 | Android `proot` wrapper source contains `proot-exit-reaper` (guest-death reaper; args/exe match) (TP-VCLI-29) |
+| AC-28 | Already-installed wrapper that has `--kill-on-exit` but lacks `proot-exit-reaper` is rewritten with no curl (TP-VCLI-30) |
 
 ---
 
@@ -299,6 +302,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-04 | Active (2.6.1) | Dual mention: Termux host writing → `requirement-shell-termux-coding`; path classes → `requirement-project-folder` |
 | 2026-09-07 | Active (2.7.0) | Android wrapper: `proot --kill-on-exit`; `grok -p` `--no-auto-update` + SIGKILL on Ctrl-C; heal stale wrapper on skip (no `--force`) |
 | 2026-09-07 | Active (2.8.0) | Verb `run`: start peer grok with `--no-auto-update` (Termux hang) |
+| 2026-09-07 | Active (2.9.0) | Android `-p` wrapper: PRoot-exit reaper (guest already exited; args/exe match); heal if marker missing |
 
 ---
 
@@ -306,7 +310,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-VCLI-01**–**09**, **11**–**28** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01**–**09**, **11**–**30** | `tests/test_grok_setup.sh` | have |
 | **TP-GROK-CLI-46** | `tests/test_domain_grok_cli.sh` | have — `run` injects `--no-auto-update` |
 | **TP-CLI-04** (help lists setup and run) | `tests/test_cli.sh` | have |
 | **TP-CLI-13** (menu excludes setup) | `tests/test_cli.sh` | have |
@@ -314,6 +318,6 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07 (2.8.0)  
+**Last Updated**: 2026-09-07 (2.9.0 — PRoot-exit reaper on Android `-p` wrapper)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

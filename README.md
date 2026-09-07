@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.20-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.21-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -104,7 +104,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.20*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.21*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -118,7 +118,7 @@ On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** a
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.20*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.21*) — Alternative online installer for xAI grok
 logged in
 sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
@@ -216,7 +216,7 @@ grok-cli add-crontab
 
 ### Why grok under PRoot does not return to the shell
 
-**In one sentence:** on Termux, xAI’s `grok` often cannot run as a normal phone program, so `setup` starts it through **PRoot**; `grok -p hello` can print the answer and still leave leftover child processes, and PRoot waits for those children — your shell looks frozen until **Ctrl-Z**.
+**In one sentence:** on Termux, xAI’s `grok` often cannot run as a normal phone program, so `setup` starts it through **PRoot**; grok already printed and exited, but PRoot does not notice and keeps waiting — your shell looks frozen until **Ctrl-Z**.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
@@ -230,11 +230,11 @@ grok-cli add-crontab
 
 **What PRoot is.** PRoot (Ptrace ROOT) rewrites grok’s system calls with `ptrace`. It does **not** give you root. grok-cli uses it because the vendor `linux-aarch64` file is a static Linux executable (`ET_EXEC`). Android’s linker refuses that file (`unexpected e_type: 2`). Termux’s `/etc/resolv.conf` also has no `nameserver`, so musl inside grok fails DNS unless PRoot binds a file that does. The wrapper unsets `LD_PRELOAD` (termux-exec would re-hit `e_type` 2) and runs `proot` plus the **unmodified** vendor file.
 
-**Why `-p` does not exit.** Official grok `-p` is one-shot: print, then exit. After the answer, grok often still has leftover work (auto-update check, helper processes). PRoot’s default is to wait until **every traced process** is gone, not only grok’s main one. Your shell is waiting on `proot`; `proot` is waiting on those leftovers. `grok-cli --debug` showing a **22s** session step is the same hang from the menu’s live `grok -p hello` (timeout 20 + kill-after 2).
+**Why `-p` does not exit.** Official grok `-p` is one-shot: print, then exit. That guest **does exit**. PRoot often **cannot determine** that exit and stays in `do_wait` (new Termux `runsvdir` PIDs keep it waiting). Matching leftovers by truncated `comm` never fires (`/data/data/com.`). `--kill-on-exit` never runs until PRoot believes the command exited. From **1.8.21** the wrapper and the menu probe treat **guest death** (or idle stdout) as done, then reap only new `runsvdir` and SIGKILL PRoot if it still will not exit. If `proot` is not on PATH, grok-cli uses simple `grok -p hello`.
 
 **Why Ctrl-C fails and Ctrl-Z works.** Ctrl-C is `SIGINT` — grok/PRoot often ignore it (or treat it as “cancel this turn”). Ctrl-Z is `SIGTSTP` — the shell’s job control, usually not caught — so you get `Stopped`. An old wrapper did `exec proot grok …`, so there was no parent left to SIGKILL.
 
-**What grok-cli does (1.8.19).** The wrapper passes `proot --kill-on-exit` when PRoot advertises it (never `-k` — that is `--kernel-release`), injects grok `--no-auto-update` for `-p` / `--single`, and SIGKILLs the child on Ctrl-C. Interactive `grok` still `exec`s so the TUI owns the terminal. `grok-cli setup` rewrites a stale wrapper even when grok already runs (no `--force`). After `self-update` to **1.8.20**:
+**What grok-cli does (1.8.21).** The wrapper still passes `proot --kill-on-exit` (never `-k`) and `--no-auto-update` on `-p`, and now includes a **PRoot-exit reaper** (`proot-exit-reaper`): when grok-linux is gone, kill only new `runsvdir`, then SIGKILL PRoot if needed. The menu probe uses that reaper when `proot` is on PATH, else simple `grok -p hello`. Interactive `grok` still `exec`s so the TUI owns the terminal. `grok-cli setup` rewrites a stale wrapper even when grok already runs (no `--force`). After `self-update` to **1.8.21**:
 
 ```sh
 grok-cli setup
@@ -242,7 +242,7 @@ grok-cli run          # start grok without auto-update
 grok-cli run -p hello # must return to ~ $ without Ctrl-Z
 ```
 
-`grep kill-on-exit ~/.grok/bin/grok` should match. grok-cli’s own menu (Choice **9**) was already closable in **1.8.14**; that bound only the menu probe, not operator-facing `grok`. On Termux the numbered list starts with **run**.
+`grep proot-exit-reaper ~/.grok/bin/grok` should match. grok-cli’s own menu (Choice **9**) was already closable in **1.8.14**; that bound only the menu probe, not operator-facing `grok`. On Termux the numbered list starts with **run**.
 
 ## Related Projects
 
@@ -263,4 +263,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-07 — version **1.8.20**: `grok-cli run` starts grok without auto-update (Termux numbered list row **1**). Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-07 — version **1.8.21**: PRoot-exit reaper for `grok -p` (guest already exited; `proot` on PATH → reaper, else simple `-p`). Full history: [`CHANGELOG.md`](./CHANGELOG.md).

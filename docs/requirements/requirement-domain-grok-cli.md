@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-grok-cli.md  
-**Status**: Active (Version 1.5.0)  
+**Status**: Active (Version 1.6.0)  
 **Area**: domain  
 **Key**: `requirement-domain-grok-cli`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -34,7 +34,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 |---------|---------------|---------------|
 | Place grok | grok-cli fetches xAI’s version pointer and matching `grok` binary (does not run `install.sh`) | `grok-cli setup` |
 | Start grok on Termux | grok-cli starts grok with auto-update off so PRoot is not left hanging | `grok-cli run` |
-| Confirm login | grok-cli runs `grok -p hello` first (a file that only looks valid is not enough) | `grok-cli check-session` |
+| Confirm login | grok-cli runs `grok -p hello` first (a file that only looks valid is not enough). If `proot` is on PATH, that probe uses the PRoot reaper so the menu does not wait on PRoot | `grok-cli check-session` |
 | Push shared auth | After a valid session, grok-cli copies `auth.*` into `/var/grok-cli` as root | `grok-cli backup` |
 | Pull shared auth | A normal login copies from `/var/grok-cli` into `~/.grok` with no sudo | `grok-cli sync-auth` |
 | Pull from another host | `scp` that host’s store into `~/.grok` | `grok-cli sync-auth-from-remote user@192.0.2.10` |
@@ -50,7 +50,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 |---------|------------------|----------------|------------------|---------------|
 | `setup` | `--force` | `gc_*` | Fetch xAI channel + artifact and place peer `grok`; **MUST NOT** exec `install.sh`; skip if grok already runs on this host; Android ET_EXEC may place an exec wrapper | **`requirement-grok-setup`** |
 | `run` | remaining grok argv | `gc_*` | Start peer grok with `--no-auto-update` (unless already passed); missing grok Next `setup`; `--json` does not exec | **`requirement-grok-setup`** |
-| `check-session` | none | `gc_*` | Confirm grok is logged in (`grok -p hello` first) | **`requirement-grok-auth-backup`** |
+| `check-session` | none | `gc_*` | Confirm grok is logged in (`grok -p hello` first; if `proot` on PATH use the reaper, else simple `-p`) | **`requirement-grok-auth-backup`** (procedure) · **`requirement-shell-termux-coding`** (PRoot writing) |
 | `backup` | none | `gc_*` | Check session, then elevated deposit of `auth.*` into `/var/grok-cli` | **`requirement-grok-auth-backup`** |
 | `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo**; skip when already logged in | **`requirement-grok-auth-backup`** |
 | `sync-auth-from-remote` | SPEC (`user@IPv4`, IPv4, domain, `user@domain`) | `gc_*` | `scp` remote `/var/grok-cli/auth.*` into `~/.grok` **without sudo**; skip when already logged in | **`requirement-grok-auth-backup`** |
@@ -71,6 +71,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | Peer grok install | Expose `setup` (channel + artifact procedure; not grok-cli install; not `install.sh`) | `requirement-grok-setup` |
 | Start grok without auto-update | Expose `run` | `requirement-grok-setup` |
 | Grok session gate | Expose `check-session`; backup MUST call the same gate | `requirement-grok-auth-backup` |
+| PRoot-aware one-shot | Same gate: `command -v proot` → reaper; else simple `grok -p hello` | `requirement-shell-termux-coding` (writing) · `requirement-grok-auth-backup` (procedure) |
 | Auth deposit | Expose `backup` | `requirement-grok-auth-backup` |
 | Unprivileged sync | Expose `sync-auth` | `requirement-grok-auth-backup` |
 | Remote unprivileged sync | Expose `sync-auth-from-remote` | `requirement-grok-auth-backup` |
@@ -125,7 +126,7 @@ sudoer-{{YYYYMMDD}}-grok-cli-{{username}}-{{action}}-{{n}}.json
 |----------|-------------|
 | `setup` | Install grok from x.ai (channel + artifact; skip if grok already runs here) |
 | `run` | Start grok without auto-update (avoids Termux hang) |
-| `check-session` | Confirm grok is logged in (`grok -p hello` first) |
+| `check-session` | Confirm grok is logged in (`grok -p hello` first; PRoot reaper when `proot` is on PATH) |
 | `backup` | Check session, push `~/.grok/auth.*` to `/var/grok-cli` (passwordless `sudo grok-cli backup` after sudoer-adm) |
 | `sync-auth` | Copy `/var/grok-cli/auth.*` into `~/.grok` with no sudo |
 | `sync-auth-from-remote` | Copy a remote host's `/var/grok-cli/auth.*` into `~/.grok` |
@@ -247,6 +248,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-3 | Dispatcher routes those verbs; `restore` is unknown |
 | AC-4 | JSON grant sample in this file names backup only |
 | AC-5 | Sole Active domain file |
+| AC-6 | `check-session` / menu session probe: `proot` on PATH uses reaper; else simple `grok -p hello` |
 
 ---
 
@@ -261,6 +263,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `docs/requirements/requirement-three-layer-privilege-model.md` | Privilege workflow |
 | `docs/requirements/requirement-sudoer-json-file.md` | JSON grant body |
 | `docs/requirements/requirement-shell-cli-interface.md` | Dual mention of verbs |
+| `docs/requirements/requirement-shell-termux-coding.md` | PRoot exit hang writing + probe dispatch |
 | `./src/grok-cli` | Implementation |
 
 ---
@@ -281,6 +284,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-04 | Active (1.4.5) | `setup` Android proot resolv bind (dual mention `requirement-grok-setup` 2.6.0) |
 | 2026-09-05 | Active (1.4.6) | `check-session` live `grok -p hello` (dual mention `requirement-grok-auth-backup` 1.2.0) |
 | 2026-09-07 | Active (1.5.0) | `run` starts peer grok without auto-update (dual mention `requirement-grok-setup` 2.8.0) |
+| 2026-09-07 | Active (1.6.0) | `check-session` / menu probe: `proot` on PATH → reaper; else simple `grok -p hello` (dual mention Termux writing + auth-backup) |
 
 ---
 
@@ -295,10 +299,11 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-GROK-CLI-26**–**29** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-30**–**38** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-46** | `tests/test_domain_grok_cli.sh` | have — `run` `--no-auto-update` |
+| **TP-GROK-CLI-47**, **TP-GROK-CLI-48** | `tests/test_domain_grok_cli.sh` | have — probe dispatch `command -v proot` → reaper; else simple `-p` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07 (1.5.0)  
+**Last Updated**: 2026-09-07 (1.6.0 — PRoot-aware `grok -p` dispatch)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

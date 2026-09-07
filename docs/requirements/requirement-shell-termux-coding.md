@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-termux-coding.md  
-**Status**: Active (Version 1.3.0)  
+**Status**: Active (Version 1.4.0)  
 **Area**: shell  
 **Key**: `requirement-shell-termux-coding`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -20,7 +20,7 @@ This is **not** a second language coding-style file. POSIX `/bin/sh` style (`set
 | grok-cli checkout `install` dest | `requirement-shell-local-self-management` |
 | `setup` procedure (channel, artifact, wrapper, `pkg install proot`, resolv bind) | `requirement-grok-setup` |
 | `/var/grok-cli` deposit + **session procedure** (`grok -p hello`) | `requirement-grok-auth-backup` |
-| **This file** | How every CLI path **must be written** so those peers still work on Termux |
+| **This file** | How every CLI path **must be written** so those peers still work on Termux; **PRoot exit hang** writing (guest already exited; PRoot still waits) |
 
 ### 1.1 Human-facing
 
@@ -45,6 +45,7 @@ This is **not** a second language coding-style file. POSIX `/bin/sh` style (`set
 |---------|---------------|---------------|
 | Add a helper that runs a downloaded file | Do not `chmod +x` something only under `/tmp` or the cache folder — those mounts often refuse exec on Termux. Smoke from `~/.grok/downloads`. | Edit `src/grok-cli`; run `grok-cli setup` |
 | Need a Termux package | Call `pkg install -y` as this login (stdin closed). Do not `sudo pkg`. Do not call `pkg` on a Linux laptop. | `grok-cli setup` (installs `proot` when needed) |
+| One-shot `grok -p` under PRoot | grok already printed; PRoot did not notice. If `proot` is on PATH, use the reaper (guest death + new `runsvdir`); else the simple `grok -p hello`. | `grok-cli check-session` · `grok-cli run -p hello` |
 
 Jargon: you run these commands **as yourself** on the phone. Shared `/var/grok-cli` backup still needs a Linux host with sudo — this file does not invent a Termux substitute for that folder.
 
@@ -102,16 +103,62 @@ Rules:
 18. On Android, after a direct exec of a static Linux `ET_EXEC` fails, writers **MUST** follow `requirement-grok-setup` 18c–18e / 21b (opt-out, `pkg` `proot`, wrapper, `--kill-on-exit`, `grok -p` SIGKILL, resolv bind). **MUST NOT** byte-patch vendor ELF (`e_type` or the `/etc/resolv.conf` string).  
 19. When execing that vendor file or `proot`, **MUST** unset `LD_PRELOAD` and set `TERMUX_EXEC_OPTOUT=1` for that exec, then restore. **MUST NOT** leave `LD_PRELOAD` cleared for the rest of the CLI.  
 20. **MUST NOT** run `proot` against the vendor grok while Termux `LD_PRELOAD` (libtermux-exec) is still set.  
-20b. The Android `proot` wrapper **MUST** pass `proot --kill-on-exit` when advertised (never `-k`). For `-p` / `--single` it **MUST** pass grok `--no-auto-update` and SIGKILL the child on Ctrl-C so the operator is not stuck until Ctrl-Z. Procedure SSOT is `requirement-grok-setup` 18e.
+20b. The Android `proot` wrapper **MUST** pass `proot --kill-on-exit` when advertised (never `-k`). For `-p` / `--single` it **MUST** pass grok `--no-auto-update` and SIGKILL the child on Ctrl-C so the operator is not stuck until Ctrl-Z. Procedure SSOT is `requirement-grok-setup` 18e. **`--kill-on-exit` is not enough** when PRoot cannot see grok exit (rule 20c).
 
 ### 2.4b Session probe (writing rules; procedure SSOT is `requirement-grok-auth-backup`)
 
 A credential file on the phone can look valid while grok cannot reach `auth.x.ai` (no nameserver, wrapper missing, `ET_EXEC`). Writers **MUST** exec the **resolved peer** (`{{GROK_HOME}}/bin/grok` wrapper when that is what `setup` placed).
 
 21b. The session probe **MUST** be `grok -p hello` with stdin closed. **MUST NOT** hang under `--json` / off-TTY / the numbered menu. **MUST** bound the probe even when `timeout` is missing. When GNU `timeout` is on PATH, **MUST** use kill-after (`timeout -k`) so a `proot` child that ignores SIGTERM cannot freeze the menu. When that `timeout` is missing or does not support kill-after, **MUST** still bound with a POSIX watchdog (`kill` then `kill -9`). Procedure SSOT remains `requirement-grok-auth-backup`.  
+21c. **Dispatch (mandatory):** if `command -v proot` succeeds, the probe **MUST** use the **PRoot reaper** path (rule 20c / sample below). If `proot` is **not** on PATH, the probe **MUST** run the **simple** `grok -p hello` (existing bounded helper). **MUST NOT** wait on the PRoot PID as the only done signal. Dual mention: `requirement-grok-auth-backup` · `requirement-domain-grok-cli`.  
 22b. **MUST** exec the path `gc_resolve_grok_peer` returns (the POSIX wrapper when setup wrote one). **MUST NOT** smoke `grok -p hello` from cache/`/tmp`/`/dev/shm`.  
 23b. **MUST NOT** print grok’s answer. Core tests **MUST** fake `GROK_BIN` (no xAI).  
 24b. A `dns error` from the probe is a **session** failure (`requirement-grok-auth-backup`), not an install failure. Next stays `grok login` (or `export XAI_API_KEY`). Do **not** invent a Termux `/var/grok-cli`.
+
+### 2.4c PRoot exit hang (writing rules)
+
+The hang after `grok -p` prints is **not** “leftover grok helpers still working.” The Linux guest (`grok-linux-aarch64` or the vendor file) **already exited**. PRoot **cannot determine that exit** and stays in `do_wait`. New Termux `runsvdir` PIDs that appeared after start keep PRoot waiting. `--kill-on-exit` never runs until PRoot believes the initial command exited.
+
+20c. Writers **MUST** treat **guest disappearance** (or idle stdout with a non-empty reply) as done. Then: kill only **new** `runsvdir` PIDs (snapshot before start); if PRoot still will not exit, SIGKILL PRoot. Print the reply from captured files even if PRoot is SIGKILL’d.  
+20d. Leftover discovery **MUST** match **args / exe paths** (`…/runsvdir`, `…/grok-linux-aarch64`). **MUST NOT** match `ps -o comm=` — Termux truncates `comm` to `/data/data/com.`, so `comm == runsvdir` never fires and used to wait the full timeout after every reply.  
+20e. Nested PRoot **MUST NOT** run: if `TERMUX_EXEC__PROC_SELF_EXE` already contains `proot`, exec the vendor Linux file directly (inner PRoot + guest go to `ptrace_stop`).  
+20f. **MUST NOT** kill Termux’s own `runsvdir` that existed before this grok start.
+
+**Suggested sample (complete — live copy is `gc_grok_p_once_run` in the ship unit).** Dispatch first; reaper only when `proot` is on PATH:
+
+```sh
+# Dispatch: proot present → reaper; else simple grok -p hello
+if command -v proot >/dev/null 2>&1; then
+    gc_grok_p_once_run   # collector + reaper; sets _ec; writes $_out
+else
+    # simple one-shot (GNU timeout -k or POSIX watchdog)
+    gc_grok_prompt_run_simple
+fi
+```
+
+```sh
+# Match exe path, not truncated comm. Snapshot runsvdir before start.
+# Collector = grok/proot PID. Reaper: guest gone or stdout idle
+# → kill only NEW runsvdir → SIGKILL collector if still alive.
+list_runsvdir() {
+    ps -eo pid= -o args= | awk '
+        $2 ~ /\/runsvdir$/ || $2 == "runsvdir" { print $1 }
+    ' | sort
+}
+find_linux_child() {
+    ps -eo pid= -o ppid= -o args= | awk -v pp="$COLLECTOR" '
+        $2 == pp && ($3 ~ /\/grok-linux-aarch64$/ || $3 == "grok-linux-aarch64") {
+            print $1; exit
+        }
+    '
+}
+# After grok-linux was seen then gone (or idle stdout):
+#   reap_new_runsvdir
+#   wait briefly; if COLLECTOR still alive: kill then kill -9
+# Always cat captured stdout (even after SIGKILL).
+```
+
+**Invocation:** `{{APP_NAME}} check-session` · `{{APP_NAME}} run -p hello` · menu session line (same probe).
 
 ### 2.5 PATH and bins (writing rules)
 
@@ -136,6 +183,8 @@ A credential file on the phone can look valid while grok cannot reach `auth.x.ai
 | grok-cli global bin | `/usr/local/bin/grok-cli` (Linux multi-user; often absent on Termux) |
 | Deposit | `/var/grok-cli` — not a Termux substitute |
 | Session probe | `gc_grok_prompt_hello` (`grok -p hello`; stdin closed; fake `GROK_BIN` in Core tests) |
+| PRoot dispatch | `command -v proot` → `gc_grok_p_once_run`; else simple bounded `grok -p hello` |
+| Reaper marker | wrapper source contains `proot-exit-reaper` |
 | Core tests | `tests/test_grok_setup.sh` fakes Android `uname`, `pkg`, `proot`; `tests/test_domain_grok_cli.sh` fakes `GROK_BIN` |
 
 **Detect helper (complete sample — live copy is the ship unit):**
@@ -221,7 +270,9 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 12. Require `bash` because Termux happens to ship it.  
 13. Treat `auth.json` parse as logged-in on Termux without `grok -p hello` (DNS / wrapper / `ET_EXEC` would stay hidden).  
 14. Hang the session probe or the numbered menu waiting for an interactive `grok login`, or freeze them because `timeout` is missing or `proot`/grok ignores SIGTERM (no kill-after / no watchdog).  
-14b. Leave the operator-facing `bin/grok` wrapper as bare `exec proot` so `grok -p` hangs after the answer until Ctrl-Z, or pass `proot -k` as kill-on-exit.
+14b. Leave the operator-facing `bin/grok` wrapper as bare `exec proot` so `grok -p` hangs after the answer until Ctrl-Z, or pass `proot -k` as kill-on-exit.  
+14c. Treat leftover grok helpers as the hang cause when the guest already exited, match leftovers by truncated `comm`, wait on the PRoot PID as the only done signal, skip the reaper when `proot` is on PATH, or run nested PRoot.  
+14d. Skip the simple `grok -p hello` path when `proot` is **not** on PATH.
 
 15. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
@@ -243,6 +294,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-8 | No Termux-local substitute for `/var/grok-cli` in the ship unit |
 | AC-9 | Session probe is `grok -p hello` on the resolved peer, stdin closed, Core tests fake `GROK_BIN` |
 | AC-10 | Hanging peer (SIGTERM ignored) does not freeze `check-session` or the Termux numbered menu (TP-GROK-CLI-44 · TP-GROK-CLI-45 · TP-CLI-21) |
+| AC-11 | Probe source dispatches: `command -v proot` → `gc_grok_p_once_run`; else simple `grok -p hello` (TP-GROK-CLI-47 · TP-GROK-CLI-48) |
+| AC-12 | Android `proot` wrapper source contains `proot-exit-reaper` and matches args/exe not `comm` (TP-VCLI-29 · TP-VCLI-30) |
 
 ---
 
@@ -269,6 +322,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-05 | Active (1.1.0) | Session probe writing: exec resolved peer `grok -p hello` (stdin closed; no hang; fake in Core tests) |
 | 2026-09-07 | Active (1.2.0) | Probe always bounded; GNU `timeout -k` or POSIX watchdog so Termux `proot` ignoring SIGTERM cannot freeze the menu |
 | 2026-09-07 | Active (1.3.0) | Android wrapper `--kill-on-exit` + `grok -p` SIGKILL (setup 18e); dual mention |
+| 2026-09-07 | Active (1.4.0) | PRoot exit hang: guest already exited; reaper + `command -v proot` dispatch vs simple `grok -p hello` |
 
 ---
 
@@ -278,16 +332,18 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 |----------------|-------|--------|
 | **TP-VCLI-15**, **TP-VCLI-16** | `tests/test_grok_setup.sh` | have — smoke under `~/.grok/downloads` (not cache/`noexec` tmp) |
 | **TP-VCLI-17**, **TP-VCLI-18** | `tests/test_grok_setup.sh` | have — wrong ELF / cannot-run is not already installed |
-| **TP-VCLI-19**–**28** | `tests/test_grok_setup.sh` | have — Android ET_EXEC, `pkg install -y proot`, `LD_PRELOAD` unset, resolv bind, `--kill-on-exit` / `-p` SIGKILL, heal stale wrapper |
+| **TP-VCLI-19**–**30** | `tests/test_grok_setup.sh` | have — Android ET_EXEC, `pkg install -y proot`, `LD_PRELOAD` unset, resolv bind, `--kill-on-exit` / `-p` SIGKILL, `proot-exit-reaper`, heal stale wrapper |
 | **TP-LC-01** | `tests/test_local_lifecycle.sh` | have — grok-cli install → `USER_BIN` (not PREFIX) |
 | **TP-CLI-01** | `tests/test_cli.sh` | have — `sh -n`; shebang `/bin/sh` |
 | **TP-GROK-CLI-35**–**38** | `tests/test_domain_grok_cli.sh` | have — live `grok -p hello` fake peer; no xAI; no hang |
 | **TP-GROK-CLI-44**, **TP-GROK-CLI-45** | `tests/test_domain_grok_cli.sh` | have — SIGTERM-ignoring grok fail-closes (`timeout -k` / watchdog) |
 | **TP-CLI-21** | `tests/test_cli.sh` | have — Termux menu with hanging grok still prints the list |
+| **TP-GROK-CLI-47**, **TP-GROK-CLI-48** | `tests/test_domain_grok_cli.sh` | have — probe dispatch `command -v proot` → reaper; else simple `-p` |
+| **TP-VCLI-29**, **TP-VCLI-30** | `tests/test_grok_setup.sh` | have — wrapper `proot-exit-reaper`; heal stale wrapper without reaper |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07 (1.3.0 — Android wrapper `--kill-on-exit` + `grok -p` SIGKILL; dual mention of setup 18e)  
+**Last Updated**: 2026-09-07 (1.4.0 — PRoot exit hang: guest already exited; proot-present reaper vs simple `grok -p hello`)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

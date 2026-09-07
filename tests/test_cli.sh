@@ -564,6 +564,8 @@ AUTH
     assert_contains "TP-CLI-23 bounded helper" "${_src}" "gc_grok_prompt_run_bounded"
     assert_contains "TP-CLI-23 GNU timeout -k" "${_src}" 'timeout -k'
     assert_contains "TP-CLI-23 watchdog SIGKILL" "${_src}" "kill -9"
+    assert_contains "TP-CLI-23 PRoot reaper helper" "${_src}" "gc_grok_p_once_run"
+    assert_contains "TP-CLI-23 PRoot dispatch" "${_src}" 'command -v proot'
 
     # TP-CLI-25 / 26 / 27 / 28: --debug menu elapsed (internal-timer).
     _src=$(cat "${SCRIPT}")

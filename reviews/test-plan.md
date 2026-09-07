@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.20  
+**Product VERSION:** 1.8.21  
 **Last plan update:** 2026-09-07  
-**Last suite run:** `./tests/run.sh` (1.8.20: PASS=678 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.8.21: PASS=692 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -121,6 +121,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-VCLI-26 | Android `proot` wrapper source contains `--kill-on-exit` (not `-k`) | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
 | TP-VCLI-27 | Android wrapper injects `--no-auto-update` for `-p` and SIGKILLs the child on SIGINT | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
 | TP-VCLI-28 | Already-installed Android `proot` wrapper lacking `--kill-on-exit` is rewritten with no curl | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-29 | Android `proot` wrapper source contains `proot-exit-reaper` and matches args/exe | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
+| TP-VCLI-30 | Already-installed wrapper with `--kill-on-exit` but no `proot-exit-reaper` is rewritten with no curl | test_grok_setup | requirement-grok-setup | **have** |
 | TP-GROK-CLI-46 | `run` injects `--no-auto-update`; missing grok Next setup; `--json` does not exec | test_domain_grok_cli | requirement-grok-setup · requirement-shell-cli-interface · requirement-domain-grok-cli | **have** |
 
 ### TP-ONL (grok-cli channel install)
@@ -179,3 +181,5 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-43 | `sync-auth-from-remote` with valid live session does not scp; same skip message; dest unchanged | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-44 | SIGTERM-ignoring grok still fail-closes `check-session` within the bound (GNU `timeout -k`; no freeze) | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
 | TP-GROK-CLI-45 | same hang without GNU `timeout -k` uses POSIX watchdog; still fail-closes | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
+| TP-GROK-CLI-47 | Ship unit dispatches `command -v proot` → `gc_grok_p_once_run` (reaper marker) | test_domain_grok_cli | grok-auth-backup · termux-coding · domain | **have** |
+| TP-GROK-CLI-48 | Fake `proot` on PATH: instant grok `check-session` still exit 0 (reaper path, no freeze) | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |

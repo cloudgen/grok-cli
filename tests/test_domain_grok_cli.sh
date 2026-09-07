@@ -1144,4 +1144,35 @@ EOS
     assert_eq "TP-GROK-CLI-46 missing grok exit 1" 1 "${_ec}"
     assert_contains "TP-GROK-CLI-46 missing grok Next setup" "${_err}" "setup"
     ci_cleanup_env
+
+    # TP-GROK-CLI-47 source dispatch: proot on PATH uses reaper.
+    _src=$(cat "${SCRIPT}")
+    assert_contains "TP-GROK-CLI-47 gc_grok_p_once_run" "${_src}" "gc_grok_p_once_run"
+    assert_contains "TP-GROK-CLI-47 command -v proot dispatch" "${_src}" 'command -v proot'
+    assert_contains "TP-GROK-CLI-47 proot-exit-reaper marker" "${_src}" "proot-exit-reaper"
+
+    # TP-GROK-CLI-48 with fake proot on PATH, instant grok still succeeds
+    # (reaper path; collector exits; no hang).
+    ci_isolated_env
+    ci_fake_grok_ok
+    gc_write_valid_auth "${CI_HOME}/.grok"
+    cat > "${CI_USER_BIN}/proot" <<'EOS'
+#!/bin/sh
+exec "$@"
+EOS
+    chmod +x "${CI_USER_BIN}/proot"
+    _start=$(date +%s)
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        PATH="${CI_USER_BIN}:${PATH}" \
+        GROK_PROMPT_TIMEOUT=8 GROK_PROMPT_KILL_AFTER=1 \
+        sh "${SCRIPT}" check-session 2>&1 >/dev/null)
+    _ec=$?
+    _elapsed=$(($(date +%s) - _start))
+    assert_eq "TP-GROK-CLI-48 proot-path check-session exit 0" 0 "${_ec}"
+    if [ "${_elapsed}" -lt 12 ]; then
+        t_pass "TP-GROK-CLI-48 reaper path did not freeze (${_elapsed}s)"
+    else
+        t_fail "TP-GROK-CLI-48 reaper path froze for ${_elapsed}s"
+    fi
+    ci_cleanup_env
 }

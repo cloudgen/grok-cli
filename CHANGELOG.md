@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.21] - 2026-09-07
+
+### Fixed
+
+- **PRoot cannot determine grok exited:** leftover discovery via truncated `comm` was inexact. `grok-linux` already exits after the reply; PRoot stays in `do_wait` (often new Termux `runsvdir` PIDs). `--kill-on-exit` never fires. Session probe: if `proot` is on PATH, run the collector/reaper (`gc_grok_p_once_run` — match args/exe, reap only new `runsvdir`, SIGKILL PRoot if needed); else simple `grok -p hello`. Android wrapper `-p` includes the same reaper (`proot-exit-reaper`); `setup` heals a wrapper that lacks the marker. Law: `requirement-shell-termux-coding` **1.4.0** · `requirement-grok-setup` **2.9.0** · `requirement-grok-auth-backup` **1.6.0** · `requirement-domain-grok-cli` **1.6.0**. Suite **TP-VCLI-29** · **TP-VCLI-30** · **TP-GROK-CLI-47** · **TP-GROK-CLI-48**. Incident **INC-20260907-003**.
+
 ## [1.8.20] - 2026-09-07
 
 ### Added
