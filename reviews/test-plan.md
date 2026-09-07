@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.21  
+**Product VERSION:** 1.8.22  
 **Last plan update:** 2026-09-07  
-**Last suite run:** `./tests/run.sh` (1.8.21: PASS=692 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.8.22: PASS=694 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -123,6 +123,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-VCLI-28 | Already-installed Android `proot` wrapper lacking `--kill-on-exit` is rewritten with no curl | test_grok_setup | requirement-grok-setup | **have** |
 | TP-VCLI-29 | Android `proot` wrapper source contains `proot-exit-reaper` and matches args/exe | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
 | TP-VCLI-30 | Already-installed wrapper with `--kill-on-exit` but no `proot-exit-reaper` is rewritten with no curl | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-31 | Android `proot` wrapper binds `/dev/null` over `profile.d/start-services.sh` | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
 | TP-GROK-CLI-46 | `run` injects `--no-auto-update`; missing grok Next setup; `--json` does not exec | test_domain_grok_cli | requirement-grok-setup · requirement-shell-cli-interface · requirement-domain-grok-cli | **have** |
 
 ### TP-ONL (grok-cli channel install)

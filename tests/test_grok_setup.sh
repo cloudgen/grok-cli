@@ -614,6 +614,8 @@ EOS
     assert_contains "TP-VCLI-26 wrapper uses --kill-on-exit" "${_wrap}" "kill-on-exit"
     assert_contains "TP-VCLI-29 wrapper has proot-exit-reaper" "${_wrap}" "proot-exit-reaper"
     assert_contains "TP-VCLI-29 wrapper matches args not comm" "${_wrap}" "ps -eo pid="
+    assert_contains "TP-VCLI-31 wrapper binds start-services.sh" "${_wrap}" "profile.d/start-services.sh"
+    assert_contains "TP-VCLI-31 wrapper no-op is /dev/null" "${_wrap}" "/dev/null:"
     assert_not_contains "TP-VCLI-26 wrapper does not use -k for kill" "${_wrap}" " -k "
     assert_contains "TP-VCLI-27 wrapper injects --no-auto-update for -p" "${_wrap}" "--no-auto-update"
     assert_contains "TP-VCLI-27 wrapper SIGKILLs hung -p" "${_wrap}" "kill -KILL"

@@ -41,7 +41,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.21"
+# VERSION: hard-assign VERSION="1.8.22"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -57,8 +57,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.21"
-: "${VERSION:=1.8.21}"
+VERSION="1.8.22"
+: "${VERSION:=1.8.22}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -2999,6 +2999,14 @@ if command -v grep >/dev/null 2>&1; then
     _k="--kill-on-exit"
   fi
 fi
+# Login bash under this PRoot sources profile.d/start-services.sh,
+# which start-stop-daemon -b runsvdir. Those daemons stay tracees
+# after grok-linux exits (wait4 -1 __WALL). Bind a no-op; do not
+# edit Termux's file. PREFIX is Termux's prefix when set.
+_svc=""
+if [ -n "\${PREFIX:-}" ] && [ -f "\${PREFIX}/etc/profile.d/start-services.sh" ]; then
+  _svc="-b /dev/null:\${PREFIX}/etc/profile.d/start-services.sh"
+fi
 _pflag=0
 _nau=""
 for _a in "\$@"; do
@@ -3014,8 +3022,8 @@ else
 fi
 if [ "\${_pflag}" -eq 1 ]; then
   # grok-cli proot-exit-reaper
-  # Guest already exited; PRoot cannot determine that (do_wait).
-  # Match args/exe, not truncated comm. Reap only NEW runsvdir.
+  # grok-linux _exit()s; leftover runsvdir (bash -lc → start-services.sh)
+  # stay PRoot tracees. Match args/exe, not truncated comm. Reap NEW only.
   _tmp="\${TMPDIR:-\${TMP:-/tmp}}"
   _out=\$(mktemp "\${_tmp}/grok-p-out.XXXXXX") || exit 1
   _err=\$(mktemp "\${_tmp}/grok-p-err.XXXXXX") || exit 1
@@ -3032,7 +3040,7 @@ if [ "\${_pflag}" -eq 1 ]; then
     rm -f "\${_out}" "\${_err}" "\${_before}"
     exit 130
   ' INT TERM
-  "\${_p}" \${_k} ${_gew_bind}"\${_g}" \${_nau} "\$@" >"\${_out}" 2>"\${_err}" &
+  "\${_p}" \${_k} \${_svc} ${_gew_bind}"\${_g}" \${_nau} "\$@" >"\${_out}" 2>"\${_err}" &
   _pid=\$!
   (
     _seen=0
@@ -3103,7 +3111,7 @@ if [ "\${_pflag}" -eq 1 ]; then
   rm -f "\${_out}" "\${_err}" "\${_before}"
   exit 1
 fi
-exec "\${_p}" \${_k} ${_gew_bind}"\${_g}" "\$@"
+exec "\${_p}" \${_k} \${_svc} ${_gew_bind}"\${_g}" "\$@"
 EOF
     else
         cat > "${_gew_path}" <<EOF
@@ -3226,8 +3234,10 @@ gc_setup_heal_android_wrapper() {
     if grep -q kill-on-exit "${_haw_peer}" 2>/dev/null; then
         if grep -q no-auto-update "${_haw_peer}" 2>/dev/null; then
             if grep -q proot-exit-reaper "${_haw_peer}" 2>/dev/null; then
-                unset _haw_peer _haw_head
-                return 0
+                if grep -q 'profile.d/start-services.sh' "${_haw_peer}" 2>/dev/null; then
+                    unset _haw_peer _haw_head
+                    return 0
+                fi
             fi
         fi
     fi

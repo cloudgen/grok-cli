@@ -71,7 +71,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | Peer grok install | Expose `setup` (channel + artifact procedure; not grok-cli install; not `install.sh`) | `requirement-grok-setup` |
 | Start grok without auto-update | Expose `run` | `requirement-grok-setup` |
 | Grok session gate | Expose `check-session`; backup MUST call the same gate | `requirement-grok-auth-backup` |
-| PRoot-aware one-shot | Same gate: `command -v proot` → reaper; else simple `grok -p hello` | `requirement-shell-termux-coding` (writing) · `requirement-grok-auth-backup` (procedure) |
+| PRoot-aware one-shot | Same gate: `command -v proot` → reaper; else simple `grok -p hello`. Hang chain is leftover `runsvdir` from `bash -lc` → `start-services.sh` | `requirement-shell-termux-coding` (writing) · `requirement-grok-auth-backup` (procedure) |
 | Auth deposit | Expose `backup` | `requirement-grok-auth-backup` |
 | Unprivileged sync | Expose `sync-auth` | `requirement-grok-auth-backup` |
 | Remote unprivileged sync | Expose `sync-auth-from-remote` | `requirement-grok-auth-backup` |
