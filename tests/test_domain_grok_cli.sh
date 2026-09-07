@@ -130,32 +130,49 @@ run_test_domain_grok_cli() {
     # TP-GROK-CLI-03 check-session missing peer grok
     _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" sh "${SCRIPT}" check-session 2>&1 >/dev/null)
     assert_eq "TP-GROK-CLI-03 check-session missing grok exit 1" 1 "$?"
-    assert_contains "TP-GROK-CLI-03 not installed" "$_err" "not installed"
-    assert_contains "TP-GROK-CLI-03 next setup" "$_err" "setup"
     assert_contains "TP-GROK-CLI-03 next grok login" "$_err" "grok login"
+    if ci_session_uses_local_auth; then
+        assert_contains "TP-GROK-CLI-03 local-auth not logged in" "$_err" "not logged in"
+        assert_contains "TP-GROK-CLI-03 local-auth cookies" "$_err" "local auth cookies"
+    else
+        assert_contains "TP-GROK-CLI-03 not installed" "$_err" "not installed"
+        assert_contains "TP-GROK-CLI-03 next setup" "$_err" "setup"
+    fi
 
-    # TP-GROK-CLI-04 auth.json looks valid but grok -p hello fails (file check is not enough)
+    # TP-GROK-CLI-04 auth.json looks valid but grok -p hello fails
     gc_write_valid_auth "${CI_HOME}/.grok"
     ci_fake_grok_fail
     _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
         sh "${SCRIPT}" check-session 2>&1 >/dev/null)
-    assert_eq "TP-GROK-CLI-04 probe fail exit 1" 1 "$?"
-    assert_contains "TP-GROK-CLI-04 not logged in" "$_err" "not logged in"
-    assert_contains "TP-GROK-CLI-04 next grok login" "$_err" "grok login"
+    _ec=$?
+    if ci_session_uses_local_auth; then
+        assert_eq "TP-GROK-CLI-04 local-auth cookies win exit 0" 0 "${_ec}"
+    else
+        assert_eq "TP-GROK-CLI-04 probe fail exit 1" 1 "${_ec}"
+        assert_contains "TP-GROK-CLI-04 not logged in" "$_err" "not logged in"
+        assert_contains "TP-GROK-CLI-04 next grok login" "$_err" "grok login"
+    fi
 
-    # TP-GROK-CLI-05 check-session valid = grok -p hello exit 0
+    # TP-GROK-CLI-05 check-session valid
     ci_fake_grok_ok
     _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
         sh "${SCRIPT}" check-session 2>&1)
     assert_eq "TP-GROK-CLI-05 valid session exit 0" 0 "$?"
-    assert_contains "TP-GROK-CLI-05 probe text" "$_out" "grok -p hello"
+    if ci_session_uses_local_auth; then
+        assert_contains "TP-GROK-CLI-05 local-auth text" "$_out" "local auth cookies"
+    else
+        assert_contains "TP-GROK-CLI-05 probe text" "$_out" "grok -p hello"
+    fi
     assert_not_contains "TP-GROK-CLI-05 no grok answer leak" "$_out" "hello-from-fake-grok"
     _j=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
         sh "${SCRIPT}" --json check-session 2>/dev/null)
     assert_contains "TP-GROK-CLI-05 json session valid" "${_j}" '"session":"valid"'
 
-    # TP-GROK-CLI-06 backup without live session fail-closed
+    # TP-GROK-CLI-06 backup without session fail-closed
     ci_fake_grok_fail
+    if ci_session_uses_local_auth; then
+        rm -f "${CI_HOME}/.grok/auth.json"
+    fi
     _store="${CI_HOME}/var-grok-cli"
     mkdir -p "${_store}"
     _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
@@ -198,6 +215,9 @@ run_test_domain_grok_cli() {
     assert_contains "TP-GROK-CLI-09 dest token" "$(cat "${_other}/auth.json")" "test-refresh-token"
 
     # TP-GROK-CLI-10 sync-auth missing store fail-closed
+    if ci_session_uses_local_auth; then
+        rm -f "${CI_HOME}/.grok/auth.json"
+    fi
     _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_CLI_ROOT="${CI_HOME}/no-store" \
         env -u GROK_BIN sh "${SCRIPT}" sync-auth 2>&1 >/dev/null)
     assert_eq "TP-GROK-CLI-10 missing store exit 1" 1 "$?"
@@ -875,9 +895,8 @@ PY
     # TP-GROK-CLI-43 sync-auth-from-remote skips when grok is already logged in
     : > "${_scp_log}"
     _keep2="${CI_HOME}/keep-grok-remote"
-    mkdir -p "${_keep2}"
-    printf 'keep-remote\n' > "${_keep2}/auth.json"
-    chmod 0600 "${_keep2}/auth.json"
+    gc_write_valid_auth "${_keep2}"
+    _keep2_body=$(cat "${_keep2}/auth.json")
     _out=$(HOME="${CI_HOME}" GROK_HOME="${_keep2}" GROK_BIN="${GROK_BIN}" \
         GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
         GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
@@ -886,7 +905,7 @@ PY
     assert_contains "TP-GROK-CLI-43 skip message" "$_out" \
         "No sync-auth for logged-in environment."
     assert_not_contains "TP-GROK-CLI-43 did not copy" "$_out" "sync-auth-from-remote complete"
-    assert_eq "TP-GROK-CLI-43 dest unchanged" "keep-remote" "$(tr -d '\r\n' < "${_keep2}/auth.json")"
+    assert_eq "TP-GROK-CLI-43 dest unchanged" "${_keep2_body}" "$(cat "${_keep2}/auth.json")"
     assert_eq "TP-GROK-CLI-43 no scp" "" "$(cat "${_scp_log}")"
     _j=$(HOME="${CI_HOME}" GROK_HOME="${_keep2}" GROK_BIN="${GROK_BIN}" \
         GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
@@ -896,15 +915,22 @@ PY
     assert_contains "TP-GROK-CLI-43 json skipped" "${_j}" '"status":"skipped"'
     assert_contains "TP-GROK-CLI-43 json reason" "${_j}" '"reason":"logged-in"'
 
-    # TP-GROK-CLI-35 live probe wins over expired auth.json
+    # TP-GROK-CLI-35 expired auth.json vs live probe / local cookies
     gc_write_expired_auth "${CI_HOME}/.grok"
     ci_fake_grok_ok
     _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
         sh "${SCRIPT}" check-session 2>&1)
-    assert_eq "TP-GROK-CLI-35 expired file + probe ok exit 0" 0 "$?"
-    assert_contains "TP-GROK-CLI-35 probe text" "$_out" "grok -p hello"
+    _ec=$?
+    if ci_session_uses_local_auth; then
+        assert_eq "TP-GROK-CLI-35 expired cookies fail-closed" 1 "${_ec}"
+        assert_contains "TP-GROK-CLI-35 local-auth invalid" "$_out" "local auth cookies"
+    else
+        assert_eq "TP-GROK-CLI-35 expired file + probe ok exit 0" 0 "${_ec}"
+        assert_contains "TP-GROK-CLI-35 probe text" "$_out" "grok -p hello"
+    fi
 
     # TP-GROK-CLI-36 probe stdout is not printed (no token/answer leak)
+    gc_write_valid_auth "${CI_HOME}/.grok"
     _tokfake="${CI_USER_BIN}/grok-secret"
     mkdir -p "${CI_USER_BIN}"
     cat > "${_tokfake}" <<'FAKE'
@@ -925,16 +951,26 @@ FAKE
     _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
         sh "${SCRIPT}" check-session 2>&1)
     assert_eq "TP-GROK-CLI-37 fake grok no network exit 0" 0 "$?"
-    assert_contains "TP-GROK-CLI-37 used probe" "$_out" "grok -p hello"
+    if ci_session_uses_local_auth; then
+        assert_contains "TP-GROK-CLI-37 used local-auth" "$_out" "local auth cookies"
+    else
+        assert_contains "TP-GROK-CLI-37 used probe" "$_out" "grok -p hello"
+    fi
 
-    # TP-GROK-CLI-38 probe runs before auth.json: missing grok does not parse-succeed
+    # TP-GROK-CLI-38 missing grok vs local cookies
     unset GROK_BIN 2>/dev/null || true
     rm -f "${CI_USER_BIN}/grok" "${CI_HOME}/.grok/bin/grok" "${CI_GLOBAL_BIN}/grok"
     gc_write_valid_auth "${CI_HOME}/.grok"
     _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" env -u GROK_BIN \
-        sh "${SCRIPT}" check-session 2>&1 >/dev/null)
-    assert_eq "TP-GROK-CLI-38 valid file without grok exit 1" 1 "$?"
-    assert_contains "TP-GROK-CLI-38 not installed" "$_err" "not installed"
+        sh "${SCRIPT}" check-session 2>&1)
+    _ec=$?
+    if ci_session_uses_local_auth; then
+        assert_eq "TP-GROK-CLI-38 cookies without grok exit 0" 0 "${_ec}"
+        assert_contains "TP-GROK-CLI-38 local-auth text" "$_err" "local auth cookies"
+    else
+        assert_eq "TP-GROK-CLI-38 valid file without grok exit 1" 1 "${_ec}"
+        assert_contains "TP-GROK-CLI-38 not installed" "$_err" "not installed"
+    fi
 
     # TP-GROK-CLI-39 elevated probe (uid 0 + SUDO_USER) uses invoking grok home, not /root
     if ! command -v getent >/dev/null 2>&1; then
@@ -1037,21 +1073,26 @@ FAKESUDO
     assert_not_contains "TP-GROK-CLI-40 not generate-sudoer-request" "${_err}" "generate-sudoer-request"
     rm -f "${CI_HOME}/bin/sudo" "${CI_SUDOERS_D}/grok-cli-${_user40}" "${CI_GLOBAL_BIN}/grok-cli"
 
-    # TP-GROK-CLI-44 hanging grok that ignores SIGTERM still fail-closes
-    # (GNU timeout -k / watchdog). Outer timeout keeps the suite from freezing
-    # if the product bound is missing.
+    # TP-GROK-CLI-44 hanging grok: PRoot/Termux uses cookies (no live wait);
+    # other hosts still fail-close as timed out.
     ci_fake_grok_hang
     gc_write_valid_auth "${CI_HOME}/.grok"
     _start=$(date +%s)
     _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
         GROK_PROMPT_TIMEOUT=1 GROK_PROMPT_KILL_AFTER=1 \
-        timeout 12 sh "${SCRIPT}" check-session 2>&1 >/dev/null)
+        timeout 12 sh "${SCRIPT}" check-session 2>&1)
     _ec=$?
     _elapsed=$(($(date +%s) - _start))
-    assert_eq "TP-GROK-CLI-44 hang grok check-session exit 1" 1 "${_ec}"
-    assert_contains "TP-GROK-CLI-44 not logged in" "${_err}" "not logged in"
-    assert_contains "TP-GROK-CLI-44 probe timed out" "${_err}" "timed out"
-    assert_contains "TP-GROK-CLI-44 next grok login" "${_err}" "grok login"
+    if ci_session_uses_local_auth; then
+        assert_eq "TP-GROK-CLI-44 local-auth hang grok exit 0" 0 "${_ec}"
+        assert_contains "TP-GROK-CLI-44 local-auth cookies" "$_err" "local auth cookies"
+        assert_not_contains "TP-GROK-CLI-44 local-auth not timed out" "$_err" "timed out"
+    else
+        assert_eq "TP-GROK-CLI-44 hang grok check-session exit 1" 1 "${_ec}"
+        assert_contains "TP-GROK-CLI-44 probe timed out" "$_err" "timed out"
+        assert_not_contains "TP-GROK-CLI-44 not 'not logged in'" "$_err" "not logged in"
+        assert_contains "TP-GROK-CLI-44 next grok login" "$_err" "grok login"
+    fi
     if [ "${_elapsed}" -lt 12 ]; then
         t_pass "TP-GROK-CLI-44 hang grok did not freeze (${_elapsed}s)"
     else
@@ -1072,12 +1113,17 @@ FAKESUDO
         _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             GROK_PROMPT_TIMEOUT=1 GROK_PROMPT_KILL_AFTER=1 \
             PATH="${CI_USER_BIN}:${CI_GLOBAL_BIN}:/usr/bin:/bin" \
-            "${_gnu_timeout}" 12 sh "${SCRIPT}" check-session 2>&1 >/dev/null)
+            "${_gnu_timeout}" 12 sh "${SCRIPT}" check-session 2>&1)
         _ec=$?
         _elapsed=$(($(date +%s) - _start))
-        assert_eq "TP-GROK-CLI-45 watchdog hang grok exit 1" 1 "${_ec}"
-        assert_contains "TP-GROK-CLI-45 not logged in" "${_err}" "not logged in"
-        assert_contains "TP-GROK-CLI-45 probe timed out" "${_err}" "timed out"
+        if ci_session_uses_local_auth; then
+            assert_eq "TP-GROK-CLI-45 local-auth hang grok exit 0" 0 "${_ec}"
+            assert_contains "TP-GROK-CLI-45 local-auth cookies" "$_err" "local auth cookies"
+        else
+            assert_eq "TP-GROK-CLI-45 watchdog hang grok exit 1" 1 "${_ec}"
+            assert_contains "TP-GROK-CLI-45 probe timed out" "$_err" "timed out"
+            assert_not_contains "TP-GROK-CLI-45 not 'not logged in'" "$_err" "not logged in"
+        fi
         if [ "${_elapsed}" -lt 12 ]; then
             t_pass "TP-GROK-CLI-45 watchdog did not freeze (${_elapsed}s)"
         else

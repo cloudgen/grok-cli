@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-grok-auth-backup.md  
-**Status**: Active (Version 1.7.0)  
+**Status**: Active (Version 1.9.0)  
 **Area**: backup  
 **Key**: `requirement-grok-auth-backup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -12,7 +12,7 @@ It supersedes folder-archive backup/retention law for this product.
 
 ### 1.1 Human-facing
 
-**In one sentence:** do not trust a credential file that only *looks* valid — first ask the installed `grok` program a one-line question (`grok -p hello`); only if grok answers do you treat the login as real, then (for backup) copy `auth.*` into `/var/grok-cli`.
+**In one sentence:** on Termux/PRoot, treat a local grok `auth.json` cookie file as the login; on other computers, first ask the installed `grok` program a one-line question (`grok -p hello`) and only if grok answers treat the login as real, then (for backup) copy `auth.*` into `/var/grok-cli`.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
@@ -33,7 +33,7 @@ It supersedes folder-archive backup/retention law for this product.
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Prove login | grok-cli runs `grok -p hello` first. A file with a future `expires_at` is **not** enough — grok must actually answer. If grok is missing, install it first. | `grok-cli check-session` |
+| Prove login | On Termux/PRoot, grok-cli reads local `auth.json` cookies. On other hosts it runs `grok -p hello` first. If grok is missing, install it first. | `grok-cli check-session` |
 | Share the login | Same live probe, then grok-cli copies `auth.*` to `/var/grok-cli` as root:root mode 0644 | `grok-cli backup` |
 | Use the shared login | If grok is **not** already logged in, grok-cli copies those files into your `~/.grok` as 0600, no sudo. If grok **is** logged in, it does not copy | `grok-cli sync-auth` |
 | Pull from another host | Same login check; then `scp` that host’s store into your `~/.grok` | `grok-cli sync-auth-from-remote user@192.0.2.10` |
@@ -46,18 +46,18 @@ Jargon: you run these commands **as yourself**. The live question is `grok -p he
 
 ### 2.1 Session gate (mandatory before backup)
 
-A file under grok home can look valid while grok cannot talk to xAI (revoked refresh, Termux DNS, wrapper missing, wrong ELF). **MUST NOT** treat `auth.json` parse as logged-in.
+A file under grok home can look valid while grok cannot talk to xAI (revoked refresh, Termux DNS, wrapper missing, wrong ELF). On hosts **without** PRoot/Termux, **MUST NOT** treat `auth.json` parse as logged-in.
 
-1. **MUST** run **`grok -p hello`** **before** any `auth.json` parse, copy, or elev. That live prompt **is** the session check. Operand **MUST** be exactly `-p` then `hello` (one non-interactive prompt).  
+1. **Session gate dispatch (mandatory):** if `command -v proot` succeeds **or** the host is Termux, **MUST NOT** run live `grok -p hello` for login checking (that path is usually timeout and does not prove a session). That class **MUST** use local grok home `auth.json` cookies (`refresh_token`, `key`, or a future `expires_at`) via `gc_auth_session_ok`. **MUST NOT** print token values. On every other host, **MUST** run **`grok -p hello`** **before** any `auth.json` parse, copy, or elev. That live prompt **is** the session check. Operand **MUST** be exactly `-p` then `hello` (one non-interactive prompt). The live bound (`GROK_PROMPT_TIMEOUT`, default **14**; `GROK_PROMPT_KILL_AFTER`; GNU `timeout -k` / POSIX watchdog / PRoot reaper) **MUST** stay in the ship unit, protected, for future / non-PRoot use. **MUST NOT** delete those settings or the live-probe functions.  
 2. Peer path **MUST** use the same resolve as `setup` (`GROK_BIN` when set and executable, else `command -v grok`, else `{{GROK_HOME}}/bin/grok`, else `{{USER_BIN}}/grok`). Missing peer **MUST** fail closed. Next: `{{APP_NAME}} setup`, then `grok login`, then `{{APP_NAME}} check-session`.  
-3. The probe **MUST** close stdin (`</dev/null`). **MUST NOT** hang under `--json` / off-TTY / the numbered menu waiting for `grok login` or for a child that ignores SIGTERM (Termux `proot` wrapper). **MUST** bound the probe to `GROK_PROMPT_TIMEOUT` seconds (default **20**) even when `timeout` is missing from PATH. When GNU `timeout` is on PATH, **MUST** use kill-after (`timeout -k`; `GROK_PROMPT_KILL_AFTER` seconds; default **2**) so SIGKILL follows SIGTERM. When that `timeout` is missing or does not support kill-after, **MUST** still bound with a POSIX watchdog (background, wait, `kill` then `kill -9`). **Dispatch:** if `command -v proot` succeeds, **MUST** run the PRoot-exit reaper (`gc_grok_p_once_run` — guest death / any stdout / empty-stdout guest-death; `setsid` collector; ignore TSTP; match args/exe; reap new `runsvdir`; **wait the reaper first**; SIGKILL PRoot immediately if it still will not exit) with that same bound; if `proot` is **not** on PATH, **MUST** run simple `grok -p hello`. **MUST NOT** wait on the PRoot PID as the only done signal. Timeout or non-zero exit **MUST** fail closed. Next: `grok login`, then `{{APP_NAME}} check-session` (backup: then `{{APP_NAME}} backup`). Writing SSOT: `requirement-shell-termux-coding` 2.4c.  
+3. When the live probe runs (not PRoot/Termux), it **MUST** close stdin (`</dev/null`). **MUST NOT** hang under `--json` / off-TTY / the numbered menu waiting for `grok login` or for a child that ignores SIGTERM (Termux `proot` wrapper). **MUST** bound the probe to `GROK_PROMPT_TIMEOUT` seconds (default **14**) even when `timeout` is missing from PATH. When GNU `timeout` is on PATH, **MUST** use kill-after (`timeout -k`; `GROK_PROMPT_KILL_AFTER` seconds; default **2**) so SIGKILL follows SIGTERM. When that `timeout` is missing or does not support kill-after, **MUST** still bound with a POSIX watchdog (background, wait, `kill` then `kill -9`). **Dispatch:** if `command -v proot` succeeds, **MUST** run the PRoot-exit reaper (`gc_grok_p_once_run` — guest death / any stdout / empty-stdout guest-death; `setsid` collector; ignore TSTP; match args/exe; reap new `runsvdir`; **wait the reaper first**; SIGKILL PRoot immediately if it still will not exit) with that same bound; if `proot` is **not** on PATH, **MUST** run simple `grok -p hello`. **MUST NOT** wait on the PRoot PID as the only done signal. Timeout or non-zero exit **MUST** fail closed. Next: `grok login`, then `{{APP_NAME}} check-session` (backup: then `{{APP_NAME}} backup`). Writing SSOT: `requirement-shell-termux-coding` 2.4c.  
 4. **MUST NOT** print grok’s answer, stdout, or stderr to the operator (may contain model text). **MUST NOT** print token, refresh_token, or JWT values. A blocking error **MAY** name `exit N` and a short class (`dns error`, `login required`) without dumping grok output.  
-5. Probe success (exit 0) **MUST** mean session **valid** — even if `auth.json` is missing or `expires_at` looks past. Probe failure **MUST** mean **invalid** — even if `auth.json` has a refresh_token and a future `expires_at`.  
+5. On PRoot/Termux, local cookie success **MUST** mean session **valid**; missing or invalid cookies **MUST** mean **invalid** (not **timeout**). On other hosts: live probe success (exit 0) **MUST** mean session **valid** — even if `auth.json` is missing or `expires_at` looks past. A live probe that hits `GROK_PROMPT_TIMEOUT` **MUST** mean **timeout** — **MUST NOT** mean logged-out / `invalid` as the only word. Other live-probe failure **MUST** mean **invalid** — even if `auth.json` has a refresh_token and a future `expires_at`.  
 6. **MUST** resolve grok home as `GROK_HOME` when set, else `{{invoking-home}}/.grok`. When running as root via sudo, invoking-home **MUST** be `SUDO_USER`’s passwd home (not `/root`) unless `GROK_HOME` is explicit.  
 6b. The live probe **MUST** exec `grok -p hello` with **`HOME={{invoking-home}}`** and **`GROK_HOME={{resolved grok home}}`** on that command (not inherited sudo env). `sudo` `env_reset` **MUST NOT** make grok read `/root/.grok` after the unprivileged probe already succeeded. Peer resolve **MUST** still find this login’s `{{invoking-home}}/.local/bin/grok` when root’s `USER_BIN` is `/root/.local/bin`.  
-7. `check-session` **MUST** fail closed with an operator-readable next step when the peer is missing (rule 2) or the probe fails (rule 3).  
-8. `backup` **MUST** run the same live probe before any copy or elev. After a successful probe, `auth.*` files **MUST** still exist (grok may have refreshed them). Probe success with no `auth.*` **MUST** fail closed. Next: `grok login` so grok writes `auth.json`, then `{{APP_NAME}} backup`.  
-9. Menu **logged in** / **logged out** and `about` session **MUST** use this same probe (`gc_session_status_word`: `valid` / `invalid` / `missing` peer). **MUST NOT** hang the menu: same stdin-closed + always-bounded + kill-after rules. A TTY menu reprint after a bad pick **MUST NOT** run a second probe (reuse `GC_SESSION_STATUS_CACHE`).  
+7. `check-session` **MUST** fail closed with an operator-readable next step when the session gate fails (PRoot/Termux: no/invalid cookies; other hosts: missing peer or live probe fail).  
+8. `backup` **MUST** run the same session gate before any copy or elev. After a successful gate, `auth.*` files **MUST** still exist. Gate success with no `auth.*` **MUST** fail closed. Next: `grok login` so grok writes `auth.json`, then `{{APP_NAME}} backup`.  
+9. Menu **logged in** / **timeout** / **logged out** and `about` session **MUST** use this same gate (`gc_session_status_word`). On PRoot/Termux the menu **MUST NOT** print `checking session (grok -p hello, timeout …)` and **MUST NOT** exec `grok -p hello` for that line. On other hosts a live probe that hits the bound **MUST** be `timeout`, **MUST NOT** be reported as logged-out. **MUST NOT** hang the menu. A TTY menu reprint after a bad pick **MUST NOT** run a second live probe (reuse `GC_SESSION_STATUS_CACHE`).  
 10. Core tests **MUST** inject a fake `grok` (`GROK_BIN`) that handles `-p` without the public network. **MUST NOT** run real `grok -p hello` against xAI from Core tests.  
 11. Termux writing for this exec (stdin closed, no hang, exec the resolved peer wrapper — not cache/`/tmp`; `proot` present → reaper else simple `-p`) is **`requirement-shell-termux-coding`**. This file keeps the **session procedure**. Domain catalog: **`requirement-domain-grok-cli`**.
 
@@ -129,10 +129,11 @@ grok-cli sync-auth-from-remote user@host.example.com
 | Item | Value |
 |------|--------|
 | Product | `grok-cli` |
-| Handlers | `gc_grok_prompt_hello`, `gc_session_status_word`, `gc_session_is_valid`, `gc_sync_skip_if_logged_in`, `gc_check_session`, `gc_backup`, `gc_sync_auth`, `gc_sync_auth_from_remote`, `gc_preferred_remote_load`, `gc_preferred_remote_save` |
-| Menu session cache | `GC_SESSION_STATUS_CACHE` set by `app_default_print_menu` (`valid` / `invalid` / `missing`); sync verbs reuse it in the same process |
-| Live probe | `grok -p hello` (stdin closed; always bounded; GNU `timeout -k` when it works; else POSIX watchdog; `HOME` + `GROK_HOME` pinned to invoking grok home) |
-| Probe timeout | `GROK_PROMPT_TIMEOUT` default `20`; `GROK_PROMPT_KILL_AFTER` default `2` |
+| Handlers | `gc_session_uses_local_auth`, `gc_session_from_local_auth`, `gc_auth_session_ok`, `gc_grok_prompt_hello`, `gc_session_status_word`, `gc_session_is_valid`, `gc_sync_skip_if_logged_in`, `gc_check_session`, `gc_backup`, `gc_sync_auth`, `gc_sync_auth_from_remote`, `gc_preferred_remote_load`, `gc_preferred_remote_save` |
+| Menu session cache | `GC_SESSION_STATUS_CACHE` set by `app_default_print_menu` (`valid` / `timeout` / `invalid` / `missing`); sync verbs reuse it in the same process |
+| PRoot/Termux session | local `auth.json` cookies; no live `grok -p hello` |
+| Live probe | `grok -p hello` on non-PRoot hosts (stdin closed; always bounded; GNU `timeout -k` when it works; else POSIX watchdog; `HOME` + `GROK_HOME` pinned to invoking grok home). Code **protected** for future use |
+| Probe timeout | `GROK_PROMPT_TIMEOUT` default `14`; `GROK_PROMPT_KILL_AFTER` default `2` (kept even when PRoot skips the live probe) |
 | Peer override | `GROK_BIN` (tests **MUST** fake this) |
 | Remote pull | `scp -o BatchMode=yes`; `GROK_CLI_SCP` / `GROK_CLI_REMOTE_ROOT` for tests |
 | Preferred remote | Persistence leaf `${HOME}/.local/${APP_NAME}/preferred-remote` (helpers `gc_preferred_remote_load` / `gc_preferred_remote_save`) |
@@ -195,6 +196,9 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 9. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 10. Skip saving a successful `sync-auth-from-remote` SPEC to persistence `preferred-remote`, or prompt without showing a stored SPEC at the **end** of the prompt (empty Enter must use that default).  
 11. Copy `sync-auth` / `sync-auth-from-remote` into a grok home whose live `grok -p hello` session is already **valid**, or omit the **`No sync-auth for logged-in environment.`** message on that skip.  
+12. Report a live probe that hit `GROK_PROMPT_TIMEOUT` as **logged out** / `invalid` only. That word **MUST** be **timeout**. Default bound **MUST** stay **14** unless the operator overrides the env.  
+13. Delete `GROK_PROMPT_TIMEOUT` / `GROK_PROMPT_KILL_AFTER` or the live-probe functions (`gc_grok_prompt_run_bounded`, `gc_grok_p_once_run`, `gc_grok_prompt_int`) because PRoot skips them today. They stay **protected** for future / non-PRoot use.  
+14. Run live `grok -p hello` for login checking when `proot` is on PATH or the host is Termux. That class **MUST** use local auth cookies.  
 
 
 ## 5. Acceptance criteria
@@ -211,7 +215,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-8 | sync-auth copies into grok home mode 0600 without sudo |
 | AC-9 | `sync-auth-from-remote` accepts the four SPEC forms; dest `auth.json` is 0600; no sudo; Core tests use a fake `scp` |
 | AC-10 | TTY menu `sync-auth-from-remote` row (main **3**) shows a visible SPEC prompt; SPEC is `PROMPT_ASK_VALUE` (not `$()`); TP-GROK-CLI-34 · TP-CLI-15 (INC-20260902-001) |
-| AC-11 | Menu **logged in** only after probe success; **logged out** when peer missing or probe fails; MUST NOT hang |
+| AC-11 | Menu **logged in** after session gate success (PRoot/Termux: cookies; else live probe); **timeout** only when a live probe hits the bound; **logged out** otherwise; PRoot/Termux MUST NOT print the grok -p hello checking line; MUST NOT hang |
 | AC-17 | Peer that ignores SIGTERM still fail-closes within `GROK_PROMPT_TIMEOUT` + kill-after (no menu freeze); GNU `timeout -k` or POSIX watchdog (TP-GROK-CLI-44 · TP-GROK-CLI-45 · TP-CLI-21) |
 | AC-12 | grok `-p hello` stdout/stderr is not printed (no token leak) |
 | AC-13 | Elevated backup (`uid 0` + `SUDO_USER`) probe uses invoking grok home, not `/root/.grok` (TP-GROK-CLI-39) |
@@ -232,7 +236,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `docs/requirements/requirement-shell-cli-interface.md` | Dual mention |
 | `docs/requirements/requirement-grok-setup.md` | Peer `grok` installer (`setup`) before login |
 | `docs/requirements/requirement-shell-termux-coding.md` | Termux host writing for the probe exec |
-| `docs/requirements/requirement-shell-cli-default-interaction.md` | Menu **logged in** / **logged out** uses this probe |
+| `docs/requirements/requirement-shell-cli-default-interaction.md` | Menu **logged in** / **timeout** / **logged out** uses this probe |
 | `./src/grok-cli` | Implementation |
 
 ---
@@ -254,6 +258,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active (1.5.0) | Probe always bounded; GNU `timeout -k` (SIGKILL follow-up) or POSIX watchdog; Termux menu must not freeze when grok/proot ignores SIGTERM |
 | 2026-09-07 | Active (1.6.0) | Probe dispatch: `proot` on PATH → reaper (`gc_grok_p_once_run`); else simple `grok -p hello` |
 | 2026-09-07 | Active (1.7.0) | Reaper: `setsid`, ignore TSTP, wait reaper first, empty-stdout still reaps; first-byte done for session probe |
+| 2026-09-07 | Active (1.8.0) | Default `GROK_PROMPT_TIMEOUT` 14; session word `timeout` (not logged-out) when the probe hits the bound |
+| 2026-09-07 | Active (1.9.0) | PRoot/Termux login checking uses local auth cookies; live grok -p hello bound stays protected for future / non-PRoot |
 
 ---
 
@@ -270,10 +276,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-GROK-CLI-41** | `tests/test_domain_grok_cli.sh` | have (preferred remote SPEC persisted; TTY prompt shows `[SPEC]` default; Enter uses it) |
 | **TP-GROK-CLI-42** | `tests/test_domain_grok_cli.sh` | have (`sync-auth` skip when session valid; dest unchanged; menu hides the row) |
 | **TP-GROK-CLI-43** | `tests/test_domain_grok_cli.sh` | have (`sync-auth-from-remote` skip when session valid; no scp) |
-| **TP-GROK-CLI-44** | `tests/test_domain_grok_cli.sh` | have (SIGTERM-ignoring grok fail-closes; GNU `timeout -k`; no freeze) |
-| **TP-GROK-CLI-45** | `tests/test_domain_grok_cli.sh` | have (same hang without GNU `timeout -k`; POSIX watchdog) |
-| **TP-CLI-06**, **TP-CLI-17** | `tests/test_cli.sh` | have (about session; menu logged in/out uses probe) |
-| **TP-CLI-21** | `tests/test_cli.sh` | have (Termux menu with hanging grok still prints the list and accepts Exit) |
+| **TP-GROK-CLI-44** | `tests/test_domain_grok_cli.sh` | have (SIGTERM-ignoring grok fail-closes as **timed out**, not “not logged in”; GNU `timeout -k`; no freeze) |
+| **TP-GROK-CLI-45** | `tests/test_domain_grok_cli.sh` | have (same hang without GNU `timeout -k`; POSIX watchdog; timed out not “not logged in”) |
+| **TP-CLI-06**, **TP-CLI-17** | `tests/test_cli.sh` | have (about session; menu logged in / timeout / logged out uses probe) |
+| **TP-CLI-21** | `tests/test_cli.sh` | have (Termux menu with hanging grok prints **timeout**, not **logged out**) |
 | **TP-CLI-22** | `tests/test_cli.sh` | have (reprint after a bad pick does not run a second probe) |
 | **TP-CLI-23** | `tests/test_cli.sh` | have (ship unit `timeout -k` + watchdog) |
 | **TP-GROK-CLI-47**, **TP-GROK-CLI-48** | `tests/test_domain_grok_cli.sh` | have (`command -v proot` → reaper; else simple `-p`; reaper path still succeeds) |
@@ -281,6 +287,6 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07 (1.7.0 — reaper setsid / TSTP-safe / wait reaper first / empty-stdout reap)  
+**Last Updated**: 2026-09-07 (1.9.0 — PRoot/Termux local auth cookies; live probe protected)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.24  
+**Product VERSION:** 1.8.26  
 **Last plan update:** 2026-09-07  
-**Last suite run:** `./tests/run.sh` (1.8.23: PASS=697 FAIL=0 SKIP=0). 1.8.24 adds TP-CLI-23 extras · TP-GROK-CLI-49 · TP-VCLI-32; this host’s 1.8.24 PTY rows need `python3` on the isolated PATH (source asserts for the new TPs are in the suite).
+**Last suite run:** pending 1.8.25 (`./tests/run.sh`). 1.8.25: hang-grok session line is **timeout** (not **logged out**); default `GROK_PROMPT_TIMEOUT` 14.
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -66,9 +66,9 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-18 | Active `requirement-*.md` samples do not freeze a session Unix login | `tests/test_cli.sh` | requirement-sudoer-json-file · requirement-three-layer-privilege-model · requirement-domain-grok-cli | **have** |
 | TP-CLI-19 | Termux / Git Bash / Windows cmd main menu hides backup / sync-auth / sudoers; **run** is **1**; not-available line under session; remaining rows from **1**; pick **5** does not open sudoers; multi-user host unchanged | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-20 | Logged-in main menu hides sync-auth / sync-auth-from-remote; appends logged-in not-available line; host not-available line kept on this-login-only; **run** stays **1** on that class; remaining rows from **1**; listed sudoers number opens submenu; pick of hidden verb is not a menu choice | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
-| TP-CLI-21 | Termux menu with a SIGTERM-ignoring grok still prints checking-session + the list and accepts Exit (no freeze) | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup · requirement-shell-termux-coding | **have** |
+| TP-CLI-21 | Termux menu uses local auth cookies (no live grok -p hello); hang grok + no cookies → **logged out** instantly; no freeze | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup · requirement-shell-termux-coding | **have** |
 | TP-CLI-22 | Termux hang-grok: bad pick reprints the list; `grok -p hello` runs once | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup | **have** |
-| TP-CLI-23 | Ship unit always bounds the probe (`timeout -k` + watchdog `kill -9` + setsid + ignore TSTP + wait reaper first + checking-session) | `tests/test_cli.sh` | requirement-grok-auth-backup · requirement-shell-termux-coding · requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-23 | Ship unit always bounds the probe (`timeout -k` + watchdog `kill -9` + setsid + ignore TSTP + wait reaper first + checking-session; default `GROK_PROMPT_TIMEOUT` 14; menu prints `timeout`) | `tests/test_cli.sh` | requirement-grok-auth-backup · requirement-shell-termux-coding · requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-25 | `--debug menu` prints start + elapsed for each paint step (`paint` `header` `session` `host` `logged-in` `rows` plus `sudoers.*` on the submenu) | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-26 | `menu` without `--debug` has no menu-step elapsed lines | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-27 | `--json --debug version` stdout stays JSON (no `[DEBUG]`) | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-interface · requirement-shell-output-requirements | **have** |
@@ -181,8 +181,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-41 | successful `sync-auth-from-remote` saves SPEC to persistence `preferred-remote` (0600); TTY prompt shows `[SPEC]` at the end; Enter uses that default | test_domain_grok_cli | grok-auth-backup · shell-cli-storage | **have** |
 | TP-GROK-CLI-42 | `sync-auth` with valid live session does not copy; prints `No sync-auth for logged-in environment.`; dest unchanged; menu hides the row | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-43 | `sync-auth-from-remote` with valid live session does not scp; same skip message; dest unchanged | test_domain_grok_cli | grok-auth-backup | **have** |
-| TP-GROK-CLI-44 | SIGTERM-ignoring grok still fail-closes `check-session` within the bound (GNU `timeout -k`; no freeze) | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
-| TP-GROK-CLI-45 | same hang without GNU `timeout -k` uses POSIX watchdog; still fail-closes | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
+| TP-GROK-CLI-44 | SIGTERM-ignoring grok still fail-closes `check-session` within the bound as **timed out** (not “not logged in”; GNU `timeout -k`; no freeze) | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
+| TP-GROK-CLI-45 | same hang without GNU `timeout -k` uses POSIX watchdog; still fail-closes as **timed out** | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
 | TP-GROK-CLI-47 | Ship unit dispatches `command -v proot` → `gc_grok_p_once_run` (reaper marker) | test_domain_grok_cli | grok-auth-backup · termux-coding · domain | **have** |
 | TP-GROK-CLI-48 | Fake `proot` on PATH: instant grok `check-session` still exit 0 (reaper path, no freeze) | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
 | TP-GROK-CLI-49 | Reaper `setsid` / ignore TSTP / wait reaper first; `self-update` calls wrapper heal | test_domain_grok_cli | grok-auth-backup · termux-coding · self-management | **have** |

@@ -106,10 +106,25 @@ ci_isolated_env() {
     unset GROK_HOME 2>/dev/null || true
     unset GROK_BIN 2>/dev/null || true
     # Drop host grok (often /usr/local/bin) so session tests cannot call xAI.
+    # Do not put Termux PREFIX/bin on PATH (that exposes proot/curl). Link
+    # python3 and timeout into CI_USER_BIN for PTY / bounded probes.
     if [ -z "${CI_PATH_ORIG:-}" ]; then
         CI_PATH_ORIG="${PATH}"
     fi
+    _py=$(command -v python3 2>/dev/null || true)
+    if [ -n "${_py}" ] && [ -x "${_py}" ]; then
+        ln -sf "${_py}" "${CI_USER_BIN}/python3"
+    fi
+    _to=$(command -v timeout 2>/dev/null || true)
+    if [ -n "${_to}" ] && [ -x "${_to}" ]; then
+        ln -sf "${_to}" "${CI_USER_BIN}/timeout"
+    fi
+    unset _py _to
     export PATH="${CI_USER_BIN}:${CI_GLOBAL_BIN}:/usr/bin:/bin"
+    # Default isolated host is multi-user so Android uname / host Termux
+    # env do not steal TP-CLI-07/13/17. Termux cases set TERMUX_VERSION.
+    unset TERMUX_VERSION 2>/dev/null || true
+    export GROK_CLI_HOST_OVERRIDE=multiuser
 }
 
 # Write a fake peer grok that never hits the network.
@@ -180,6 +195,27 @@ ci_fake_grok_hang() {
     export GROK_BIN="${CI_USER_BIN}/grok"
 }
 
+# Match product gc_session_uses_local_auth (proot on PATH or Termux).
+ci_session_uses_local_auth() {
+    if [ -n "${TERMUX_VERSION:-}" ]; then
+        return 0
+    fi
+    case "${GROK_CLI_HOST_OVERRIDE:-}" in
+        multiuser|gitbash|windows-cmd) return 1 ;;
+        termux) return 0 ;;
+    esac
+    if command -v proot >/dev/null 2>&1; then
+        return 0
+    fi
+    if [ -n "${PREFIX:-}" ]; then
+        return 0
+    fi
+    case "$(uname -s 2>/dev/null)" in
+        *Android*) return 0 ;;
+    esac
+    return 1
+}
+
 ci_cleanup_env() {
     if [ -n "${CI_HOME:-}" ] && [ -d "${CI_HOME}" ]; then
         rm -rf "${CI_HOME}"
@@ -189,6 +225,7 @@ ci_cleanup_env() {
     fi
     unset GLOBAL_BIN 2>/dev/null || true
     unset GROK_BIN 2>/dev/null || true
+    unset GROK_CLI_HOST_OVERRIDE 2>/dev/null || true
     if [ -n "${CI_PATH_ORIG:-}" ]; then
         export PATH="${CI_PATH_ORIG}"
     fi

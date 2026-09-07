@@ -41,7 +41,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.24"
+# VERSION: hard-assign VERSION="1.8.26"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -57,8 +57,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.24"
-: "${VERSION:=1.8.24}"
+VERSION="1.8.26"
+: "${VERSION:=1.8.26}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -123,8 +123,10 @@ fi
 : "${GROK_PEER_NAME:=grok}"
 # GROK_SETUP_VERSION optional pin (skip channel pointer). GROK_BIN_DIR optional.
 # GROK_BIN optional absolute override for the peer executable.
-# GROK_PROMPT_TIMEOUT seconds for grok -p hello (always bounded; kill-after if GNU timeout).
-: "${GROK_PROMPT_TIMEOUT:=20}"
+# --- Protected: live grok -p hello bound (future / non-PRoot). Do not remove. ---
+# PRoot/Termux login checking uses local auth cookies instead of this probe.
+# !!! DO NOT REMOVE GROK_PROMPT_TIMEOUT / GROK_PROMPT_KILL_AFTER !!!
+: "${GROK_PROMPT_TIMEOUT:=14}"
 : "${GROK_PROMPT_KILL_AFTER:=2}"
 # GROK_HOME is resolved at call time (SUDO_USER-aware). Tests may export it.
 # Optional sudoer-cli compose (Type 0 submit into approval inbound)
@@ -843,9 +845,9 @@ util_fetch_remote_version() {
         return 1
     fi
     if command -v curl >/dev/null 2>&1; then
-        _ufr_body=$(curl -fsSL "${_ufr_url}" 2>/dev/null) || _ufr_body=""
+        _ufr_body=$(curl -fsSL --connect-timeout 3 --max-time 8 "${_ufr_url}" 2>/dev/null) || _ufr_body=""
     elif command -v wget >/dev/null 2>&1; then
-        _ufr_body=$(wget -qO- "${_ufr_url}" 2>/dev/null) || _ufr_body=""
+        _ufr_body=$(wget -qO- -T 8 "${_ufr_url}" 2>/dev/null) || _ufr_body=""
     else
         return 1
     fi
@@ -3700,14 +3702,18 @@ gc_iso_to_epoch() {
 #
 # GENERAL PURPOSE:
 # Coerce GROK_PROMPT_TIMEOUT / GROK_PROMPT_KILL_AFTER to a positive integer.
-# Empty, 0, and non-digits fall back to $2 (default 20 / 2).
+# Empty, 0, and non-digits fall back to $2 (default 14 / 2).
 #
 # ALIGNMENT: requirement-grok-auth-backup.md
+#
+# !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
+# Protected live-probe bound helper (future / non-PRoot).
+#
 # Last updated: 2026-09-07
 # =============================================================================
 gc_grok_prompt_int() {
     _gpi="${1-}"
-    _gpid="${2-20}"
+    _gpid="${2-14}"
     case "${_gpi}" in
         ''|*[!0-9]*)
             printf '%s' "${_gpid}"
@@ -3738,10 +3744,14 @@ gc_grok_prompt_int() {
 #
 # ALIGNMENT: requirement-shell-termux-coding.md · requirement-grok-auth-backup.md
 #
+# !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
+# Protected live-probe reaper (future / non-PRoot session). PRoot login
+# checking uses local auth cookies and MUST NOT call this for the menu.
+#
 # Last updated: 2026-09-07
 # =============================================================================
 gc_grok_p_once_run() {
-    _gpt=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT:-20}" 20)
+    _gpt=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT:-14}" 14)
     _idle="${GROK_P_IDLE:-0}"
     case "${_idle}" in
         ''|*[!0-9]*) _idle=0 ;;
@@ -3772,6 +3782,7 @@ gc_grok_p_once_run() {
     ps -eo pid= -o args= 2>/dev/null | awk '
         $2 ~ /\/runsvdir$/ || $2 == "runsvdir" { print $1 }
     ' | sort >"${_pbefore}" 2>/dev/null || :
+    _pstart=$(date +%s)
     if command -v setsid >/dev/null 2>&1; then
         HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
             setsid "${_gbin}" -p hello </dev/null >"${_pout}" 2>"${_perr}" &
@@ -3788,9 +3799,6 @@ gc_grok_p_once_run() {
         _start=$(date +%s)
         while :; do
             _now=$(date +%s)
-            if [ $((_now - _start)) -ge "${_gpt}" ]; then
-                break
-            fi
             if ! kill -0 "${_pcol}" 2>/dev/null; then
                 exit 0
             fi
@@ -3840,6 +3848,9 @@ gc_grok_p_once_run() {
                     esac
                 fi
             fi
+            if [ $((_now - _start)) -ge "${_gpt}" ]; then
+                break
+            fi
             sleep 1
         done
         ps -eo pid= -o args= 2>/dev/null | awk '
@@ -3873,6 +3884,7 @@ gc_grok_p_once_run() {
     wait "${_preap}" 2>/dev/null || :
     wait "${_pcol}" 2>/dev/null || :
     trap - INT TERM TSTP
+    _pend=$(date +%s)
     : >"${_out}"
     if [ -s "${_perr}" ]; then
         cat "${_perr}" >>"${_out}" 2>/dev/null || :
@@ -3880,11 +3892,13 @@ gc_grok_p_once_run() {
     if [ -s "${_pout}" ]; then
         cat "${_pout}" >>"${_out}" 2>/dev/null || :
         _ec=0
+    elif [ $((_pend - _pstart)) -ge "${_gpt}" ]; then
+        _ec=124
     else
         _ec=1
     fi
     rm -f "${_pout}" "${_perr}" "${_pbefore}"
-    unset _gpt _idle _reapw _gbin _pout _perr _pbefore _pcol _preap
+    unset _gpt _idle _reapw _gbin _pout _perr _pbefore _pcol _preap _pstart _pend
     return 0
 }
 
@@ -3901,12 +3915,17 @@ gc_grok_p_once_run() {
 # _ihome _ghome _login.
 #
 # ALIGNMENT: requirement-grok-auth-backup.md · requirement-shell-termux-coding.md
+#
+# !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
+# Protected live grok -p hello bound (future / non-PRoot). Keep timeout -k
+# and the POSIX watchdog. PRoot login checking MUST NOT enter this path.
+#
 # Last updated: 2026-09-07
 # =============================================================================
 gc_grok_prompt_run_bounded() {
-    : "${GROK_PROMPT_TIMEOUT:=20}"
+    : "${GROK_PROMPT_TIMEOUT:=14}"
     : "${GROK_PROMPT_KILL_AFTER:=2}"
-    _lim=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT}" 20)
+    _lim=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT}" 14)
     _killafter=$(gc_grok_prompt_int "${GROK_PROMPT_KILL_AFTER}" 2)
     _ec=1
 
@@ -3959,19 +3978,81 @@ gc_grok_prompt_run_bounded() {
 }
 
 # =============================================================================
-# gc_grok_prompt_hello() - Live session probe: grok -p hello
+# gc_session_uses_local_auth() - 0 on PRoot/Termux (no live grok -p hello)
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Ask the peer grok one non-interactive question. Exit 0 means grok is
-# actually signed in. auth.json parse is NOT this gate — a future expires_at
-# can still be revoked, and Termux DNS/wrapper failures stay hidden until
-# grok runs. Never print grok's answer or token values.
+# Live grok -p hello under PRoot usually hits GROK_PROMPT_TIMEOUT and does
+# not prove login. On that class, session checking uses local auth cookies.
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
+# =============================================================================
+gc_session_uses_local_auth() {
+    if [ -n "${TERMUX_VERSION:-}" ]; then
+        return 0
+    fi
+    case "${GROK_CLI_HOST_OVERRIDE:-}" in
+        multiuser|gitbash|windows-cmd)
+            return 1
+            ;;
+        termux)
+            return 0
+            ;;
+    esac
+    if command -v proot >/dev/null 2>&1; then
+        return 0
+    fi
+    gc_host_is_termux
+}
+
+# =============================================================================
+# gc_session_from_local_auth() - Session from ~/.grok/auth.json cookies
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# PRoot/Termux login gate: refresh_token / key / future expires_at in
+# auth.json. Never print token values. Sets GC_GROK_PROMPT_STATUS.
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
+# =============================================================================
+gc_session_from_local_auth() {
+    : "${HOME:=/tmp}"
+    _sfla_home=$(gc_resolve_grok_home)
+    : "${_sfla_home:=${HOME}/.grok}"
+    _sfla_auth="${_sfla_home}/auth.json"
+    if [ ! -f "${_sfla_auth}" ] || [ ! -s "${_sfla_auth}" ]; then
+        GC_GROK_PROMPT_STATUS="failed"
+        GC_GROK_PROMPT_DETAIL="no local auth cookies"
+        unset _sfla_home _sfla_auth
+        return 1
+    fi
+    if gc_auth_session_ok "${_sfla_auth}"; then
+        GC_GROK_PROMPT_STATUS="ok"
+        GC_GROK_PROMPT_DETAIL="local-auth"
+        unset _sfla_home _sfla_auth
+        return 0
+    fi
+    GC_GROK_PROMPT_STATUS="failed"
+    GC_GROK_PROMPT_DETAIL="local auth cookies invalid"
+    unset _sfla_home _sfla_auth
+    return 1
+}
+
+# =============================================================================
+# gc_grok_prompt_hello() - Session probe: local cookies on PRoot, else live
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# On PRoot/Termux: local auth.json cookies (live grok -p hello is timeout).
+# Elsewhere: ask the peer grok one non-interactive question. Exit 0 means
+# grok is actually signed in. Never print grok's answer or token values.
 # When this process is root via sudo, grok MUST see the invoking login's
 # home (SUDO_USER), not /root — sudo env_reset otherwise makes grok say
 # "login required" after the unprivileged probe already succeeded.
-# The probe is always time-bounded (GNU timeout -k, else POSIX watchdog)
-# so a Termux proot child that ignores SIGTERM cannot freeze the menu.
+# The live probe is always time-bounded (GNU timeout -k, else POSIX
+# watchdog). That live path is protected for future / non-PRoot use.
 #
 # ALIGNMENT: requirement-grok-auth-backup.md
 #
@@ -3982,12 +4063,19 @@ gc_grok_prompt_run_bounded() {
 # 2026-09-07: Termux menu froze after the header: grok -p hello under proot
 # ignored SIGTERM, and timeout without --kill-after waited forever. Always
 # bound; SIGKILL follow-up; watchdog when GNU timeout -k is missing.
+# 2026-09-07: PRoot/Termux live probe is usually timeout; login checking
+# falls back to local auth cookies. Keep the bound live probe protected.
 #
 # Last updated: 2026-09-07
 # =============================================================================
 gc_grok_prompt_hello() {
     GC_GROK_PROMPT_STATUS="missing"
     GC_GROK_PROMPT_DETAIL=""
+    if gc_session_uses_local_auth; then
+        gc_session_from_local_auth
+        return $?
+    fi
+    # --- Protected live grok -p hello (future / non-PRoot). Do not strip. ---
     _peer=$(gc_resolve_grok_peer)
     if [ -z "${_peer}" ] || [ ! -x "${_peer}" ]; then
         GC_GROK_PROMPT_STATUS="missing"
@@ -4003,7 +4091,7 @@ gc_grok_prompt_hello() {
         unset _peer _out
         return 1
     fi
-    : "${GROK_PROMPT_TIMEOUT:=20}"
+    : "${GROK_PROMPT_TIMEOUT:=14}"
     : "${GROK_PROMPT_KILL_AFTER:=2}"
     : "${HOME:=/tmp}"
     _ihome=$(gc_invoking_home)
@@ -4021,6 +4109,13 @@ gc_grok_prompt_hello() {
         unset _peer _out _ec _ihome _ghome _login
         return 0
     fi
+    if [ "${_ec}" -eq 124 ] || [ "${_ec}" -eq 137 ]; then
+        GC_GROK_PROMPT_STATUS="timeout"
+        GC_GROK_PROMPT_DETAIL="exit ${_ec}: probe timed out"
+        rm -f "${_out}"
+        unset _peer _out _ec _ihome _ghome _login
+        return 1
+    fi
     GC_GROK_PROMPT_STATUS="failed"
     _snip=$(tr '\n' ' ' < "${_out}" 2>/dev/null | cut -c1-160)
     case "${_snip}" in
@@ -4031,11 +4126,7 @@ gc_grok_prompt_hello() {
             GC_GROK_PROMPT_DETAIL="exit ${_ec}: login required"
             ;;
         *)
-            if [ "${_ec}" -eq 124 ] || [ "${_ec}" -eq 137 ]; then
-                GC_GROK_PROMPT_DETAIL="exit ${_ec}: probe timed out"
-            else
-                GC_GROK_PROMPT_DETAIL="exit ${_ec}"
-            fi
+            GC_GROK_PROMPT_DETAIL="exit ${_ec}"
             ;;
     esac
     rm -f "${_out}"
@@ -4044,14 +4135,16 @@ gc_grok_prompt_hello() {
 }
 
 # =============================================================================
-# gc_auth_session_ok() - File-shape helper (NOT the session gate)
+# gc_auth_session_ok() - Local auth.json cookies (PRoot session gate)
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Optional auth.json shape check. MUST NOT be used as logged-in. The session
-# gate is gc_grok_prompt_hello (grok -p hello). Never print token values.
+# auth.json shape: refresh_token, key, or future expires_at. On PRoot/Termux
+# this IS the login check. Elsewhere the live grok -p hello gate still wins.
+# Never print token values.
 #
 # ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
 # =============================================================================
 gc_auth_session_ok() {
     _auth="${1:-}"
@@ -4125,14 +4218,17 @@ PY
 }
 
 # =============================================================================
-# gc_session_status_word() - Class B: valid|invalid|missing
+# gc_session_status_word() - Class B: valid|invalid|missing|timeout
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# valid = grok -p hello succeeded. missing = no peer grok. invalid = probe
-# failed. MUST NOT use auth.json parse as logged-in.
+# valid = session ok (PRoot/Termux: local auth cookies; else grok -p hello).
+# missing = no peer grok (live-probe hosts). timeout = live probe hit
+# GROK_PROMPT_TIMEOUT. invalid = otherwise. MUST NOT report timeout as
+# logged-out. PRoot/Termux MUST NOT run the live probe for this word.
 #
 # ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
 # =============================================================================
 gc_session_status_word() {
     if gc_grok_prompt_hello; then
@@ -4141,6 +4237,10 @@ gc_session_status_word() {
     fi
     if [ "${GC_GROK_PROMPT_STATUS:-}" = "missing" ]; then
         printf '%s' "missing"
+        return 0
+    fi
+    if [ "${GC_GROK_PROMPT_STATUS:-}" = "timeout" ]; then
+        printf '%s' "timeout"
         return 0
     fi
     printf '%s' "invalid"
@@ -4202,10 +4302,11 @@ gc_sync_skip_if_logged_in() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Tell the operator whether grok is actually signed in. Runs grok -p hello
-# first. Backup MUST call gc_grok_prompt_hello before any deposit.
+# Tell the operator whether grok is signed in. PRoot/Termux: local auth
+# cookies. Else grok -p hello. Backup uses the same gate.
 #
 # ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
 # =============================================================================
 gc_check_session() {
     : "${APP_NAME:=grok-cli}"
@@ -4213,7 +4314,13 @@ gc_check_session() {
     _home=$(gc_resolve_grok_home)
     _auth="${_home}/auth.json"
     if gc_grok_prompt_hello; then
-        out_success "Grok is logged in (grok -p hello succeeded)."
+        if [ "${GC_GROK_PROMPT_DETAIL:-}" = "local-auth" ]; then
+            out_success "Grok is logged in (local auth cookies)."
+            _probe="local-auth"
+        else
+            out_success "Grok is logged in (grok -p hello succeeded)."
+            _probe="grok -p hello"
+        fi
         if [ -f "${_auth}" ]; then
             out_info "Auth file: ${_auth}"
         fi
@@ -4223,8 +4330,9 @@ gc_check_session() {
                 "grok_home" "${_home}" \
                 "auth_json" "${_auth}" \
                 "session" "valid" \
-                "probe" "grok -p hello"
+                "probe" "${_probe}"
         fi
+        unset _probe
         return 0
     fi
     if [ "${GC_GROK_PROMPT_STATUS:-}" = "missing" ]; then
@@ -4233,6 +4341,9 @@ gc_check_session() {
     _extra=""
     if [ -n "${GC_GROK_PROMPT_DETAIL:-}" ]; then
         _extra=" (${GC_GROK_PROMPT_DETAIL})"
+    fi
+    if [ "${GC_GROK_PROMPT_STATUS:-}" = "timeout" ]; then
+        out_die "Grok session probe timed out${_extra}. Next: grok login, then ${APP_NAME} check-session."
     fi
     out_die "Grok is not logged in${_extra}. Next: grok login, then ${APP_NAME} check-session."
 }
@@ -4267,7 +4378,11 @@ gc_dest_needs_elev() {
 # GENERAL PURPOSE:
 # Push matching auth.* files into the durable store. When running as root,
 # chown root:root and chmod so a normal login can later sync-auth without sudo
-# (dir 0755, files 0644).
+# (dir 0755, files 0644). Always chmod 0644 after copy so Termux install -m
+# cannot leave the source 0600 mode on the store.
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
 # =============================================================================
 gc_deposit_auth() {
     _src="${1:-}"
@@ -4304,8 +4419,8 @@ gc_deposit_auth() {
             install -m 0644 "${_f}" "${_outp}" || out_die "Failed to copy ${_bn} into ${_dest}"
         else
             cp "${_f}" "${_outp}" || out_die "Failed to copy ${_bn} into ${_dest}"
-            chmod 0644 "${_outp}" 2>/dev/null || true
         fi
+        chmod 0644 "${_outp}" 2>/dev/null || true
         if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
             chown root:root "${_outp}" 2>/dev/null || true
             chmod 0644 "${_outp}" 2>/dev/null || true
@@ -4352,7 +4467,7 @@ EOF
 # Do not tell the operator to generate-sudoer-request when the fragment
 # already allows passwordless backup.
 #
-# Last updated: 2026-09-06
+# Last updated: 2026-09-07
 # =============================================================================
 gc_backup() {
     : "${APP_NAME:=grok-cli}"
@@ -4369,6 +4484,9 @@ gc_backup() {
         _extra=""
         if [ -n "${GC_GROK_PROMPT_DETAIL:-}" ]; then
             _extra=" (${GC_GROK_PROMPT_DETAIL})"
+        fi
+        if [ "${GC_GROK_PROMPT_STATUS:-}" = "timeout" ]; then
+            out_die "Cannot backup: grok session probe timed out${_extra}. Next: grok login, then ${APP_NAME} backup."
         fi
         out_die "Cannot backup: grok is not logged in${_extra}. Next: grok login, then ${APP_NAME} backup."
     fi
@@ -6643,11 +6761,21 @@ app_about() {
 # - requirement-shell-cli-interface.md
 #
 # Last updated: 2026-09-07
+# GROK_CLI_HOST_OVERRIDE=multiuser lets Core tests on Android keep the
+# multi-user menu (TERMUX_VERSION still wins for Termux cases).
 # =============================================================================
 gc_host_is_termux() {
     if [ -n "${TERMUX_VERSION:-}" ]; then
         return 0
     fi
+    case "${GROK_CLI_HOST_OVERRIDE:-}" in
+        multiuser|gitbash|windows-cmd)
+            return 1
+            ;;
+        termux)
+            return 0
+            ;;
+    esac
     if [ -n "${PREFIX:-}" ]; then
         return 0
     fi
@@ -6804,10 +6932,11 @@ EOF
 # SHORT_DESCRIPTION, login status, host not-available (this-login-only),
 # appended logged-in not-available when session is valid, then remaining
 # listed rows from 1, then Exit 9. Session status is under the title
-# (not a row). Host not-available is never replaced by the logged-in line.
-# Reuse GC_SESSION_STATUS_CACHE on reprint so a bad pick does not run
-# grok -p hello again (Termux freeze). Before the live probe, print a
-# non-DEBUG checking-session line so a ~14s wait is not silence.
+# (not a row): logged in / timeout / logged out. Host not-available is
+# never replaced by the logged-in line. Reuse GC_SESSION_STATUS_CACHE on
+# reprint so a bad pick does not run grok -p hello again. PRoot/Termux
+# uses local auth cookies (no live probe). On other hosts, print a
+# checking-session line before the live probe.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -6832,16 +6961,20 @@ app_default_print_menu() {
     if [ -n "${GC_SESSION_STATUS_CACHE:-}" ]; then
         _st="${GC_SESSION_STATUS_CACHE}"
     else
-        : "${GROK_PROMPT_TIMEOUT:=20}"
-        _gpt_show=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT}" 20)
-        out_info "checking session (grok -p hello, timeout ${_gpt_show}s)..."
-        unset _gpt_show
+        if ! gc_session_uses_local_auth; then
+            : "${GROK_PROMPT_TIMEOUT:=14}"
+            _gpt_show=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT}" 14)
+            out_info "checking session (grok -p hello, timeout ${_gpt_show}s)..."
+            unset _gpt_show
+        fi
         _st=$(gc_session_status_word) || true
         GC_SESSION_STATUS_CACHE="${_st}"
         export GC_SESSION_STATUS_CACHE
     fi
     if [ "${_st}" = "valid" ]; then
         out_plain "logged in"
+    elif [ "${_st}" = "timeout" ]; then
+        out_plain "timeout"
     else
         out_plain "logged out"
     fi
@@ -7281,7 +7414,7 @@ app_help() {
     out_plain "  GROK_CHANNEL            grok channel (stable|alpha|enterprise; default stable)"
     out_plain "  GROK_SETUP_VERSION      pin grok version (skip channel pointer)"
     out_plain "  GROK_BIN             override path to peer grok"
-    out_plain "  GROK_PROMPT_TIMEOUT  seconds for grok -p hello (default 20; always bounded)"
+    out_plain "  GROK_PROMPT_TIMEOUT  seconds for grok -p hello (default 14; always bounded)"
     out_plain "  GROK_PROMPT_KILL_AFTER  SIGKILL grace after the probe deadline (default 2)"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers / generate / submit"

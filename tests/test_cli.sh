@@ -203,10 +203,12 @@ run_test_cli() {
         t_fail "TP-CLI-09 quiet expected empty stdout, got '$(_trunc "$_out")'"
     fi
 
-    # TP-CLI-10 online verbs are routed (channel may fail without a fake curl)
-    _err=$(sh "${SCRIPT}" self-update 2>&1 >/dev/null) || true
+    # TP-CLI-10 online verbs are routed (refuse URL; never hang on GitHub).
+    _err=$(SCRIPT_URL="http://127.0.0.1:1/grok-cli" timeout 8 \
+        sh "${SCRIPT}" self-update 2>&1 >/dev/null) || true
     assert_not_contains "TP-CLI-10 self-update is routed" "${_err}" "Unknown command"
-    _err=$(sh "${SCRIPT}" version-check 2>&1 >/dev/null) || true
+    _err=$(SCRIPT_URL="http://127.0.0.1:1/grok-cli" timeout 8 \
+        sh "${SCRIPT}" version-check 2>&1 >/dev/null) || true
     assert_not_contains "TP-CLI-10 version-check is routed" "${_err}" "Unknown command"
 
     # TP-CLI-11 set -u HOME unset still works for version
@@ -511,7 +513,7 @@ AUTH
         t_skip "TP-CLI-20 Windows cmd logged-in run first (no python3 for PTY)"
     fi
 
-    # TP-CLI-21: Termux menu must not freeze when grok -p hello hangs (SIGTERM ignored).
+    # TP-CLI-21: Termux menu uses local auth cookies (no live grok -p hello).
     if command -v python3 >/dev/null 2>&1; then
         ci_isolated_env
         ci_fake_grok_hang
@@ -522,18 +524,20 @@ AUTH
             PTY_TIMEOUT=12 PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         _elapsed=$(($(date +%s) - _start))
         assert_contains "TP-CLI-21 Termux hang-grok still prints menu" "$_out" "9. Exit"
-        assert_contains "TP-CLI-21 Termux hang-grok checking session" "$_out" "checking session (grok -p hello, timeout"
+        assert_not_contains "TP-CLI-21 Termux no live checking-session" "$_out" \
+            "checking session (grok -p hello, timeout"
         assert_contains "TP-CLI-21 Termux hang-grok logged out" "$_out" "logged out"
+        assert_not_contains "TP-CLI-21 Termux hang-grok not timeout" "$_out" "timeout"
         assert_contains "TP-CLI-21 Termux hang-grok not-available line" "$_out" \
             "backup, sync-auth and sudoers features are not available in termux."
         assert_contains "TP-CLI-21 Termux hang-grok Choice prompt" "$_out" "Choice:"
-        if [ "${_elapsed}" -lt 12 ]; then
+        if [ "${_elapsed}" -lt 5 ]; then
             t_pass "TP-CLI-21 Termux menu did not freeze (${_elapsed}s)"
         else
             t_fail "TP-CLI-21 Termux menu froze for ${_elapsed}s"
         fi
 
-        # TP-CLI-22: a bad pick reprints the list; grok -p hello runs once.
+        # TP-CLI-22: a bad pick reprints the list; live grok -p hello is not used.
         _plog="${CI_HOME}/probe.log"
         rm -f "${_plog}"
         _start=$(date +%s)
@@ -548,7 +552,7 @@ AUTH
         [ -n "${_nprobe}" ] || _nprobe=0
         assert_contains "TP-CLI-22 bad pick not a menu choice" "$_out" "Not a menu choice"
         assert_contains "TP-CLI-22 reprint still Exit 9" "$_out" "9. Exit"
-        assert_eq "TP-CLI-22 hang grok probed once" "1" "${_nprobe}"
+        assert_eq "TP-CLI-22 hang grok not live-probed" "0" "${_nprobe}"
         if [ "${_elapsed}" -lt 12 ]; then
             t_pass "TP-CLI-22 reprint did not re-probe (${_elapsed}s, probes=${_nprobe})"
         else
@@ -571,6 +575,12 @@ AUTH
     assert_contains "TP-CLI-23 reaper ignores TSTP" "${_src}" "trap '' TSTP"
     assert_contains "TP-CLI-23 wait reaper first" "${_src}" 'wait "${_preap}"'
     assert_contains "TP-CLI-23 menu checking session line" "${_src}" "checking session (grok -p hello, timeout"
+    assert_contains "TP-CLI-23 default GROK_PROMPT_TIMEOUT 14" "${_src}" 'GROK_PROMPT_TIMEOUT:=14'
+    assert_contains "TP-CLI-23 timeout status word" "${_src}" 'GC_GROK_PROMPT_STATUS="timeout"'
+    assert_contains "TP-CLI-23 menu prints timeout" "${_src}" 'out_plain "timeout"'
+    assert_contains "TP-CLI-23 local-auth helper" "${_src}" "gc_session_uses_local_auth"
+    assert_contains "TP-CLI-23 local-auth cookies helper" "${_src}" "gc_session_from_local_auth"
+    assert_contains "TP-CLI-23 timeout env protected" "${_src}" "DO NOT REMOVE GROK_PROMPT_TIMEOUT"
 
     # TP-CLI-25 / 26 / 27 / 28: --debug menu elapsed (internal-timer).
     _src=$(cat "${SCRIPT}")

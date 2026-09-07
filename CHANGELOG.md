@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.26] - 2026-09-07
+
+### Changed
+
+- **PRoot/Termux login check uses local auth cookies:** `grok -p hello` under PRoot is usually timeout and is no longer the session gate there. The numbered list, `check-session`, `about`, and `backup` read `~/.grok/auth.json` (`refresh_token` / `key` / future `expires_at`). No `checking session (grok -p hello, timeout 14s)...` wait on that class. **`GROK_PROMPT_TIMEOUT`** (default 14) and the live-probe functions stay in the ship unit, **protected**, for future / non-PRoot use. Law: `requirement-grok-auth-backup` **1.9.0** · `requirement-shell-cli-default-interaction` **2.13.0**. Suite **TP-CLI-21** · **TP-CLI-22** · **TP-CLI-23** · **TP-GROK-CLI-03..05** · **TP-GROK-CLI-35** · **TP-GROK-CLI-38** · **TP-GROK-CLI-44** · **TP-GROK-CLI-45**.
+
+## [1.8.25] - 2026-09-07
+
+### Fixed
+
+- **Session probe timeout was reported as logged out:** after `checking session (grok -p hello, timeout 20s)...` a hang (Termux PRoot reaper path especially) printed **logged out**. That line is now **timeout**. A fast missing/failed peer is still **logged out**. `check-session` / `backup` say the probe timed out instead of “not logged in.” Default `GROK_PROMPT_TIMEOUT` is **14** (was 20). The PRoot reaper checks stdout/guest-death before the wall clock so a reply at the bound still counts as logged in, and empty stdout at the bound is exit 124. Law: `requirement-shell-cli-default-interaction` **2.12.0** · `requirement-grok-auth-backup` **1.8.0**. Suite **TP-CLI-21** · **TP-CLI-23** · **TP-GROK-CLI-44** · **TP-GROK-CLI-45**.
+
 ## [1.8.24] - 2026-09-07
 
 ### Fixed

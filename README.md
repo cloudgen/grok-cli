@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.24-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.26-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -36,7 +36,7 @@ It is **not** a second grok program and **not** official x.ai Termux support. Af
 - **Install this program**: paste the curl one-liner; later `version-check`, `self-update`, `self-uninstall`
 - **Install from a checkout**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
 - **Start grok without auto-update**: type `grok-cli run` (or `grok-cli run -p hello`). On Termux this avoids the hang until Ctrl-Z. Missing grok → `grok-cli setup`.
-- **Prove grok is logged in**: `check-session` asks grok a one-line question (`grok -p hello`). A credential file that only *looks* valid is not enough. Missing grok → `grok-cli setup`, then `grok login`.
+- **Prove grok is logged in**: on Termux/PRoot, `check-session` reads local `~/.grok/auth.json` cookies (live `grok -p hello` is skipped — it usually times out). On other hosts it still asks grok a one-line question (`grok -p hello`). Missing grok → `grok-cli setup`, then `grok login`.
 - **Optional shared login on one Linux host**: `backup` copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644` (elevated probe uses **this** login’s grok home, not root’s); `sync-auth` copies that store into this login’s `~/.grok` with **no sudo** (skipped if grok is already logged in — prints `No sync-auth for logged-in environment.`); `sync-auth-from-remote` uses `scp` (same skip) and remembers the last remote; `add-crontab` adds this login’s timers after **this** login’s backup grant exists
 - **Optional passwordless backup grant** (only if you use `backup`): `print-sudoers` prints one line so this login may run `sudo grok-cli backup` without a password. A host admin installs that line. `generate-sudoer-request` / `submit-sudoer-request` hand the same grant to the named approver (`sudoer-adm`).
 - **Stops when it should**: grok missing or not answering, unauthorized copy into `/var/grok-cli`, unreadable store, failed grok download
@@ -130,7 +130,7 @@ logged out
 9. Exit
 ```
 
-On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. The line under **logged in** / **logged out** says those features are not available on that host. Remaining rows start at **1** with **run** (start grok without auto-update). When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are omitted on every host, and a second line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Live capture on a multi-user host that is **logged in**:
+On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. The line under **logged in** / **timeout** / **logged out** says those features are not available on that host. Remaining rows start at **1** with **run** (start grok without auto-update). When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are omitted on every host, and a second line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Live capture on a multi-user host that is **logged in**:
 
 ```text
 $ grok-cli menu
@@ -143,13 +143,13 @@ sync-auth and sync-auth-from-remote features are not available for logged-in env
 9. Exit
 ```
 
-Choose a number, or type the command name. `9` exits. The line under the title is **logged in** or **logged out** from a live `grok -p hello` (not from reading `auth.json` alone). On a real terminal the descriptions after the colon are gray and italic. `setup` is not on this list — type `grok-cli setup`. A later `sync-auth-from-remote` remembers the last remote in persistence and offers it as the prompt default.
+Choose a number, or type the command name. `9` exits. The line under the title is **logged in**, **timeout**, or **logged out**. On Termux/PRoot that line comes from local `auth.json` cookies (no `grok -p hello` wait). On other hosts it is a live `grok -p hello`; a hang that hits the bound prints **timeout**, not **logged out**. On a real terminal the descriptions after the colon are gray and italic. `setup` is not on this list — type `grok-cli setup`. A later `sync-auth-from-remote` remembers the last remote in persistence and offers it as the prompt default.
 
 ## Usage
 
 | How you run it | What you get |
 |----------------|--------------|
-| `grok-cli` or `grok-cli --debug` at a real terminal | Numbered start list (`backup` is **1** on a multi-user host when logged out; **logged in** / **logged out** under the title from `grok -p hello`; Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers; logged-in session hides sync-auth / sync-auth-from-remote and appends a not-available line; **9** leaves). Same as `grok-cli menu`. Overlay switches with no command still follow empty argv. |
+| `grok-cli` or `grok-cli --debug` at a real terminal | Numbered start list (`backup` is **1** on a multi-user host when logged out; **logged in** / **timeout** / **logged out** under the title from `grok -p hello`; Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers; logged-in session hides sync-auth / sync-auth-from-remote and appends a not-available line; **9** leaves). Same as `grok-cli menu`. Overlay switches with no command still follow empty argv. |
 | `curl -fsSL … \| sh` or `grok-cli` in a script (no args) | Install-ensure: places `~/.local/bin/grok-cli` or reports already installed. **Not** help. **Not** the menu. |
 | `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help. `--json` with no command is empty argv **special case**: JSON help even at a prompt |
 | `grok-cli menu` in a script | Help (the list is TTY-only) |
@@ -188,7 +188,7 @@ grok-cli self-uninstall --force
 | `GROK_VENDOR_BASE_URL` | xAI grok channel/artifact base (default `https://x.ai/cli`) |
 | `GROK_CHANNEL` | grok channel (`stable` / `alpha` / `enterprise`; default `stable`) |
 | `GROK_BIN` | Override path to peer `grok` |
-| `GROK_PROMPT_TIMEOUT` | Seconds to wait for `grok -p hello` (default 20; always bounded) |
+| `GROK_PROMPT_TIMEOUT` | Seconds to wait for live `grok -p hello` (default 14; kept even when Termux/PRoot skips that probe) |
 | `DEBUG` | `1` or flag `--debug`: stderr diagnostics; numbered menu prints elapsed of each paint step |
 | `GROK_PROMPT_KILL_AFTER` | SIGKILL grace after that deadline (default 2; GNU `timeout -k`) |
 | `GROK_CLI_ROOT` | Durable auth store (default `/var/grok-cli`; optional sharing) |
@@ -281,7 +281,7 @@ Matching leftovers by `ps -o comm=` never fires on Termux (`comm` truncates to `
 
 **Why Ctrl-C fails and Ctrl-Z works.** Ctrl-C is `SIGINT` — grok/PRoot often ignore it (or treat it as “cancel this turn”). Ctrl-Z is `SIGTSTP` — the shell’s job control, usually not caught — so you get `Stopped`. An old wrapper did `exec proot grok …`, so there was no parent left to SIGKILL.
 
-**What grok-cli does (1.8.24).** The wrapper binds `/dev/null` over `$PREFIX/etc/profile.d/start-services.sh` so those login shells do not spawn extra `runsvdir` (it does **not** edit Termux’s file). It still passes `proot --kill-on-exit` (never `-k`) and `--no-auto-update` on `-p`, and keeps a **PRoot-exit reaper** as the safety net: when grok-linux is gone (or stdout is idle, including empty stdout after guest death), kill only new `runsvdir`, then SIGKILL PRoot immediately. The reaper is in its own session (`setsid`) and ignores Ctrl-Z so the watchdog cannot be stopped with the menu. The numbered list prints `checking session (grok -p hello, timeout 20s)...` after the header so a healthy ~14s wait is not silence. Interactive `grok` still `exec`s so the TUI owns the terminal. `grok-cli setup` **and** `grok-cli self-update` rewrite a stale wrapper (no `--force`). After `self-update` to **1.8.24**:
+**What grok-cli does (1.8.25).** The wrapper binds `/dev/null` over `$PREFIX/etc/profile.d/start-services.sh` so those login shells do not spawn extra `runsvdir` (it does **not** edit Termux’s file). It still passes `proot --kill-on-exit` (never `-k`) and `--no-auto-update` on `-p`, and keeps a **PRoot-exit reaper** as the safety net: when grok-linux is gone (or stdout is idle, including empty stdout after guest death), kill only new `runsvdir`, then SIGKILL PRoot immediately. The reaper is in its own session (`setsid`) and ignores Ctrl-Z so the watchdog cannot be stopped with the menu. The numbered list prints `checking session (grok -p hello, timeout 14s)...` after the header. If that probe hits the bound, the next line is **timeout** (not **logged out**). Interactive `grok` still `exec`s so the TUI owns the terminal. `grok-cli setup` **and** `grok-cli self-update` rewrite a stale wrapper (no `--force`). After `self-update` to **1.8.25**:
 
 ```sh
 grok-cli self-update  # also heals ~/.grok/bin/grok
@@ -310,4 +310,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-07 — version **1.8.24**: Termux menu prints `checking session…` then bounds `grok -p hello` (~14s, not forever); `self-update` heals the Android grok wrapper. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-07 — version **1.8.26**: Termux/PRoot login check uses local auth cookies; live `grok -p hello` timeout stays protected for other hosts. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
