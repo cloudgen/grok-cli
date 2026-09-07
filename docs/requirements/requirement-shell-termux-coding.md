@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-termux-coding.md  
-**Status**: Active (Version 1.2.0)  
+**Status**: Active (Version 1.3.0)  
 **Area**: shell  
 **Key**: `requirement-shell-termux-coding`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -99,9 +99,10 @@ Rules:
 15. Shebang **MUST** stay `#!/bin/sh`. Termux’s exec interceptor rewrites `/bin/sh` to `${PREFIX}/bin/sh`. **MUST NOT** require `bash`.  
 16. **MUST NOT** smoke or `exec` a newly placed binary from the cache folder, `/tmp`, or `/dev/shm` — those mounts are often `noexec` on Termux/Android. Smoke path for peer grok: `{{GROK_HOME}}/downloads` (`requirement-grok-setup`).  
 17. Execute-bit-on **MUST NOT** mean “runs on this host.” Probe success is a successful `--version` (or the owning verb’s equivalent) **on this host**. Wrong ELF `e_machine` (x86_64 file on aarch64 Termux) is not installed.  
-18. On Android, after a direct exec of a static Linux `ET_EXEC` fails, writers **MUST** follow `requirement-grok-setup` 18c–18d / 21b (opt-out, `pkg` `proot`, wrapper, resolv bind). **MUST NOT** byte-patch vendor ELF (`e_type` or the `/etc/resolv.conf` string).  
+18. On Android, after a direct exec of a static Linux `ET_EXEC` fails, writers **MUST** follow `requirement-grok-setup` 18c–18e / 21b (opt-out, `pkg` `proot`, wrapper, `--kill-on-exit`, `grok -p` SIGKILL, resolv bind). **MUST NOT** byte-patch vendor ELF (`e_type` or the `/etc/resolv.conf` string).  
 19. When execing that vendor file or `proot`, **MUST** unset `LD_PRELOAD` and set `TERMUX_EXEC_OPTOUT=1` for that exec, then restore. **MUST NOT** leave `LD_PRELOAD` cleared for the rest of the CLI.  
-20. **MUST NOT** run `proot` against the vendor grok while Termux `LD_PRELOAD` (libtermux-exec) is still set.
+20. **MUST NOT** run `proot` against the vendor grok while Termux `LD_PRELOAD` (libtermux-exec) is still set.  
+20b. The Android `proot` wrapper **MUST** pass `proot --kill-on-exit` when advertised (never `-k`). For `-p` / `--single` it **MUST** pass grok `--no-auto-update` and SIGKILL the child on Ctrl-C so the operator is not stuck until Ctrl-Z. Procedure SSOT is `requirement-grok-setup` 18e.
 
 ### 2.4b Session probe (writing rules; procedure SSOT is `requirement-grok-auth-backup`)
 
@@ -219,7 +220,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 11. Hit packages.termux.org from Core tests.  
 12. Require `bash` because Termux happens to ship it.  
 13. Treat `auth.json` parse as logged-in on Termux without `grok -p hello` (DNS / wrapper / `ET_EXEC` would stay hidden).  
-14. Hang the session probe or the numbered menu waiting for an interactive `grok login`, or freeze them because `timeout` is missing or `proot`/grok ignores SIGTERM (no kill-after / no watchdog).
+14. Hang the session probe or the numbered menu waiting for an interactive `grok login`, or freeze them because `timeout` is missing or `proot`/grok ignores SIGTERM (no kill-after / no watchdog).  
+14b. Leave the operator-facing `bin/grok` wrapper as bare `exec proot` so `grok -p` hangs after the answer until Ctrl-Z, or pass `proot -k` as kill-on-exit.
 
 15. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
 
@@ -266,6 +268,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-04 | Active (1.0.0) | Termux/Android host writing SSOT: PREFIX, pkg, noexec, FHS-not-assumed; points at setup/folder/storage |
 | 2026-09-05 | Active (1.1.0) | Session probe writing: exec resolved peer `grok -p hello` (stdin closed; no hang; fake in Core tests) |
 | 2026-09-07 | Active (1.2.0) | Probe always bounded; GNU `timeout -k` or POSIX watchdog so Termux `proot` ignoring SIGTERM cannot freeze the menu |
+| 2026-09-07 | Active (1.3.0) | Android wrapper `--kill-on-exit` + `grok -p` SIGKILL (setup 18e); dual mention |
 
 ---
 
@@ -275,7 +278,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 |----------------|-------|--------|
 | **TP-VCLI-15**, **TP-VCLI-16** | `tests/test_grok_setup.sh` | have — smoke under `~/.grok/downloads` (not cache/`noexec` tmp) |
 | **TP-VCLI-17**, **TP-VCLI-18** | `tests/test_grok_setup.sh` | have — wrong ELF / cannot-run is not already installed |
-| **TP-VCLI-19**–**25** | `tests/test_grok_setup.sh` | have — Android ET_EXEC, `pkg install -y proot`, `LD_PRELOAD` unset, resolv bind |
+| **TP-VCLI-19**–**28** | `tests/test_grok_setup.sh` | have — Android ET_EXEC, `pkg install -y proot`, `LD_PRELOAD` unset, resolv bind, `--kill-on-exit` / `-p` SIGKILL, heal stale wrapper |
 | **TP-LC-01** | `tests/test_local_lifecycle.sh` | have — grok-cli install → `USER_BIN` (not PREFIX) |
 | **TP-CLI-01** | `tests/test_cli.sh` | have — `sh -n`; shebang `/bin/sh` |
 | **TP-GROK-CLI-35**–**38** | `tests/test_domain_grok_cli.sh` | have — live `grok -p hello` fake peer; no xAI; no hang |
@@ -285,6 +288,6 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07 (1.2.0 — always-bounded probe; Termux menu must not freeze)  
+**Last Updated**: 2026-09-07 (1.3.0 — Android wrapper `--kill-on-exit` + `grok -p` SIGKILL; dual mention of setup 18e)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

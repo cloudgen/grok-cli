@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-grok-setup.md  
-**Status**: Active (Version 2.6.1)  
+**Status**: Active (Version 2.7.0)  
 **Area**: domain  
 **Key**: `requirement-grok-setup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -26,7 +26,7 @@ This does **not** install grok-cli itself (checkout `install` and channel `curl|
 
 | Includes | Excludes |
 |----------|----------|
-| Detect OS/arch; fetch channel version; fetch artifact; smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder); place `~/.grok/downloads` + `~/.grok/bin`; skip if `grok` already **runs on this host**; refuse wrong ELF; Android ET_EXEC retry (TERMUX_EXEC_OPTOUT / Termux `pkg install -y proot` / `proot` wrapper); `--force` | Downloading or running `install.sh`; installing grok-cli; `self-update`; empty-argv install-ensure; sudo; `pkg`/`apt` on non-Android; hanging `pkg` prompts; byte-patching the vendor binary (DNS string or ELF `e_type`); smoking a file that lives only in cache/`/tmp`/`/dev/shm`; treating an x86_64 scp as installed on aarch64 |
+| Detect OS/arch; fetch channel version; fetch artifact; smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder); place `~/.grok/downloads` + `~/.grok/bin`; skip if `grok` already **runs on this host**; refuse wrong ELF; Android ET_EXEC retry (TERMUX_EXEC_OPTOUT / Termux `pkg install -y proot` / `proot` wrapper with `--kill-on-exit` and `grok -p` SIGKILL); `--force`; rewrite a stale Android wrapper on skip (no network) | Downloading or running `install.sh`; installing grok-cli; `self-update`; empty-argv install-ensure; sudo; `pkg`/`apt` on non-Android; hanging `pkg` prompts; byte-patching the vendor binary (DNS string or ELF `e_type`); smoking a file that lives only in cache/`/tmp`/`/dev/shm`; treating an x86_64 scp as installed on aarch64; leaving `grok -p` hung so the operator must Ctrl-Z |
 | Fail closed if curl/uname/download/smoke fails | Hitting the public network from Core tests |
 
 | Surface | What you open | What for |
@@ -100,6 +100,7 @@ Studied installer behavior that this procedure **MUST** keep:
 18b. After download, if the file is ELF and `od` can read `e_machine`, **MUST** fail closed when `e_machine` does not match the detected arch (**MUST NOT** place). Smoke stderr that names `EM_X86_64` / `EM_AARCH64` **MUST** be reported as a wrong-architecture failure. **MUST NOT** treat that as a generic “check the download” miss.  
 18c. After a failed **direct** smoke on Android (Termux), **MUST** retry `--version` with `TERMUX_EXEC_OPTOUT=1` and `LD_PRELOAD` unset. Termux’s exec interceptor loads files through Android `linker64`, which refuses ELF `ET_EXEC` (`e_type` 2); xAI’s `linux-aarch64` grok is that kind of static Linux executable (verified channel artifact: ELF64 aarch64, statically linked, `e_type` 2 — not a truncated download). If that retry succeeds, **MUST** place a POSIX wrapper at `{{GROK_HOME}}/bin/grok` (and `agent`) that execs the **unmodified** vendor file the same way. If that retry fails and `proot` is on PATH, **MUST** retry `proot {{file}} --version` with the **same** `LD_PRELOAD` unset / `TERMUX_EXEC_OPTOUT=1` (Termux wiki: proot under `libtermux-exec` re-hits `e_type` 2). On success, place a wrapper that unsets `LD_PRELOAD` then execs `proot` plus the vendor file. **MUST NOT** byte-patch ELF `e_type` (or any other vendor bytes) to pass the linker. If every retry fails, fail closed; the blocking `Next:` for an `e_type` / ET_EXEC refusal **MUST** be `pkg install proot`, then `{{APP_NAME}} setup --force` (or run grok on a Linux host). **MUST NOT** use “check the download” as that Next — the artifact was the matching `{{os}}-{{arch}}` file. **MUST NOT** delete the smoked file: **MUST** leave it under `{{GROK_HOME}}/downloads` as `grok-{{os}}-{{arch}}.failed` and name that path in the error.  
 18d. After the opt-out retry in 18c fails, if `proot` is **not** on PATH and this host is Android **and** Termux `pkg` is available (`${PREFIX}/bin/pkg` when `PREFIX` is set, else `command -v pkg`), **MUST** run `pkg install -y proot` (stdin closed; `DEBIAN_FRONTEND=noninteractive`) and then retry the `proot` smoke (still with `LD_PRELOAD` unset). **MUST NOT** `sudo pkg`. **MUST NOT** run `pkg` or `apt` when `uname` is not Android (FreeBSD `pkg` is a different tool). **MUST NOT** hang under `--json` / off-TTY waiting for a `pkg` prompt. A failed `pkg install` is **not** itself a blocking error — **MUST** print WARN with exit/stderr snippet, then fall through to the 18c Next. **MUST NOT** install `proot` when opt-out already made `--version` succeed, or when `proot` is already on PATH.  
+18e. The Android wrapper **MUST** let `grok -p` return to the shell. When the method is `proot`, the wrapper **MUST** pass `proot --kill-on-exit` when `proot --help` advertises that option (long option only — **MUST NOT** pass `-k`, which is `--kernel-release`). When argv includes `-p` / `--single` / `--prompt-file` / `--prompt-json`, the wrapper **MUST** pass grok `--no-auto-update` unless the operator already did, **MUST NOT** `exec` (stay parent), and **MUST** SIGKILL the grok/proot child on SIGINT/SIGTERM (Ctrl-C). Interactive `grok` (no `-p`) **MUST** still `exec` so the TUI owns the TTY. **MUST NOT** byte-patch the vendor file. On Android, if grok already **runs** and `bin/grok` is a POSIX wrapper that lacks `--kill-on-exit` or `--no-auto-update`, `setup` **MUST** rewrite that wrapper from the existing vendor file with **no** network (**MUST NOT** require `--force` for this heal). JSON status stays `already_installed`.  
 19. Version string **MUST** match `X.Y.Z` or `X.Y.Z-suffix` (`[A-Za-z0-9._]+`). Invalid pointer → fail closed.  
 20. Relative symlink **MUST** be used when `bin` and `downloads` share a parent (default `~/.grok/bin` → `../downloads/grok-{{os}}-{{arch}}`), **except** when rule 18c requires an Android exec wrapper: then `bin/grok` is that POSIX script (vendor file under `downloads` stays unmodified; `agent` **MAY** be a symlink to `grok`).  
 21. **MUST NOT** byte-patch the vendor binary (including the 16-byte `/etc/resolv.conf` string).  
@@ -147,7 +148,7 @@ grok-cli setup --json
 | Channel | `GROK_CHANNEL` default `stable` |
 | Version pin | `GROK_SETUP_VERSION` optional |
 | Artifact | `{{base}}/grok-{{version}}-{{os}}-{{arch}}` (optional `.zst` / `.gz`) |
-| Place | `{{GROK_HOME}}/downloads` `mktemp` sibling → smoke `--version` → `{{GROK_HOME}}/downloads/grok-{{os}}-{{arch}}` → `{{GROK_HOME}}/bin/grok` and `agent` (Android ET_EXEC: POSIX wrapper when opt-out/`proot` is the working exec) |
+| Place | `{{GROK_HOME}}/downloads` `mktemp` sibling → smoke `--version` → `{{GROK_HOME}}/downloads/grok-{{os}}-{{arch}}` → `{{GROK_HOME}}/bin/grok` and `agent` (Android ET_EXEC: POSIX wrapper when opt-out/`proot` is the working exec; `proot --kill-on-exit` + `-p` SIGKILL; heal stale wrapper on skip) |
 | PATH candidates | `USER_BIN` (`{{HOME}}/.local/bin`), `GLOBAL_BIN` (`/usr/local/bin`), `${PREFIX}/bin` when `PREFIX` is set |
 | Overrides | `GROK_VENDOR_BASE_URL`, `GROK_VENDOR_FALLBACK_URL`, `GROK_CHANNEL`, `GROK_SETUP_VERSION`, `GROK_BIN`, `GROK_BIN_DIR`, `GROK_HOME`, `GROK_SETUP_RESOLV_FILE` (resolv probe; default `/etc/resolv.conf`) |
 | Privilege | Type 0 |
@@ -186,7 +187,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 
 - **Caution:** Temp-file fetch; never exec `install.sh`; never place a binary that fails `--version`.  
 - **Intentional:** `setup` ≠ `install`; procedure is in the ship unit.  
-- **Anti-fragile:** Skip when `grok` exists; URL/channel overrides for tests; GCS fallback.  
+- **Anti-fragile:** Skip when `grok` exists; rewrite a stale Android wrapper on that skip (no `--force`); URL/channel overrides for tests; GCS fallback.  
 - **Over-protect:** Menu still hides setup; setup does not own grok-cli’s channel; no vendor-binary byte-patch (DNS string or ELF `e_type`).
 
 ---
@@ -220,6 +221,9 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 23. Leave Android grok without a `proot -b …:/etc/resolv.conf` bind when the probe resolv has no nameserver and proot can run the vendor file (musl then fails `grok login` with dns error).
 
 24. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
+25. Leave the Android `proot` wrapper as bare `exec proot {{vendor}}` so `grok -p` hangs after the answer until Ctrl-Z.  
+26. Pass `proot -k` meaning kill-on-exit (`-k` is `--kernel-release`).  
+27. Require `setup --force` (a re-download) to rewrite a stale Android wrapper that already runs.  
 
 **Violating this rule is a critical setup / install-class regression.**
 
@@ -251,6 +255,9 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-20 | `proot` smoke and wrapper run with `LD_PRELOAD` unset (Termux exec interceptor off) |
 | AC-21 | Failed version-pointer or artifact fetch names `HTTP NNN` (or curl exit) in the happened sentence |
 | AC-22 | Android + no nameserver on the resolv probe + proot can run grok: `{{GROK_HOME}}/resolv.conf` exists and `bin/grok` contains `proot -b` bind to `/etc/resolv.conf` |
+| AC-23 | Android `proot` wrapper source contains `--kill-on-exit` (not `-k`) |
+| AC-24 | Android wrapper injects `--no-auto-update` for `-p` / `--single` and SIGKILLs the child on SIGINT |
+| AC-25 | Already-installed Android `proot` wrapper that lacks `--kill-on-exit` is rewritten with no curl; JSON/human still `already_installed` |
 
 ---
 
@@ -283,6 +290,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-04 | Active (2.5.0) | `proot` smoke unsets `LD_PRELOAD`; Android fail keeps `grok-{{os}}-{{arch}}.failed`; curl failures name HTTP status; channel artifact is valid static ET_EXEC |
 | 2026-09-04 | Active (2.6.0) | Android DNS: write `{{GROK_HOME}}/resolv.conf` and `proot -b` over `/etc/resolv.conf` (no vendor byte-patch) so `grok login` can resolve auth.x.ai |
 | 2026-09-04 | Active (2.6.1) | Dual mention: Termux host writing → `requirement-shell-termux-coding`; path classes → `requirement-project-folder` |
+| 2026-09-07 | Active (2.7.0) | Android wrapper: `proot --kill-on-exit`; `grok -p` `--no-auto-update` + SIGKILL on Ctrl-C; heal stale wrapper on skip (no `--force`) |
 
 ---
 
@@ -290,13 +298,13 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
-| **TP-VCLI-01**–**09**, **11**–**25** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-01**–**09**, **11**–**28** | `tests/test_grok_setup.sh` | have |
 | **TP-CLI-04** (help lists setup) | `tests/test_cli.sh` | have |
 | **TP-CLI-13** (menu excludes setup) | `tests/test_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-06 (2.6.1)  
+**Last Updated**: 2026-09-07 (2.7.0)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

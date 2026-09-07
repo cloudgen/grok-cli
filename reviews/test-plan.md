@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.18  
+**Product VERSION:** 1.8.19  
 **Last plan update:** 2026-09-07  
-**Last suite run:** `./tests/run.sh` (1.8.18: PASS=644 FAIL=0 SKIP=0)
+**Last suite run:** `./tests/run.sh` (1.8.19: PASS=654 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -118,6 +118,9 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-VCLI-23 | Termux `pkg install` fail → fail closed, Next `pkg install proot`, no place | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
 | TP-VCLI-24 | artifact HTTP 403 → error names `HTTP 403` | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
 | TP-VCLI-25 | Android + no nameserver → `~/.grok/resolv.conf` + wrapper `proot -b …:/etc/resolv.conf` | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-26 | Android `proot` wrapper source contains `--kill-on-exit` (not `-k`) | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
+| TP-VCLI-27 | Android wrapper injects `--no-auto-update` for `-p` and SIGKILLs the child on SIGINT | test_grok_setup | requirement-grok-setup · requirement-shell-termux-coding | **have** |
+| TP-VCLI-28 | Already-installed Android `proot` wrapper lacking `--kill-on-exit` is rewritten with no curl | test_grok_setup | requirement-grok-setup | **have** |
 
 ### TP-ONL (grok-cli channel install)
 

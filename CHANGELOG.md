@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.19] - 2026-09-07
+
+### Fixed
+
+- **Termux `grok -p` hung after the answer until Ctrl-Z:** grok-cli’s menu could exit (1.8.14 bounded probe), but the operator-facing `~/.grok/bin/grok` wrapper still `exec`’d `proot` with no `--kill-on-exit` and no SIGKILL on Ctrl-C. The wrapper now passes `proot --kill-on-exit` when advertised (never `-k`, which is `--kernel-release`), injects grok `--no-auto-update` for `-p` / `--single`, and SIGKILLs the child on SIGINT so `grok -p hello` returns to the shell. `setup` rewrites a stale wrapper on skip (no `--force`, no re-download). README **Platform Compatibility** explains what PRoot is and why `-p` can hang until Ctrl-Z. Law: `requirement-grok-setup` **2.7.0** · `requirement-shell-termux-coding` **1.3.0**. Suite **TP-VCLI-26** · **TP-VCLI-27** · **TP-VCLI-28**. Incident **INC-20260907-002**.
+
 ## [1.8.18] - 2026-09-07
 
 ### Changed

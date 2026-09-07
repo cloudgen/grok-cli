@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.18-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.19-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -16,7 +16,7 @@ After `setup`, open a new terminal if `grok` is not on this session’s PATH, th
 ## Features
 
 - **Install grok without x.ai’s `install.sh`**: type `grok-cli setup`. It detects this computer, downloads the matching grok program from xAI, checks that `--version` runs from `~/.grok/downloads` (not `/tmp` or the cache folder — some phones refuse to run files from there), and places `~/.grok/bin/grok`. Skip if grok already **runs on this host**. An x86_64 file copied onto an aarch64 phone is replaced. On Termux, if the phone will not run the vendor file, setup may install `proot` with `pkg` (this login, no sudo) and place a wrapper — it still does **not** edit the vendor file. `--force` downloads again. POSIX `/bin/sh` (does **not** need bash).
-- **Termux-aware place**: uses `${PREFIX}/bin` when `PREFIX` is set. A missing `/etc/resolv.conf` is a note, not an install failure, when `--version` succeeded. If grok still will not run: `pkg install proot`, then `grok-cli setup --force`.
+- **Termux-aware place**: uses `${PREFIX}/bin` when `PREFIX` is set. A missing `/etc/resolv.conf` is a note, not an install failure, when `--version` succeeded. If grok still will not run: `pkg install proot`, then `grok-cli setup --force`. From **1.8.19** the PRoot wrapper makes `grok -p` return to the shell (see **Platform Compatibility**).
 - **Install this program**: paste the curl one-liner; later `version-check`, `self-update`, `self-uninstall`
 - **Install from a checkout**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
 - **Prove grok is logged in**: `check-session` asks grok a one-line question (`grok -p hello`). A credential file that only *looks* valid is not enough. Missing grok → `grok-cli setup`, then `grok login`.
@@ -103,7 +103,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.14*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.19*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -117,7 +117,7 @@ On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** a
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.14*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.19*) — Alternative online installer for xAI grok
 logged in
 sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
@@ -204,11 +204,40 @@ grok-cli add-crontab
 | Platform | Status |
 |----------|--------|
 | Linux, `/bin/sh` (dash/bash) | Supported |
-| Termux / Android userspace | Supported for **this installer** (`setup` smokes under `~/.grok/downloads`, honors `$PREFIX/bin`, does not require bash). Vendor `linux-aarch64` grok is often `ET_EXEC`; setup retries `TERMUX_EXEC_OPTOUT`, may `pkg install -y proot`, and may place a wrapper without patching the file. Missing `/etc/resolv.conf` is not an install failure — use `XAI_API_KEY` or a host with working DNS if login fails. **Not** official x.ai Termux support. |
+| Termux / Android userspace | Supported for **this installer** (`setup` smokes under `~/.grok/downloads`, honors `$PREFIX/bin`, does not require bash). Vendor `linux-aarch64` grok is often `ET_EXEC`; setup retries `TERMUX_EXEC_OPTOUT`, may `pkg install -y proot`, and may place a wrapper without patching the file. Missing `/etc/resolv.conf` is not an install failure — use `XAI_API_KEY` or a host with working DNS if login fails. **Not** official x.ai Termux support. Why `grok -p` can hang until Ctrl-Z: **Why grok under PRoot does not return to the shell** below. |
 | `python3` (optional) | Used for leftover `auth.json` shape helper when present (session gate is `grok -p hello`) |
 | `sudo` + narrow sudoers | Required only for non-root `backup` into `/var/grok-cli` |
 | macOS | `setup` follows xAI’s Darwin/arch detect; GNU `date -d` / `stat -c` assumptions may differ for other verbs |
 | Windows | Out of scope (fail closed in `setup`) |
+
+### Why grok under PRoot does not return to the shell
+
+**In one sentence:** on Termux, xAI’s `grok` often cannot run as a normal phone program, so `setup` starts it through **PRoot**; `grok -p hello` can print the answer and still leave leftover child processes, and PRoot waits for those children — your shell looks frozen until **Ctrl-Z**.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You / this login | Type `grok -p hello` on Termux and expect the prompt back | `Hello. How can I help you today?` then `~ $` |
+| The other role | PRoot is a user-space trampoline (not real root, not a full Linux distro). It traces grok so a static Linux file can run on Android and can bind `~/.grok/resolv.conf` over `/etc/resolv.conf` | `pkg install proot` then `grok-cli setup` |
+| Not this | grok-cli’s numbered list refusing to close; a corrupt `self-update`; byte-patching grok | Choice **9** already exits; SHA-256 passing does not prove `grok -p` returns |
+
+| Includes | Excludes |
+|----------|----------|
+| What PRoot is; why grok-cli uses it; why `-p` can hang after the answer; why Ctrl-C fails and Ctrl-Z works; what **1.8.19** does | Claiming official x.ai Termux support; editing vendor grok bytes; treating PRoot as `sudo` or as `proot-distro` |
+
+**What PRoot is.** PRoot (Ptrace ROOT) rewrites grok’s system calls with `ptrace`. It does **not** give you root. grok-cli uses it because the vendor `linux-aarch64` file is a static Linux executable (`ET_EXEC`). Android’s linker refuses that file (`unexpected e_type: 2`). Termux’s `/etc/resolv.conf` also has no `nameserver`, so musl inside grok fails DNS unless PRoot binds a file that does. The wrapper unsets `LD_PRELOAD` (termux-exec would re-hit `e_type` 2) and runs `proot` plus the **unmodified** vendor file.
+
+**Why `-p` does not exit.** Official grok `-p` is one-shot: print, then exit. After the answer, grok often still has leftover work (auto-update check, helper processes). PRoot’s default is to wait until **every traced process** is gone, not only grok’s main one. Your shell is waiting on `proot`; `proot` is waiting on those leftovers. `grok-cli --debug` showing a **22s** session step is the same hang from the menu’s live `grok -p hello` (timeout 20 + kill-after 2).
+
+**Why Ctrl-C fails and Ctrl-Z works.** Ctrl-C is `SIGINT` — grok/PRoot often ignore it (or treat it as “cancel this turn”). Ctrl-Z is `SIGTSTP` — the shell’s job control, usually not caught — so you get `Stopped`. An old wrapper did `exec proot grok …`, so there was no parent left to SIGKILL.
+
+**What grok-cli does (1.8.19).** The wrapper passes `proot --kill-on-exit` when PRoot advertises it (never `-k` — that is `--kernel-release`), injects grok `--no-auto-update` for `-p` / `--single`, and SIGKILLs the child on Ctrl-C. Interactive `grok` still `exec`s so the TUI owns the terminal. `grok-cli setup` rewrites a stale wrapper even when grok already runs (no `--force`). After `self-update` to **1.8.19**:
+
+```sh
+grok-cli setup
+grok -p hello    # must return to ~ $ without Ctrl-Z
+```
+
+`grep kill-on-exit ~/.grok/bin/grok` should match. grok-cli’s own menu (Choice **9**) was already closable in **1.8.14**; that bound only the menu probe, not operator-facing `grok`.
 
 ## Related Projects
 
@@ -229,4 +258,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-07 — version **1.8.14**: the Termux numbered menu no longer freezes after the header when `grok -p hello` hangs (`proot` ignoring SIGTERM). The live probe is always bounded (`timeout -k` or a watchdog). Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-07 — version **1.8.19**: Termux `grok -p` returns to the shell (wrapper `proot --kill-on-exit` + Ctrl-C SIGKILL). README **Platform Compatibility** explains why PRoot can hang until Ctrl-Z. `grok-cli setup` heals a stale wrapper without `--force`. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

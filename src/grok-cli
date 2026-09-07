@@ -41,7 +41,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.18"
+# VERSION: hard-assign VERSION="1.8.19"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -57,8 +57,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.18"
-: "${VERSION:=1.8.18}"
+VERSION="1.8.19"
+: "${VERSION:=1.8.19}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -2879,12 +2879,25 @@ gc_setup_smoke_android() {
 # Write bin/grok as a small /bin/sh wrapper that execs the unmodified
 # vendor file with TERMUX_EXEC_OPTOUT or proot. Absolute vendor path so
 # ~/.local/bin/grok → ~/.grok/bin/grok still finds downloads/.
+# proot wrappers pass --kill-on-exit when advertised (never -k:
+# that is --kernel-release). Headless -p/--single injects
+# --no-auto-update and SIGKILLs the child on Ctrl-C so grok -p
+# returns to the shell (vendor grok under proot often prints then
+# ignores SIGINT; Ctrl-Z is not an acceptable close). Interactive
+# grok still execs so the TUI owns the TTY.
 #
 # $1 = wrapper path; $2 = vendor file; $3 = optout | proot
 # $4 = optional resolv.conf to bind at /etc/resolv.conf via proot -b
 #
 # ALIGNMENT: requirement-grok-setup.md
-# Last updated: 2026-09-04
+#
+# Lessons Learned (CIAO Reflection):
+# 2026-09-07: grok -p hello on Termux printed the answer then hung
+# until Ctrl-Z. grok-cli menu was already bounded (1.8.14); the
+# operator-facing wrapper still exec'd proot without --kill-on-exit
+# and did not SIGKILL on INT. INC-20260907-002.
+#
+# Last updated: 2026-09-07
 # =============================================================================
 gc_setup_write_exec_wrapper() {
     _gew_path="${1:-}"
@@ -2934,7 +2947,42 @@ if [ -z "\${_p}" ]; then
   printf '%s\\n' "proot is not on PATH, so grok cannot run on this Android host. Next: pkg install proot" >&2
   exit 127
 fi
-exec "\${_p}" ${_gew_bind}"\${_g}" "\$@"
+_k=""
+if command -v grep >/dev/null 2>&1; then
+  if "\${_p}" --help 2>&1 | grep -q kill-on-exit; then
+    _k="--kill-on-exit"
+  fi
+fi
+_pflag=0
+_nau=""
+for _a in "\$@"; do
+  case "\${_a}" in
+    -p|--single|--prompt-file|--prompt-json) _pflag=1 ;;
+    --no-auto-update) _nau="have" ;;
+  esac
+done
+if [ "\${_pflag}" -eq 1 ] && [ "\${_nau}" != "have" ]; then
+  _nau="--no-auto-update"
+else
+  _nau=""
+fi
+if [ "\${_pflag}" -eq 1 ]; then
+  trap '
+    if [ -n "\${_pid:-}" ]; then
+      kill -TERM "\${_pid}" 2>/dev/null || true
+      sleep 1
+      kill -KILL "\${_pid}" 2>/dev/null || true
+    fi
+    exit 130
+  ' INT TERM
+  "\${_p}" \${_k} ${_gew_bind}"\${_g}" \${_nau} "\$@" &
+  _pid=\$!
+  wait "\${_pid}"
+  _ec=\$?
+  trap - INT TERM
+  exit "\${_ec}"
+fi
+exec "\${_p}" \${_k} ${_gew_bind}"\${_g}" "\$@"
 EOF
     else
         cat > "${_gew_path}" <<EOF
@@ -2942,6 +2990,35 @@ EOF
 unset LD_PRELOAD
 TERMUX_EXEC_OPTOUT=1
 export TERMUX_EXEC_OPTOUT
+_pflag=0
+_nau=""
+for _a in "\$@"; do
+  case "\${_a}" in
+    -p|--single|--prompt-file|--prompt-json) _pflag=1 ;;
+    --no-auto-update) _nau="have" ;;
+  esac
+done
+if [ "\${_pflag}" -eq 1 ] && [ "\${_nau}" != "have" ]; then
+  _nau="--no-auto-update"
+else
+  _nau=""
+fi
+if [ "\${_pflag}" -eq 1 ]; then
+  trap '
+    if [ -n "\${_pid:-}" ]; then
+      kill -TERM "\${_pid}" 2>/dev/null || true
+      sleep 1
+      kill -KILL "\${_pid}" 2>/dev/null || true
+    fi
+    exit 130
+  ' INT TERM
+  ${_gew_q} \${_nau} "\$@" &
+  _pid=\$!
+  wait "\${_pid}"
+  _ec=\$?
+  trap - INT TERM
+  exit "\${_ec}"
+fi
 exec ${_gew_q} "\$@"
 EOF
     fi
@@ -2980,6 +3057,85 @@ gc_setup_place_android_wrapper() {
     fi
     ln -sf grok "${_gpa_bin_dir}/agent" || return 1
     unset _gpa_src _gpa_download_dir _gpa_bin_dir _gpa_platform _gpa_method _gpa_final
+    return 0
+}
+
+# =============================================================================
+# gc_setup_heal_android_wrapper() - rewrite a stale Termux grok wrapper
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# When grok already runs, setup skips the download. An older POSIX
+# wrapper (exec proot, no --kill-on-exit, no -p SIGKILL) still hangs
+# after grok -p prints. Rewrite bin/grok from the existing vendor file
+# with no network. No-op when not Android, not a wrapper, or already
+# current. Does not byte-patch the vendor file.
+#
+# $1 = peer path (bin/grok)
+#
+# ALIGNMENT: requirement-grok-setup.md
+#
+# Lessons Learned (CIAO Reflection):
+# 2026-09-07: operators who already had grok installed would never get
+# the hang fix without --force (a full re-download). Heal on skip.
+# INC-20260907-002.
+#
+# Last updated: 2026-09-07
+# =============================================================================
+gc_setup_heal_android_wrapper() {
+    : "${APP_NAME:=grok-cli}"
+    GC_SETUP_WRAPPER_HEALED=0
+    _haw_peer="${1:-}"
+    if [ -z "${_haw_peer}" ] || [ ! -f "${_haw_peer}" ]; then
+        unset _haw_peer
+        return 0
+    fi
+    if ! gc_setup_host_is_android; then
+        unset _haw_peer
+        return 0
+    fi
+    _haw_head=$(head -n1 "${_haw_peer}" 2>/dev/null || true)
+    case "${_haw_head}" in
+        "#!/bin/sh"|"#!/bin/sh ") ;;
+        *)
+            unset _haw_peer _haw_head
+            return 0
+            ;;
+    esac
+    if grep -q kill-on-exit "${_haw_peer}" 2>/dev/null; then
+        if grep -q no-auto-update "${_haw_peer}" 2>/dev/null; then
+            unset _haw_peer _haw_head
+            return 0
+        fi
+    fi
+    _haw_g=$(grep '^_g=' "${_haw_peer}" 2>/dev/null | head -n1 | sed "s/^_g=//; s/^'//; s/'\$//")
+    _haw_method="optout"
+    if grep -q 'command -v proot' "${_haw_peer}" 2>/dev/null; then
+        _haw_method="proot"
+    fi
+    if [ -z "${_haw_g}" ] || [ ! -f "${_haw_g}" ]; then
+        _haw_home=$(gc_resolve_grok_home)
+        _haw_plat=$(gc_setup_detect_platform) || _haw_plat=""
+        if [ -n "${_haw_plat}" ] && [ -f "${_haw_home}/downloads/grok-${_haw_plat}" ]; then
+            _haw_g="${_haw_home}/downloads/grok-${_haw_plat}"
+        fi
+    fi
+    if [ -z "${_haw_g}" ] || [ ! -f "${_haw_g}" ]; then
+        unset _haw_peer _haw_head _haw_g _haw_method _haw_home _haw_plat
+        return 0
+    fi
+    _haw_home=$(gc_resolve_grok_home)
+    _haw_resolv=""
+    if [ -s "${_haw_home}/resolv.conf" ]; then
+        _haw_resolv="${_haw_home}/resolv.conf"
+    fi
+    _haw_dir=$(dirname "${_haw_peer}")
+    if gc_setup_write_exec_wrapper "${_haw_peer}" "${_haw_g}" "${_haw_method}" "${_haw_resolv}"; then
+        ln -sf grok "${_haw_dir}/agent" 2>/dev/null || true
+        out_info "Rewrote ${_haw_peer} so grok -p can exit (proot --kill-on-exit; vendor binary unchanged). Next: grok -p hello"
+        GC_SETUP_WRAPPER_HEALED=1
+    fi
+    unset _haw_peer _haw_head _haw_g _haw_method _haw_home _haw_plat _haw_resolv _haw_dir
     return 0
 }
 
@@ -3127,14 +3283,15 @@ gc_setup_maybe_bashrc() {
 # MUST NOT download or exec install.sh. MUST NOT require bash. Skip if
 # grok already runs on this host unless --force. An x86_64 file copied
 # onto aarch64 Termux is not a skip. grok on disk is success even when
-# this session's PATH is stale.
+# this session's PATH is stale. A stale Android proot wrapper is
+# rewritten on that skip (no network) so grok -p can exit.
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
 # - requirement-shell-cli-interface.md
 # - requirement-operator-readable-error.md
 #
-# Last updated: 2026-09-04
+# Last updated: 2026-09-07
 # =============================================================================
 gc_setup() {
     : "${APP_NAME:=grok-cli}"
@@ -3154,6 +3311,7 @@ gc_setup() {
     fi
     if [ -n "${_peer}" ] && [ "${FORCE}" -ne 1 ]; then
         if gc_setup_peer_usable "${_peer}" "${_host_arch}"; then
+            gc_setup_heal_android_wrapper "${_peer}"
             out_success "grok is already installed at ${_peer}."
             gc_setup_print_next "${_peer}"
             if [ "${JSON}" -eq 1 ]; then
