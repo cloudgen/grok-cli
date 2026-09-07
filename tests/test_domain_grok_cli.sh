@@ -1150,6 +1150,10 @@ EOS
     assert_contains "TP-GROK-CLI-47 gc_grok_p_once_run" "${_src}" "gc_grok_p_once_run"
     assert_contains "TP-GROK-CLI-47 command -v proot dispatch" "${_src}" 'command -v proot'
     assert_contains "TP-GROK-CLI-47 proot-exit-reaper marker" "${_src}" "proot-exit-reaper"
+    assert_contains "TP-GROK-CLI-49 reaper setsid" "${_src}" "setsid"
+    assert_contains "TP-GROK-CLI-49 reaper trap TSTP" "${_src}" "trap '' TSTP"
+    assert_contains "TP-GROK-CLI-49 wait reaper first" "${_src}" 'wait "${_preap}"'
+    assert_contains "TP-GROK-CLI-49 self-update heals wrapper" "${_src}" "gc_setup_heal_android_wrapper"
 
     # TP-GROK-CLI-48 with fake proot on PATH, instant grok still succeeds
     # (reaper path; collector exits; no hang).

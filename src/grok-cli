@@ -41,7 +41,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.23"
+# VERSION: hard-assign VERSION="1.8.24"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -57,8 +57,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.23"
-: "${VERSION:=1.8.23}"
+VERSION="1.8.24"
+: "${VERSION:=1.8.24}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -2046,7 +2046,7 @@ ver_check() {
 # inst_self_update() - Channel re-download when remote is newer (or --force)
 # =============================================================================
 #
-# ALIGNMENT: requirement-shell-self-management.md
+# ALIGNMENT: requirement-shell-self-management.md · requirement-grok-setup.md
 # Last updated: 2026-09-07
 # =============================================================================
 inst_self_update() {
@@ -2065,7 +2065,11 @@ inst_self_update() {
     if [ "${FORCE}" -ne 1 ] && [ "${_isu_local}" != "not installed" ]; then
         if [ "${_isu_local}" = "${REMOTE_VERSION}" ]; then
             out_success "${APP_NAME} is already at ${REMOTE_VERSION}."
-            unset _isu_local
+            _isu_peer=$(gc_resolve_grok_peer)
+            if [ -n "${_isu_peer}" ]; then
+                gc_setup_heal_android_wrapper "${_isu_peer}"
+            fi
+            unset _isu_local _isu_peer
             return 0
         fi
         if ver_gt "${_isu_local}" "${REMOTE_VERSION}" 2>/dev/null; then
@@ -2075,7 +2079,11 @@ inst_self_update() {
     out_info "Starting the self-update of ${APP_NAME}(${_isu_local}) to new version:${REMOTE_VERSION}..."
     FORCE_REINSTALL=1
     inst_perform_channel_install
-    unset _isu_local
+    _isu_peer=$(gc_resolve_grok_peer)
+    if [ -n "${_isu_peer}" ]; then
+        gc_setup_heal_android_wrapper "${_isu_peer}"
+    fi
+    unset _isu_local _isu_peer
 }
 
 # =============================================================================
@@ -2944,6 +2952,9 @@ gc_setup_smoke_android() {
 # until Ctrl-Z. grok-cli menu was already bounded (1.8.14); the
 # operator-facing wrapper still exec'd proot without --kill-on-exit
 # and did not SIGKILL on INT. INC-20260907-002.
+# 2026-09-07: do not setsid the proot child — on this Android host
+# `setsid proot` fails with Permission denied and grok -p exits 1
+# with no answer. Detach the reaper with trap '' TSTP instead.
 #
 # Last updated: 2026-09-07
 # =============================================================================
@@ -3041,10 +3052,11 @@ if [ "\${_pflag}" -eq 1 ]; then
     fi
     rm -f "\${_out}" "\${_err}" "\${_before}"
     exit 130
-  ' INT TERM
+  ' INT TERM TSTP
   "\${_p}" \${_k} \${_svc} ${_gew_bind}"\${_g}" \${_nau} "\$@" >"\${_out}" 2>"\${_err}" &
   _pid=\$!
   (
+    trap '' TSTP INT
     _seen=0
     _osize=0
     _idle_since=0
@@ -3057,10 +3069,23 @@ if [ "\${_pflag}" -eq 1 ]; then
       if ! kill -0 "\${_pid}" 2>/dev/null; then
         exit 0
       fi
-      _child=\$(ps -eo pid= -o ppid= -o args= 2>/dev/null | awk -v pp="\${_pid}" '
-        \$2 == pp && (\$3 ~ /\\/grok-linux/ || \$3 ~ /grok-linux/) {
-          print \$1
-          exit
+      _child=\$(ps -eo pid= -o ppid= -o args= 2>/dev/null | awk -v col="\${_pid}" '
+        {
+          pid=\$1; ppid=\$2; arg=\$3
+          p[pid]=ppid
+          a[pid]=arg
+        }
+        END {
+          for (i in a) {
+            if (a[i] !~ /grok-linux/) continue
+            c=i
+            for (n=0; n<32; n++) {
+              if (c == col) { print i; exit }
+              if (!(c in p)) break
+              if (p[c] == c || p[c] + 0 == 0) break
+              c=p[c]
+            }
+          }
         }
       ')
       if [ -n "\${_child}" ]; then
@@ -3077,6 +3102,15 @@ if [ "\${_pflag}" -eq 1 ]; then
         elif [ "\${_idle_since}" -gt 0 ] && [ \$((_now - _idle_since)) -ge 1 ]; then
           break
         fi
+      else
+        if [ -s "\${_err}" ]; then
+          _errsnip=\$(tr '\\n' ' ' <"\${_err}" 2>/dev/null)
+          case "\${_errsnip}" in
+            *'terminated with signal'*|*'os error 11'*|*"can't spawn"*)
+              break
+              ;;
+          esac
+        fi
       fi
       sleep 1
     done
@@ -3088,20 +3122,14 @@ if [ "\${_pflag}" -eq 1 ]; then
         kill "\${_rpid}" 2>/dev/null || :
       fi
     done
-    _dl=\$(( \$(date +%s) + 2 ))
-    while [ "\$(date +%s)" -lt "\${_dl}" ]; do
-      kill -0 "\${_pid}" 2>/dev/null || exit 0
-      sleep 1
-    done
     kill "\${_pid}" 2>/dev/null || :
-    sleep 1
     kill -KILL "\${_pid}" 2>/dev/null || :
     exit 0
   ) &
   _reaper=\$!
-  wait "\${_pid}" 2>/dev/null || :
   wait "\${_reaper}" 2>/dev/null || :
-  trap - INT TERM
+  wait "\${_pid}" 2>/dev/null || :
+  trap - INT TERM TSTP
   if [ -s "\${_err}" ]; then
     cat "\${_err}" >&2
   fi
@@ -3199,8 +3227,9 @@ gc_setup_place_android_wrapper() {
 # When grok already runs, setup skips the download. An older POSIX
 # wrapper (exec proot, no --kill-on-exit, no -p SIGKILL) still hangs
 # after grok -p prints. Rewrite bin/grok from the existing vendor file
-# with no network. No-op when not Android, not a wrapper, or already
-# current. Does not byte-patch the vendor file.
+# with no network. Also called from self-update and the session probe
+# so a grok-cli-only channel update still heals. No-op when not Android,
+# not a wrapper, or already current. Does not byte-patch the vendor file.
 #
 # $1 = peer path (bin/grok)
 #
@@ -3699,9 +3728,13 @@ gc_grok_prompt_int() {
 # GENERAL PURPOSE:
 # PRoot often cannot determine grok-linux exited and stays in do_wait.
 # Two jobs: collector (peer -p hello → files) and reaper (when grok-linux
-# is gone or stdout idle, kill only NEW runsvdir, then SIGKILL collector).
-# Match args/exe, not truncated comm. Nested PRoot: run the vendor file.
-# Sets _ec. Consumes _peer _out _ihome _ghome _login. INC-20260907-003.
+# is gone, stdout has any reply, or stderr shows guest death, kill only NEW
+# runsvdir, then SIGKILL collector). Match args/exe (descendants), not
+# truncated comm. Nested PRoot: run the vendor file. Collector uses setsid
+# so TTY job-control cannot stop it with the menu; reaper ignores SIGTSTP.
+# Wait the reaper first — never wait on PRoot as the only done signal.
+# Sets _ec. Consumes _peer _out _ihome _ghome _login.
+# INC-20260907-003 · INC-20260907-004.
 #
 # ALIGNMENT: requirement-shell-termux-coding.md · requirement-grok-auth-backup.md
 #
@@ -3709,8 +3742,14 @@ gc_grok_prompt_int() {
 # =============================================================================
 gc_grok_p_once_run() {
     _gpt=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT:-20}" 20)
-    _idle="${GROK_P_IDLE:-1}"
-    _reapw="${GROK_P_REAP_WAIT:-2}"
+    _idle="${GROK_P_IDLE:-0}"
+    case "${_idle}" in
+        ''|*[!0-9]*) _idle=0 ;;
+    esac
+    _reapw="${GROK_P_REAP_WAIT:-0}"
+    case "${_reapw}" in
+        ''|*[!0-9]*) _reapw=0 ;;
+    esac
     _gbin="${_peer}"
     case "${TERMUX_EXEC__PROC_SELF_EXE:-}" in
         *proot*)
@@ -3733,10 +3772,16 @@ gc_grok_p_once_run() {
     ps -eo pid= -o args= 2>/dev/null | awk '
         $2 ~ /\/runsvdir$/ || $2 == "runsvdir" { print $1 }
     ' | sort >"${_pbefore}" 2>/dev/null || :
-    HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
-        "${_gbin}" -p hello </dev/null >"${_pout}" 2>"${_perr}" &
+    if command -v setsid >/dev/null 2>&1; then
+        HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
+            setsid "${_gbin}" -p hello </dev/null >"${_pout}" 2>"${_perr}" &
+    else
+        HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
+            "${_gbin}" -p hello </dev/null >"${_pout}" 2>"${_perr}" &
+    fi
     _pcol=$!
     (
+        trap '' TSTP INT
         _seen=0
         _osize=0
         _idle_since=0
@@ -3749,10 +3794,23 @@ gc_grok_p_once_run() {
             if ! kill -0 "${_pcol}" 2>/dev/null; then
                 exit 0
             fi
-            _child=$(ps -eo pid= -o ppid= -o args= 2>/dev/null | awk -v pp="${_pcol}" '
-                $2 == pp && ($3 ~ /\/grok-linux/ || $3 ~ /grok-linux/) {
-                    print $1
-                    exit
+            _child=$(ps -eo pid= -o ppid= -o args= 2>/dev/null | awk -v col="${_pcol}" '
+                {
+                    pid=$1; ppid=$2; arg=$3
+                    p[pid]=ppid
+                    a[pid]=arg
+                }
+                END {
+                    for (i in a) {
+                        if (a[i] !~ /grok-linux/) continue
+                        c=i
+                        for (n=0; n<32; n++) {
+                            if (c == col) { print i; exit }
+                            if (!(c in p)) break
+                            if (p[c] == c || p[c] + 0 == 0) break
+                            c=p[c]
+                        }
+                    }
                 }
             ')
             if [ -n "${_child}" ]; then
@@ -3760,21 +3818,30 @@ gc_grok_p_once_run() {
             elif [ "${_seen}" -eq 1 ]; then
                 break
             fi
-            if [ "${_idle}" -gt 0 ]; then
-                _sz=$(wc -c <"${_pout}" 2>/dev/null | tr -d ' \t\n')
-                _sz=${_sz:-0}
-                if [ "${_sz}" -gt 0 ]; then
-                    if [ "${_sz}" -ne "${_osize}" ]; then
-                        _osize=${_sz}
-                        _idle_since=${_now}
-                    elif [ "${_idle_since}" -gt 0 ] && [ $((_now - _idle_since)) -ge "${_idle}" ]; then
-                        break
-                    fi
+            _sz=$(wc -c <"${_pout}" 2>/dev/null | tr -d ' \t\n')
+            _sz=${_sz:-0}
+            if [ "${_sz}" -gt 0 ]; then
+                if [ "${_idle}" -eq 0 ]; then
+                    break
+                fi
+                if [ "${_sz}" -ne "${_osize}" ]; then
+                    _osize=${_sz}
+                    _idle_since=${_now}
+                elif [ "${_idle_since}" -gt 0 ] && [ $((_now - _idle_since)) -ge "${_idle}" ]; then
+                    break
+                fi
+            else
+                if [ -s "${_perr}" ]; then
+                    _errsnip=$(tr '\n' ' ' <"${_perr}" 2>/dev/null)
+                    case "${_errsnip}" in
+                        *'terminated with signal'*|*'os error 11'*|*"can't spawn"*)
+                            break
+                            ;;
+                    esac
                 fi
             fi
             sleep 1
         done
-        sleep 1
         ps -eo pid= -o args= 2>/dev/null | awk '
             $2 ~ /\/runsvdir$/ || $2 == "runsvdir" { print $1 }
         ' | sort | while read -r _rpid; do
@@ -3783,19 +3850,29 @@ gc_grok_p_once_run() {
                 kill "${_rpid}" 2>/dev/null || :
             fi
         done
-        _deadline=$(( $(date +%s) + _reapw ))
-        while [ "$(date +%s)" -lt "${_deadline}" ]; do
-            kill -0 "${_pcol}" 2>/dev/null || exit 0
-            sleep 1
-        done
+        if [ "${_reapw}" -gt 0 ]; then
+            _deadline=$(( $(date +%s) + _reapw ))
+            while [ "$(date +%s)" -lt "${_deadline}" ]; do
+                kill -0 "${_pcol}" 2>/dev/null || exit 0
+                sleep 1
+            done
+        fi
         kill "${_pcol}" 2>/dev/null || :
-        sleep 1
         kill -9 "${_pcol}" 2>/dev/null || :
         exit 0
     ) &
     _preap=$!
-    wait "${_pcol}" 2>/dev/null || :
+    trap '
+        if [ -n "${_pcol:-}" ]; then
+            kill -9 "${_pcol}" 2>/dev/null || :
+        fi
+        if [ -n "${_preap:-}" ]; then
+            kill -9 "${_preap}" 2>/dev/null || :
+        fi
+    ' INT TERM TSTP
     wait "${_preap}" 2>/dev/null || :
+    wait "${_pcol}" 2>/dev/null || :
+    trap - INT TERM TSTP
     : >"${_out}"
     if [ -s "${_perr}" ]; then
         cat "${_perr}" >>"${_out}" 2>/dev/null || :
@@ -3918,6 +3995,7 @@ gc_grok_prompt_hello() {
         unset _peer
         return 1
     fi
+    gc_setup_heal_android_wrapper "${_peer}"
     _out=$(util_mktemp grokp)
     if [ -z "${_out}" ]; then
         GC_GROK_PROMPT_STATUS="failed"
@@ -6728,7 +6806,8 @@ EOF
 # listed rows from 1, then Exit 9. Session status is under the title
 # (not a row). Host not-available is never replaced by the logged-in line.
 # Reuse GC_SESSION_STATUS_CACHE on reprint so a bad pick does not run
-# grok -p hello again (Termux freeze).
+# grok -p hello again (Termux freeze). Before the live probe, print a
+# non-DEBUG checking-session line so a ~14s wait is not silence.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -6753,6 +6832,10 @@ app_default_print_menu() {
     if [ -n "${GC_SESSION_STATUS_CACHE:-}" ]; then
         _st="${GC_SESSION_STATUS_CACHE}"
     else
+        : "${GROK_PROMPT_TIMEOUT:=20}"
+        _gpt_show=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT}" 20)
+        out_info "checking session (grok -p hello, timeout ${_gpt_show}s)..."
+        unset _gpt_show
         _st=$(gc_session_status_word) || true
         GC_SESSION_STATUS_CACHE="${_st}"
         export GC_SESSION_STATUS_CACHE

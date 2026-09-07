@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.24] - 2026-09-07
+
+### Fixed
+
+- **Termux menu session probe looked hung (or never returned):** after the INFO header the live `grok -p hello` check had no non-DEBUG progress; Ctrl-Z stopped grok-cli **and** the PRoot reaper (same process group), so leftover `proot` stayed in `do_wait`. Empty stdout never counted as idle. `self-update` did not rewrite `~/.grok/bin/grok`, so a 2026-09-04 436-byte launcher could survive a grok-cli-only update. The menu now prints `checking session (grok -p hello, timeout Ns)...` before the probe. The reaper `setsid`s the collector, ignores SIGTSTP, waits the reaper first, treats first stdout byte (or guest-gone / stderr guest-death) as done, and SIGKILLs PRoot immediately. `self-update` (including already-at-remote) and the session probe heal a stale Android wrapper. Law: `requirement-shell-cli-default-interaction` **2.11.0** · `requirement-shell-termux-coding` **1.6.0** · `requirement-grok-setup` **2.11.0** · `requirement-shell-self-management` **1.2.0** · `requirement-grok-auth-backup` **1.7.0**. Suite **TP-CLI-21/23/26** · **TP-GROK-CLI-49** · **TP-VCLI-32**. Incident **INC-20260907-004**.
+
 ## [1.8.23] - 2026-09-07
 
 ### Changed

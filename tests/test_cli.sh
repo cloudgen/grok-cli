@@ -522,6 +522,7 @@ AUTH
             PTY_TIMEOUT=12 PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         _elapsed=$(($(date +%s) - _start))
         assert_contains "TP-CLI-21 Termux hang-grok still prints menu" "$_out" "9. Exit"
+        assert_contains "TP-CLI-21 Termux hang-grok checking session" "$_out" "checking session (grok -p hello, timeout"
         assert_contains "TP-CLI-21 Termux hang-grok logged out" "$_out" "logged out"
         assert_contains "TP-CLI-21 Termux hang-grok not-available line" "$_out" \
             "backup, sync-auth and sudoers features are not available in termux."
@@ -566,6 +567,10 @@ AUTH
     assert_contains "TP-CLI-23 watchdog SIGKILL" "${_src}" "kill -9"
     assert_contains "TP-CLI-23 PRoot reaper helper" "${_src}" "gc_grok_p_once_run"
     assert_contains "TP-CLI-23 PRoot dispatch" "${_src}" 'command -v proot'
+    assert_contains "TP-CLI-23 reaper setsid collector" "${_src}" "setsid"
+    assert_contains "TP-CLI-23 reaper ignores TSTP" "${_src}" "trap '' TSTP"
+    assert_contains "TP-CLI-23 wait reaper first" "${_src}" 'wait "${_preap}"'
+    assert_contains "TP-CLI-23 menu checking session line" "${_src}" "checking session (grok -p hello, timeout"
 
     # TP-CLI-25 / 26 / 27 / 28: --debug menu elapsed (internal-timer).
     _src=$(cat "${SCRIPT}")
@@ -655,6 +660,7 @@ AUTH
         ci_isolated_env
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-26 no-debug still Exit 9" "$_out" "9. Exit"
+        assert_contains "TP-CLI-26 no-debug checking session" "$_out" "checking session (grok -p hello, timeout"
         assert_not_contains "TP-CLI-26 no menu step start" "$_out" "menu step "
         assert_not_contains "TP-CLI-26 no DEBUG tag" "$_out" "[DEBUG]"
         ci_cleanup_env

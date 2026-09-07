@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-grok-auth-backup.md  
-**Status**: Active (Version 1.6.0)  
+**Status**: Active (Version 1.7.0)  
 **Area**: backup  
 **Key**: `requirement-grok-auth-backup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -50,7 +50,7 @@ A file under grok home can look valid while grok cannot talk to xAI (revoked ref
 
 1. **MUST** run **`grok -p hello`** **before** any `auth.json` parse, copy, or elev. That live prompt **is** the session check. Operand **MUST** be exactly `-p` then `hello` (one non-interactive prompt).  
 2. Peer path **MUST** use the same resolve as `setup` (`GROK_BIN` when set and executable, else `command -v grok`, else `{{GROK_HOME}}/bin/grok`, else `{{USER_BIN}}/grok`). Missing peer **MUST** fail closed. Next: `{{APP_NAME}} setup`, then `grok login`, then `{{APP_NAME}} check-session`.  
-3. The probe **MUST** close stdin (`</dev/null`). **MUST NOT** hang under `--json` / off-TTY / the numbered menu waiting for `grok login` or for a child that ignores SIGTERM (Termux `proot` wrapper). **MUST** bound the probe to `GROK_PROMPT_TIMEOUT` seconds (default **20**) even when `timeout` is missing from PATH. When GNU `timeout` is on PATH, **MUST** use kill-after (`timeout -k`; `GROK_PROMPT_KILL_AFTER` seconds; default **2**) so SIGKILL follows SIGTERM. When that `timeout` is missing or does not support kill-after, **MUST** still bound with a POSIX watchdog (background, wait, `kill` then `kill -9`). **Dispatch:** if `command -v proot` succeeds, **MUST** run the PRoot-exit reaper (`gc_grok_p_once_run` — guest death / idle stdout; match args/exe; reap new `runsvdir`; SIGKILL PRoot if it still will not exit) with that same bound; if `proot` is **not** on PATH, **MUST** run simple `grok -p hello`. **MUST NOT** wait on the PRoot PID as the only done signal. Timeout or non-zero exit **MUST** fail closed. Next: `grok login`, then `{{APP_NAME}} check-session` (backup: then `{{APP_NAME}} backup`). Writing SSOT: `requirement-shell-termux-coding` 2.4c.  
+3. The probe **MUST** close stdin (`</dev/null`). **MUST NOT** hang under `--json` / off-TTY / the numbered menu waiting for `grok login` or for a child that ignores SIGTERM (Termux `proot` wrapper). **MUST** bound the probe to `GROK_PROMPT_TIMEOUT` seconds (default **20**) even when `timeout` is missing from PATH. When GNU `timeout` is on PATH, **MUST** use kill-after (`timeout -k`; `GROK_PROMPT_KILL_AFTER` seconds; default **2**) so SIGKILL follows SIGTERM. When that `timeout` is missing or does not support kill-after, **MUST** still bound with a POSIX watchdog (background, wait, `kill` then `kill -9`). **Dispatch:** if `command -v proot` succeeds, **MUST** run the PRoot-exit reaper (`gc_grok_p_once_run` — guest death / any stdout / empty-stdout guest-death; `setsid` collector; ignore TSTP; match args/exe; reap new `runsvdir`; **wait the reaper first**; SIGKILL PRoot immediately if it still will not exit) with that same bound; if `proot` is **not** on PATH, **MUST** run simple `grok -p hello`. **MUST NOT** wait on the PRoot PID as the only done signal. Timeout or non-zero exit **MUST** fail closed. Next: `grok login`, then `{{APP_NAME}} check-session` (backup: then `{{APP_NAME}} backup`). Writing SSOT: `requirement-shell-termux-coding` 2.4c.  
 4. **MUST NOT** print grok’s answer, stdout, or stderr to the operator (may contain model text). **MUST NOT** print token, refresh_token, or JWT values. A blocking error **MAY** name `exit N` and a short class (`dns error`, `login required`) without dumping grok output.  
 5. Probe success (exit 0) **MUST** mean session **valid** — even if `auth.json` is missing or `expires_at` looks past. Probe failure **MUST** mean **invalid** — even if `auth.json` has a refresh_token and a future `expires_at`.  
 6. **MUST** resolve grok home as `GROK_HOME` when set, else `{{invoking-home}}/.grok`. When running as root via sudo, invoking-home **MUST** be `SUDO_USER`’s passwd home (not `/root`) unless `GROK_HOME` is explicit.  
@@ -253,6 +253,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active (1.4.1) | Dual mention: TTY main menu hides these two verbs when logged in and appends the not-available line |
 | 2026-09-07 | Active (1.5.0) | Probe always bounded; GNU `timeout -k` (SIGKILL follow-up) or POSIX watchdog; Termux menu must not freeze when grok/proot ignores SIGTERM |
 | 2026-09-07 | Active (1.6.0) | Probe dispatch: `proot` on PATH → reaper (`gc_grok_p_once_run`); else simple `grok -p hello` |
+| 2026-09-07 | Active (1.7.0) | Reaper: `setsid`, ignore TSTP, wait reaper first, empty-stdout still reaps; first-byte done for session probe |
 
 ---
 
@@ -280,6 +281,6 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07 (1.6.0 — `proot` on PATH → reaper; else simple `grok -p hello`)  
+**Last Updated**: 2026-09-07 (1.7.0 — reaper setsid / TSTP-safe / wait reaper first / empty-stdout reap)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

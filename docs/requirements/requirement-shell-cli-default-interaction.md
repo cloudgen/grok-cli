@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 2.10.0)  
+**Status**: Active (Version 2.11.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -74,7 +74,7 @@ After flag parse, when the command token is `menu` or `main`, **or** when no com
 8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut) when that verb is listed on this host’s menu. Live verbs excluded from both lists **MUST NOT** run from the pick prompt (typed `check-session` **MAY** still run as a shortcut). Hidden **backup** / **sync-auth** / **sudoers** on this-login-only hosts **MUST NOT** run from a listed number. Hidden **sync-auth** / **sync-auth-from-remote** when **logged in** **MUST NOT** run from a listed number.  
 9. The choice **MUST** be read in the **current shell**. **MUST NOT** `$()` / backticks a helper whose body contains `read` (**do-not-capture-read** / **PP-A-22**; current-shell `PROMPT_ASK_VALUE`).  
 10. **Header (mandatory — default CLI main menu style):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the product short description (`SHORT_DESCRIPTION` / `APP_DESC`). Typical: `out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"` which prints **Alternative online installer for xAI grok**. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header. **MUST NOT** the generic board title “numbered list of live commands”.  
-11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. That word **MUST** use the live `grok -p hello` probe (`requirement-grok-auth-backup`) — **MUST NOT** treat `auth.json` parse alone as logged-in. The probe **MUST** close stdin and **MUST NOT** hang the menu — **MUST** bound even when `timeout` is missing, and **MUST** SIGKILL-follow (`timeout -k` or POSIX watchdog) so a Termux `proot` child that ignores SIGTERM cannot freeze after the header. If `proot` is on PATH, that probe **MUST** use the PRoot-exit reaper (`requirement-shell-termux-coding` 2.4c); else simple `grok -p hello`. A reprint after a bad pick **MUST NOT** run a second probe (reuse `GC_SESSION_STATUS_CACHE`). **MUST NOT** make this a numbered row.  
+11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. That word **MUST** use the live `grok -p hello` probe (`requirement-grok-auth-backup`) — **MUST NOT** treat `auth.json` parse alone as logged-in. The probe **MUST** close stdin and **MUST NOT** hang the menu — **MUST** bound even when `timeout` is missing, and **MUST** SIGKILL-follow (`timeout -k` or POSIX watchdog) so a Termux `proot` child that ignores SIGTERM cannot freeze after the header. If `proot` is on PATH, that probe **MUST** use the PRoot-exit reaper (`requirement-shell-termux-coding` 2.4c); else simple `grok -p hello`. On a **first** paint (no `GC_SESSION_STATUS_CACHE` yet), **MUST** print a non-DEBUG progress line **`checking session (grok -p hello, timeout {{GROK_PROMPT_TIMEOUT}}s)...`** after the header and before the probe so a healthy ~14s wait is not indistinguishable from deadlock. **MUST NOT** print that line on a reprint that reuses the cache. A reprint after a bad pick **MUST NOT** run a second probe (reuse `GC_SESSION_STATUS_CACHE`). **MUST NOT** make this a numbered row.  
 12. **Not-available line (mandatory on this-login-only hosts):** immediately under the session line, when the host is Termux / Git Bash / Windows cmd (detect in **Under command line for normal user only**), print exactly **`backup, sync-auth and sudoers features are not available in {{label}}.`** where **label** is **`termux`**, **`gitbash`**, or **`windows-cmd`**. **MUST NOT** make this a numbered row. **MUST NOT** print this line on a multi-user host.  
 13. **Logged-in not-available line (mandatory when session is valid):** when `gc_session_status_word` is `valid`, **MUST NOT** display **sync-auth** or **sync-auth-from-remote**. Immediately under the host not-available line when that line is printed, otherwise immediately under the session line, **MUST** print exactly **`sync-auth and sync-auth-from-remote features are not available for logged-in environment.`** This line **MUST** be an **additional** `out_plain` line — **MUST NOT** replace, rewrite, or drop the host not-available line. **MUST NOT** make this a numbered row. **MUST NOT** print this line when the session is not valid.  
 14. **Debug elapsed (mandatory when `DEBUG=1`):** the numbered list **MUST** print elapsed wall-clock of each paint step on stderr via `out_debug` (`requirement-shell-internal-volatile-timer`). Stages: `paint`, `header`, `session`, `host`, `logged-in`, `rows` (plus `sudoers.*` on the submenu). **MUST NOT** put elapsed on numbered choice rows. **MUST NOT** print those lines when `DEBUG=0`. **MUST NOT** hang or skip the list because a timer helper failed.
@@ -241,6 +241,7 @@ Future agents **MUST NOT**:
 20. Freeze the numbered menu on Termux (or any host) while waiting for `grok -p hello` — missing `timeout`, a peer that ignores SIGTERM, or a second probe on reprint.  
 21. Skip `--debug` elapsed of each paint step, print those lines when `DEBUG=0`, or put elapsed onto numbered choice rows.  
 22. Omit **`run`** from the this-login-only start list, or number it after backup/sync-auth/sudoers on that class.  
+23. Leave the menu silent between the INFO header and **logged in** / **logged out** while a live `grok -p hello` probe can take more than a few seconds. **MUST** print the checking-session progress line on first paint.  
 
 
 ## Design-time verification
@@ -253,17 +254,17 @@ Future agents **MUST NOT**:
 | **TP-CLI-17** | `tests/test_cli.sh` | have (default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; board title **Alternative online installer for xAI grok**; numbered explain italic + light gray SGR 3+37; number/name unstyled; logged in/out from live `grok -p hello`; no check-session row) |
 | **TP-CLI-19** | `tests/test_cli.sh` | have (Termux / Git Bash / Windows cmd: hide backup / sync-auth / sudoers; **run** is **1**; not-available line under session; remaining rows from **1**) |
 | **TP-CLI-20** | `tests/test_cli.sh` | have (logged in: hide sync-auth / sync-auth-from-remote; append logged-in not-available line; host line still present on this-login-only; remaining rows from **1**; listed sudoers number opens submenu) |
-| **TP-CLI-21** | `tests/test_cli.sh` | have (Termux menu with a SIGTERM-ignoring grok still prints the list and accepts Exit; no freeze) |
+| **TP-CLI-21** | `tests/test_cli.sh` | have (Termux hang-grok still prints checking-session + list + Exit; no freeze) |
 | **TP-CLI-22** | `tests/test_cli.sh` | have (bad pick reprints without a second hang-grok probe) |
-| **TP-CLI-23** | `tests/test_cli.sh` | have (ship unit has `timeout -k` + watchdog `kill -9`) |
+| **TP-CLI-23** | `tests/test_cli.sh` | have (`timeout -k` + watchdog + setsid + ignore TSTP + wait reaper first + checking-session source) |
 | **TP-CLI-25** | `tests/test_cli.sh` | have (`--debug menu` elapsed of each paint step, including `sudoers.*`) |
-| **TP-CLI-26** | `tests/test_cli.sh` | have (no `--debug` → no menu-step elapsed) |
+| **TP-CLI-26** | `tests/test_cli.sh` | have (no `--debug` → no menu-step elapsed; still prints checking-session) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
 
 ---
 
-**Last Updated**: 2026-09-07 (2.10.0 — session probe uses PRoot reaper when `proot` is on PATH)  
+**Last Updated**: 2026-09-07 (2.11.0 — non-DEBUG checking-session line before the live probe)  
 **Owner**: product  
 **Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-shell-internal-volatile-timer` (`--debug` elapsed) · `requirement-grok-auth-backup` (session probe) · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

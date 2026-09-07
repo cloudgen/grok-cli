@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.23-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.24-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -281,10 +281,10 @@ Matching leftovers by `ps -o comm=` never fires on Termux (`comm` truncates to `
 
 **Why Ctrl-C fails and Ctrl-Z works.** Ctrl-C is `SIGINT` — grok/PRoot often ignore it (or treat it as “cancel this turn”). Ctrl-Z is `SIGTSTP` — the shell’s job control, usually not caught — so you get `Stopped`. An old wrapper did `exec proot grok …`, so there was no parent left to SIGKILL.
 
-**What grok-cli does (1.8.22).** The wrapper binds `/dev/null` over `$PREFIX/etc/profile.d/start-services.sh` so those login shells do not spawn extra `runsvdir` (it does **not** edit Termux’s file). It still passes `proot --kill-on-exit` (never `-k`) and `--no-auto-update` on `-p`, and keeps a **PRoot-exit reaper** as the safety net: when grok-linux is gone, kill only new `runsvdir`, then SIGKILL PRoot if needed. The menu probe uses that reaper when `proot` is on PATH, else simple `grok -p hello`. Interactive `grok` still `exec`s so the TUI owns the terminal. `grok-cli setup` rewrites a stale wrapper even when grok already runs (no `--force`). After `self-update` to **1.8.22**:
+**What grok-cli does (1.8.24).** The wrapper binds `/dev/null` over `$PREFIX/etc/profile.d/start-services.sh` so those login shells do not spawn extra `runsvdir` (it does **not** edit Termux’s file). It still passes `proot --kill-on-exit` (never `-k`) and `--no-auto-update` on `-p`, and keeps a **PRoot-exit reaper** as the safety net: when grok-linux is gone (or stdout is idle, including empty stdout after guest death), kill only new `runsvdir`, then SIGKILL PRoot immediately. The reaper is in its own session (`setsid`) and ignores Ctrl-Z so the watchdog cannot be stopped with the menu. The numbered list prints `checking session (grok -p hello, timeout 20s)...` after the header so a healthy ~14s wait is not silence. Interactive `grok` still `exec`s so the TUI owns the terminal. `grok-cli setup` **and** `grok-cli self-update` rewrite a stale wrapper (no `--force`). After `self-update` to **1.8.24**:
 
 ```sh
-grok-cli setup
+grok-cli self-update  # also heals ~/.grok/bin/grok
 grok-cli run          # start grok without auto-update
 grok-cli run -p hello # must return to ~ $ without Ctrl-Z
 ```
@@ -310,4 +310,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-07 — version **1.8.23**: `self-update` first line names local and remote VERSION. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-07 — version **1.8.24**: Termux menu prints `checking session…` then bounds `grok -p hello` (~14s, not forever); `self-update` heals the Android grok wrapper. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

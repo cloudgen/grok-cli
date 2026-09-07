@@ -861,4 +861,87 @@ EOF
     fi
     ci_cleanup_env
     unset CURL_LOG
+
+    # TP-VCLI-32 self-update already-at-remote still heals a stale Android
+    # wrapper (no vendor re-download). INC-20260907-004.
+    ci_isolated_env
+    _tb=$(ci_toolbin)
+    ci_write_android_uname "${_tb}"
+    cat > "${_tb}/proot" <<'EOS'
+#!/bin/sh
+GROK_UNDER_PROOT=1
+export GROK_UNDER_PROOT
+exec "$@"
+EOS
+    chmod +x "${_tb}/proot"
+    _host_m=$(uname -m 2>/dev/null || true)
+    _plat=""
+    case "${_host_m}" in
+        x86_64|amd64|AMD64) _plat="linux-x86_64" ;;
+        aarch64|arm64|ARM64) _plat="linux-aarch64" ;;
+    esac
+    if [ -z "${_plat}" ]; then
+        t_skip "TP-VCLI-32 host arch ${_host_m}"
+        ci_cleanup_env
+        return 0
+    fi
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" install >/dev/null 2>&1
+    mkdir -p "${CI_HOME}/.grok/downloads" "${CI_HOME}/.grok/bin"
+    _vendor="${CI_HOME}/.grok/downloads/grok-${_plat}"
+    printf '%s\n' '#!/bin/sh' 'echo grok 0.0.0-test' > "${_vendor}"
+    chmod +x "${_vendor}"
+    cat > "${CI_HOME}/.grok/bin/grok" <<EOF
+#!/bin/sh
+unset LD_PRELOAD
+TERMUX_EXEC_OPTOUT=1
+export TERMUX_EXEC_OPTOUT
+_g='${_vendor}'
+_p=\$(command -v proot 2>/dev/null || true)
+exec "\${_p}" "\${_g}" "\$@"
+EOF
+    chmod +x "${CI_HOME}/.grok/bin/grok"
+    ln -sf "${CI_HOME}/.grok/bin/grok" "${CI_USER_BIN}/grok"
+    mkdir -p "${CI_HOME}/fakecurl"
+    cp "${SCRIPT}" "${CI_HOME}/fakecurl/payload"
+    sha256sum "${CI_HOME}/fakecurl/payload" | awk '{ print $1 }' > "${CI_HOME}/fakecurl/payload.sha256"
+    cat > "${CI_HOME}/fakecurl/curl" <<'EOS'
+#!/bin/sh
+out=""
+url=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -o|--output) out="$2"; shift 2 ;;
+        -fsSL|-f|-s|-S|-L|-fsS|-fs|-fL) shift ;;
+        -w) shift ;;
+        -*) shift ;;
+        *) url="$1"; shift ;;
+    esac
+done
+_dir=$(dirname "$0")
+_src="${_dir}/payload"
+case "${url}" in
+    *.sha256) _src="${_dir}/payload.sha256" ;;
+esac
+if [ -n "${out}" ]; then
+    cat "${_src}" > "${out}"
+else
+    cat "${_src}"
+fi
+exit 0
+EOS
+    chmod +x "${CI_HOME}/fakecurl/curl"
+    _all=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
+            PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+            SCRIPT_URL="https://example.invalid/grok-cli" \
+            sh "${SCRIPT}" self-update 2>&1
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-32 self-update already-at-remote exit 0" 0 "${_ec}"
+    assert_contains "TP-VCLI-32 already at version" "${_all}" "already at"
+    assert_contains "TP-VCLI-32 INFO rewrote wrapper" "${_all}" "Rewrote"
+    _wrap=$(cat "${CI_HOME}/.grok/bin/grok" 2>/dev/null || true)
+    assert_contains "TP-VCLI-32 healed wrapper has kill-on-exit" "${_wrap}" "kill-on-exit"
+    assert_contains "TP-VCLI-32 healed wrapper has proot-exit-reaper" "${_wrap}" "proot-exit-reaper"
+    ci_cleanup_env
 }

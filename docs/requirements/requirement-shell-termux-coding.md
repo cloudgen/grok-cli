@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-termux-coding.md  
-**Status**: Active (Version 1.5.0)  
+**Status**: Active (Version 1.6.0)  
 **Area**: shell  
 **Key**: `requirement-shell-termux-coding`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -136,7 +136,8 @@ grok -p hello
 
 Two login shells ⇒ two extra `runsvdir` per `grok -p`. They race the Termux pidfile and usually cannot see the already-running host `runsvdir`, so they start extras. Isolation: `proot … bash -lc` hangs the same way; `bash -c` and `bash --noprofile --norc -lc` do not. Unsetting `SVDIR` in the parent does **not** help (`start-services.sh` re-exports it).
 
-20c. Writers **MUST** treat **guest disappearance** (or idle stdout with a non-empty reply) as done. Then: kill only **new** `runsvdir` PIDs (snapshot before start); if PRoot still will not exit, SIGKILL PRoot. Print the reply from captured files even if PRoot is SIGKILL’d.  
+20c. Writers **MUST** treat **guest disappearance**, **any non-empty stdout** (session probe does not print the answer), or **stderr guest-death** (empty stdout after SIGHUP / spawn panic) as done. Then: kill only **new** `runsvdir` PIDs (snapshot before start); if PRoot still will not exit, SIGKILL PRoot **immediately** (do not wait on the PRoot PID first). Print the reply from captured files even if PRoot is SIGKILL’d. **MUST NOT** require `_sz > 0` as the only idle trigger.  
+20c1. The PRoot collector **MUST** run in a new session when `setsid` is on PATH. The reaper **MUST** ignore `SIGTSTP`. The parent **MUST** trap INT/TERM/TSTP around `wait` and SIGKILL the collector so Ctrl-Z cannot stop the watchdog (INC-20260907-004). **MUST** `wait` the reaper first.  
 20d. Leftover discovery **MUST** match **args / exe paths** (`…/runsvdir`, `…/grok-linux-aarch64`). **MUST NOT** match `ps -o comm=` — Termux truncates `comm` to `/data/data/com.`.  
 20e. Nested PRoot **MUST NOT** run: if `TERMUX_EXEC__PROC_SELF_EXE` already contains `proot`, exec the vendor Linux file directly (inner PRoot + guest go to `ptrace_stop`). `/proc` TracerPid seen from inside grok’s PRoot is **not** trustworthy.  
 20f. **MUST NOT** kill Termux’s own `runsvdir` that existed before this grok start (sshd / ssh-agent live there).  
@@ -292,6 +293,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 14b. Leave the operator-facing `bin/grok` wrapper as bare `exec proot` so `grok -p` hangs after the answer until Ctrl-Z, or pass `proot -k` as kill-on-exit.  
 14c. Treat leftover grok helpers as the hang cause, or claim “PRoot cannot see grok exit”, when grok-linux already `_exit`’d and leftover `runsvdir` from `bash -lc` → `start-services.sh` are the remaining tracees.  
 14d. Match leftovers by truncated `comm`, wait on the PRoot PID as the only done signal, skip the reaper when `proot` is on PATH, skip the simple `grok -p hello` path when `proot` is not, or run nested PRoot.  
+14f. Put the PRoot collector and reaper in the TTY process group so Ctrl-Z stops the watchdog, or require non-empty stdout before the reaper may SIGKILL.  
 14e. Edit Termux’s `start-services.sh`, skip the `/dev/null` bind over `${PREFIX}/etc/profile.d/start-services.sh` when that file exists, hard-code the Termux app-files root, or kill Termux’s own pre-existing `runsvdir`.
 
 15. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
@@ -317,6 +319,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-11 | Probe source dispatches: `command -v proot` → `gc_grok_p_once_run`; else simple `grok -p hello` (TP-GROK-CLI-47 · TP-GROK-CLI-48) |
 | AC-12 | Android `proot` wrapper source contains `proot-exit-reaper` and matches args/exe not `comm` (TP-VCLI-29 · TP-VCLI-30) |
 | AC-13 | Android `proot` wrapper binds `/dev/null` over `${PREFIX}/etc/profile.d/start-services.sh` when `PREFIX` is set (TP-VCLI-31) |
+| AC-14 | PRoot reaper: `setsid` collector, ignore TSTP, wait reaper first, empty-stdout still reaps (TP-GROK-CLI-49 · TP-CLI-23) |
 
 ---
 
@@ -345,6 +348,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active (1.3.0) | Android wrapper `--kill-on-exit` + `grok -p` SIGKILL (setup 18e); dual mention |
 | 2026-09-07 | Active (1.4.0) | PRoot exit hang: guest already exited; reaper + `command -v proot` dispatch vs simple `grok -p hello` |
 | 2026-09-07 | Active (1.5.0) | On-device chain: `bash -lc` env capture → `start-services.sh` → leftover `runsvdir`; bind `/dev/null` over that profile snippet |
+| 2026-09-07 | Active (1.6.0) | Reaper: `setsid` collector, ignore TSTP, wait reaper first, empty-stdout still reaps (INC-20260907-004) |
 
 ---
 
@@ -363,10 +367,12 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-GROK-CLI-47**, **TP-GROK-CLI-48** | `tests/test_domain_grok_cli.sh` | have — probe dispatch `command -v proot` → reaper; else simple `-p` |
 | **TP-VCLI-29**, **TP-VCLI-30** | `tests/test_grok_setup.sh` | have — wrapper `proot-exit-reaper`; heal stale wrapper without reaper |
 | **TP-VCLI-31** | `tests/test_grok_setup.sh` | have — wrapper binds `/dev/null` over `profile.d/start-services.sh` |
+| **TP-GROK-CLI-49** | `tests/test_domain_grok_cli.sh` | have — reaper `setsid` / ignore TSTP / wait reaper first; self-update heal source |
+| **TP-VCLI-32** | `tests/test_grok_setup.sh` | have — `self-update` already-at-remote heals stale wrapper |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07 (1.5.0 — `bash -lc` → `start-services.sh` → leftover `runsvdir`; bind no-op + reaper)  
+**Last Updated**: 2026-09-07 (1.6.0 — setsid collector, ignore TSTP, wait reaper first, empty-stdout reap)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

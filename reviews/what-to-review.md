@@ -5,7 +5,7 @@
 **Always load first:** `reviews/lessons.md`
 
 **Last plan update:** 2026-09-07  
-**Ship unit VERSION:** 1.8.23  
+**Ship unit VERSION:** 1.8.24  
 **Suite baseline:** `reviews/test-plan.md`
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + domain grok-cli + grok-auth-backup + three-layer |
-| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.23**) |
+| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.24**) |
 | P3 | Load `reviews/lessons.md` and re-check every open L-* | Mandatory (esp. **L-SUDOERS-01/02** · **L-SUDOERS-06** · **L-OUTPUT-01** · **L-AUTH-01** · **L-PROMPT-CAPTURE-01**) |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP; **must include TP-GROK-CLI-22e** and **TP-24*/25*** when generate/submit is in scope |
 | P5 | Confirm install **channel** | `SCRIPT_URL` default github raw `src/grok-cli`; companion `.sha256`; dual-mode matrix |
@@ -70,6 +70,8 @@
 |--------------|------|-------------|
 | Empty argv | TTY stolen by install-ensure; off-TTY hang on numbered menu | L-TYPE-N-01 · L-ARGV-01 · TP-CLI-07/13 · TP-ONL-01 |
 | `gc_run_grok` | `--json` execs grok / hangs; missing grok no Next setup; this-login-only menu omits `run` | L-WRAP-02 · TP-GROK-CLI-46 · TP-CLI-19/20 |
+| `app_default_print_menu` / `gc_grok_p_once_run` | Silent ~14s after INFO header; DEBUG looks like a different path; Ctrl-Z stops the reaper; empty stdout never idles | L-MENU-04 · **INC-20260907-004** |
+| `inst_self_update` / `gc_setup_heal_android_wrapper` | grok-cli-only update leaves 2026-09-04 `bin/grok` (no `--kill-on-exit` / start-services bind / reaper) | L-WRAP-04 · **INC-20260907-004** |
 | `gc_backup` | Deposit without session or without grant | L-AUTH-01 · L-DEPOSIT-01 · TP-GROK-CLI-06/12 |
 | `gc_sync_auth` | Uses sudo or leaves dest world-readable | L-SYNC-01 · TP-GROK-CLI-09 |
 | `gc_print_sudoers` | Restore verb or OS-tool Cmnds | L-SUDOERS-01 · TP-GROK-CLI-01/22 |
