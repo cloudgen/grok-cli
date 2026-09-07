@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.9-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.13-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -20,7 +20,7 @@ After `setup`, open a new terminal if `grok` is not on this session’s PATH, th
 - **Install this program**: paste the curl one-liner; later `version-check`, `self-update`, `self-uninstall`
 - **Install from a checkout**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
 - **Prove grok is logged in**: `check-session` asks grok a one-line question (`grok -p hello`). A credential file that only *looks* valid is not enough. Missing grok → `grok-cli setup`, then `grok login`.
-- **Optional shared login on one Linux host**: `backup` copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644`; `sync-auth` copies that store into this login’s `~/.grok` with **no sudo**; `sync-auth-from-remote` uses `scp`; `add-crontab` adds this login’s timers after **this** login’s backup grant exists
+- **Optional shared login on one Linux host**: `backup` copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644` (elevated probe uses **this** login’s grok home, not root’s); `sync-auth` copies that store into this login’s `~/.grok` with **no sudo** (skipped if grok is already logged in — prints `No sync-auth for logged-in environment.`); `sync-auth-from-remote` uses `scp` (same skip) and remembers the last remote; `add-crontab` adds this login’s timers after **this** login’s backup grant exists
 - **Optional passwordless backup grant** (only if you use `backup`): `print-sudoers` prints one line so this login may run `sudo grok-cli backup` without a password. A host admin installs that line. `generate-sudoer-request` / `submit-sudoer-request` hand the same grant to the named approver (`sudoer-adm`).
 - **Stops when it should**: grok missing or not answering, unauthorized copy into `/var/grok-cli`, unreadable store, failed grok download
 
@@ -103,7 +103,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.9*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.13*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -113,13 +113,26 @@ logged out
 9. Exit
 ```
 
-Choose a number, or type the command name. `9` exits. The line under the title is **logged in** or **logged out** from a live `grok -p hello` (not from reading `auth.json` alone). On a real terminal the descriptions after the colon are gray and italic. `setup` is not on this list — type `grok-cli setup`.
+On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. The line under **logged in** / **logged out** says those features are not available on that host. Remaining rows start at **1**. When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are omitted on every host, and a second line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Live capture on a multi-user host that is **logged in**:
+
+```text
+$ grok-cli menu
+[INFO] **grok-cli**(*1.8.13*) — Alternative online installer for xAI grok
+logged in
+sync-auth and sync-auth-from-remote features are not available for logged-in environment.
+1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
+2. add-crontab: *Add backup and sync-auth jobs to this login's crontab*
+3. sudoers: *Grant and drafts*
+9. Exit
+```
+
+Choose a number, or type the command name. `9` exits. The line under the title is **logged in** or **logged out** from a live `grok -p hello` (not from reading `auth.json` alone). On a real terminal the descriptions after the colon are gray and italic. `setup` is not on this list — type `grok-cli setup`. A later `sync-auth-from-remote` remembers the last remote in persistence and offers it as the prompt default.
 
 ## Usage
 
 | How you run it | What you get |
 |----------------|--------------|
-| `grok-cli` at a real terminal | Numbered start list (`backup` is **1**; **logged in** / **logged out** under the title from `grok -p hello`; **9** leaves). Same as `grok-cli menu`. |
+| `grok-cli` at a real terminal | Numbered start list (`backup` is **1** on a multi-user host when logged out; **logged in** / **logged out** under the title from `grok -p hello`; Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers; logged-in session hides sync-auth / sync-auth-from-remote and appends a not-available line; **9** leaves). Same as `grok-cli menu`. |
 | `curl -fsSL … \| sh` or `grok-cli` in a script (no args) | Install-ensure: places `~/.local/bin/grok-cli` or reports already installed. **Not** help. **Not** the menu. |
 | `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help |
 | `grok-cli menu` in a script | Help (the list is TTY-only) |
@@ -214,4 +227,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-06 — version **1.8.9**: README and requirement wording for people (grant samples use `id -un`, not a frozen login; Termux / Git Bash stay this-login-only). Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-07 — version **1.8.13**: when grok is already logged in, the main menu hides **sync-auth** and **sync-auth-from-remote** and **appends** `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` Direct `sync-auth` / `sync-auth-from-remote` skip the same way (`No sync-auth for logged-in environment.`). Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers. `sync-auth-from-remote` remembers the last remote. Elevated `backup` probes this login’s grok home, not root’s. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

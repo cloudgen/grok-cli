@@ -2,7 +2,7 @@
 
 **Product:** grok-cli (POSIX `/bin/sh` CLI — grok auth backup to `/var/grok-cli` with narrow sudo deposit + unprivileged sync-auth; dual-mode install)  
 **Workspace state:** Specialized product law (left genesis); **software-development** class; bootstrap **cli-template → folder-backup → grok-cli** (domain) **plus** selfmanaged online package specialized onto grok-cli (channel `curl\|sh`).  
-**Updated:** 2026-09-06 (24 Active + 4 superseded)
+**Updated:** 2026-09-07 (24 Active + 4 superseded)
 
 | ID / key | Title | Area | Status | Path | Updated |
 |----------|-------|------|--------|------|---------|
@@ -11,12 +11,12 @@
 | requirement-project-folder | Project layout (`src/`), install bins, `/var/grok-cli` deposit; Termux `PREFIX` / `~/.grok` classes; preferred cache `/dev/shm/cache/cache-${APP_NAME}`; persistence `${HOME}/.local/${APP_NAME}` | architecture | Active (1.2.0) | `requirement-project-folder.md` | 2026-09-06 |
 | requirement-three-layer-privilege-model | Type 0 + narrow Type 1 `grok-cli backup`; sudoers emit + install-script; per-user fragments; grant is backup only; samples use `id -un` | architecture | Active (2.0.1) | `requirement-three-layer-privilege-model.md` | 2026-09-06 |
 | requirement-sudoer-json-file | JSON sudoer file SSOT: `{{PRJ_NAME}}` only; args `["backup"]` only; independent generate dest readable; samples use `id -un` | architecture | Active (2.0.0) | `requirement-sudoer-json-file.md` | 2026-09-06 |
-| requirement-grok-auth-backup | **Auth ops SSOT**: live `grok -p hello` session gate (before any `auth.json` parse) + deposit `auth.*` to `/var/grok-cli` (root:root 0644) + unprivileged `sync-auth` / `sync-auth-from-remote` | backup | Active (1.2.0) | `requirement-grok-auth-backup.md` | 2026-09-06 |
+| requirement-grok-auth-backup | **Auth ops SSOT**: live `grok -p hello` session gate (before any `auth.json` parse) + deposit `auth.*` to `/var/grok-cli` (root:root 0644) + unprivileged `sync-auth` / `sync-auth-from-remote` (skip when already logged in; preferred SPEC in persistence); elevated probe uses `SUDO_USER` home | backup | Active (1.4.1) | `requirement-grok-auth-backup.md` | 2026-09-07 |
 | requirement-grok-setup | Type 0 `setup`: studied xAI channel + artifact procedure so peer `grok` is installed (MUST NOT fetch/exec `install.sh`; smoke from `{{GROK_HOME}}/downloads`; skip only if grok runs on this host; refuse wrong ELF; Android ET_EXEC wrapper; Termux proot + resolv bind; HTTP status on curl fail; stale session PATH is not an error) | domain | Active (2.6.1) | `requirement-grok-setup.md` | 2026-09-06 |
 | requirement-grok-crontab | Cron-job law: Type 0 `add-crontab` — this login’s crontab jobs (backup every 30 min; sync-auth at :45) after **this** login’s backup grant | domain | Active (1.1.0) | `requirement-grok-crontab.md` | 2026-09-06 |
 | requirement-shell-cli-interface | Shell CLI interface; `setup`; auth verbs; `version-check` / `self-update` / `self-uninstall`; empty argv TTY menu / off-TTY ensure | shell | Active (2.7.6) | `requirement-shell-cli-interface.md` | 2026-09-06 |
 | requirement-shell-cli-zero-arguments | Empty argv: TTY numbered menu; off-TTY Type O install-ensure (not help) | shell | Active (2.0.0) | `requirement-shell-cli-zero-arguments.md` | 2026-09-06 |
-| requirement-shell-cli-default-interaction | Case 3 TTY empty argv + `menu`/`main` numbered list; default CLI main menu style; header short desc; session line from live `grok -p hello`; off-TTY `menu` stays help; empty argv off-TTY is Type O | shell | Active (2.4.0) | `requirement-shell-cli-default-interaction.md` | 2026-09-06 |
+| requirement-shell-cli-default-interaction | Case 3 TTY empty argv + `menu`/`main` numbered list; default CLI main menu style; header short desc; session line from live `grok -p hello`; this-login-only hosts hide backup/sync-auth/sudoers and print not-available line; logged-in session hides sync-auth / sync-auth-from-remote and **appends** logged-in not-available; off-TTY `menu` stays help; empty argv off-TTY is Type O | shell | Active (2.6.0) | `requirement-shell-cli-default-interaction.md` | 2026-09-07 |
 | requirement-shell-local-self-management | Checkout `install` / `uninstall` / `where-is-me`; **mode 0755**; dual-mode secondary; Termux `USER_BIN` (not `PREFIX/bin`) | shell | Active (1.3.1) | `requirement-shell-local-self-management.md` | 2026-09-06 |
 | requirement-shell-online-install | Channel `SCRIPT_URL` + pipe place; dual-mode primary | shell | Active (1.0.0) | `requirement-shell-online-install.md` | 2026-09-06 |
 | requirement-shell-self-management | `version-check` / `self-update` / `self-uninstall` | shell | Active (1.0.0) | `requirement-shell-self-management.md` | 2026-09-06 |
@@ -28,7 +28,7 @@
 | requirement-shell-termux-coding | Termux/Android host writing: honor `PREFIX`, Termux `pkg` (no sudo), `noexec` tmp, FHS-not-assumed; session probe exec; points at setup/folder/storage/auth | shell | Active (1.1.0) | `requirement-shell-termux-coding.md` | 2026-09-06 |
 | requirement-shell-idempotency | Re-run safety; backup overwrite of same auth.* basenames | shell | Active | `requirement-shell-idempotency.md` | 2026-09-06 |
 | requirement-shell-interactive-vs-noninteractive | Interactive vs non-interactive / confirm policy | shell | Active (1.0.4) | `requirement-shell-interactive-vs-noninteractive.md` | 2026-09-06 |
-| requirement-shell-cli-storage | Storage = cache folder **and** persistence `${HOME}/.local/${APP_NAME}`; about Cache folder + Persistence storage; Termux cache may be `noexec` | shell | Active (1.2.1) | `requirement-shell-cli-storage.md` | 2026-09-06 |
+| requirement-shell-cli-storage | Storage = cache folder **and** persistence `${HOME}/.local/${APP_NAME}` (incl. `preferred-remote` leaf); about Cache folder + Persistence storage; Termux cache may be `noexec` | shell | Active (1.3.0) | `requirement-shell-cli-storage.md` | 2026-09-07 |
 | requirement-domain-grok-cli | Domain **surface** SSOT (four pillars); ops defer to grok-auth-backup / grok-crontab; `setup` channel+artifact; `check-session` is live `grok -p hello` | domain | Active (1.4.6) | `requirement-domain-grok-cli.md` | 2026-09-06 |
 | requirement-domain-folder-backup | Retired folder-archive domain surface | domain | superseded | `requirement-domain-folder-backup.md` | 2026-08-22 |
 | requirement-folder-archive-backup | Retired folder tar.gz backup/restore ops | backup | superseded | `requirement-folder-archive-backup.md` | 2026-08-22 |

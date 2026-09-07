@@ -5,6 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.13] - 2026-09-07
+
+### Changed
+
+- **Main menu when grok is already logged in:** do not list **sync-auth** or **sync-auth-from-remote**. Immediately under the login status (and **after** any host not-available line) **append** `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does **not** replace `backup, sync-auth and sudoers features are not available in {{termux/gitbash/windows-cmd}}.`. Remaining rows start at **1** (multi-user: backup, add-crontab, sudoers; Termux / Git Bash / Windows cmd: add-crontab). Direct CLI skip is unchanged. Law: `requirement-shell-cli-default-interaction` **2.6.0**. Suite **TP-CLI-20**.
+
+## [1.8.12] - 2026-09-07
+
+### Changed
+
+- **`sync-auth` / `sync-auth-from-remote` skip when grok is already logged in.** They run the live `grok -p hello` check first (or reuse the main-menu **logged in** / **logged out** line in the same process). If the session is valid they do **not** copy from `/var/grok-cli` or `scp` a remote store; they print `No sync-auth for logged-in environment.` and exit 0. `--force` does not override. Law: `requirement-grok-auth-backup` **1.4.0**. Suite **TP-GROK-CLI-42** · **TP-GROK-CLI-43**.
+
+## [1.8.11] - 2026-09-07
+
+### Added
+
+- **Main menu on Termux / Git Bash / Windows cmd:** do not list **backup**, **sync-auth**, or **sudoers**. Immediately under the login status print `backup, sync-auth and sudoers features are not available in {{termux/gitbash/windows-cmd}}.` Remaining rows start at **1** (`sync-auth-from-remote`, `add-crontab`, Exit **9**). Law: `requirement-shell-cli-default-interaction` **2.5.0**. Suite **TP-CLI-19**.
+- **Preferred remote for `sync-auth-from-remote`:** save the SPEC that worked under persistence `${HOME}/.local/grok-cli/preferred-remote` (mode 0600). On a TTY with no operand, the prompt shows that value at the end as `[user@host]`; Enter uses it. Law: `requirement-grok-auth-backup` **1.3.0**. Suite **TP-GROK-CLI-41**.
+
+## [1.8.10] - 2026-09-06
+
+### Fixed
+
+- **`backup` after sudo said grok was logged out.** Menu **1** / `grok-cli backup` could print `Session valid. Elevating: sudo -n /usr/local/bin/grok-cli backup`, then `Cannot backup: grok is not logged in (exit 1: login required)`, then tell you to generate a sudoer request even when `/etc/sudoers.d/grok-cli-<login>` already granted `NOPASSWD: /usr/local/bin/grok-cli backup`. The elevated process ran `grok -p hello` with root’s `HOME=/root` (sudo `env_reset`), so grok looked at `/root/.grok` instead of this login’s `~/.grok`. The probe now pins `HOME` and `GROK_HOME` to the invoking login (`SUDO_USER`). If sudo did run and the child failed, Next is `grok login` then `grok-cli backup` — not `generate-sudoer-request`. Law: `requirement-grok-auth-backup` **1.2.1**. Suite **TP-GROK-CLI-39** · **TP-GROK-CLI-40**.
+
 ## [1.8.9] - 2026-09-06
 
 ### Changed

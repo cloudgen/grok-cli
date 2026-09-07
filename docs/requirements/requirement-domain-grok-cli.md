@@ -50,8 +50,8 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | `setup` | `--force` | `gc_*` | Fetch xAI channel + artifact and place peer `grok`; **MUST NOT** exec `install.sh`; skip if grok already runs on this host; Android ET_EXEC may place an exec wrapper | **`requirement-grok-setup`** |
 | `check-session` | none | `gc_*` | Confirm grok is logged in (`grok -p hello` first) | **`requirement-grok-auth-backup`** |
 | `backup` | none | `gc_*` | Check session, then elevated deposit of `auth.*` into `/var/grok-cli` | **`requirement-grok-auth-backup`** |
-| `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo** | **`requirement-grok-auth-backup`** |
-| `sync-auth-from-remote` | SPEC (`user@IPv4`, IPv4, domain, `user@domain`) | `gc_*` | `scp` remote `/var/grok-cli/auth.*` into `~/.grok` **without sudo** | **`requirement-grok-auth-backup`** |
+| `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo**; skip when already logged in | **`requirement-grok-auth-backup`** |
+| `sync-auth-from-remote` | SPEC (`user@IPv4`, IPv4, domain, `user@domain`) | `gc_*` | `scp` remote `/var/grok-cli/auth.*` into `~/.grok` **without sudo**; skip when already logged in | **`requirement-grok-auth-backup`** |
 | `add-crontab` | none | `gc_*` | Install this login’s crontab jobs (backup every 30 min; sync-auth at :45) after **this** login’s backup grant exists | **`requirement-grok-crontab`** |
 | `print-sudoers` | optional output path; `--allow-test-local` when test_local | `gc_*` | Emit **project-sudoers-file** (draft; no `/etc` write) | **`requirement-three-layer-privilege-model`** |
 | `print-sudoers-install-script` | optional script path; same trust gate | `gc_*` | Admin handoff script under `/dev/shm` or temp | **`requirement-three-layer-privilege-model`** |
@@ -202,7 +202,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 
 Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
 
-**This requirement:** `backup` / sudoers verbs stay **unused** on this class. `setup` and `check-session` stay this-login work.
+**This requirement:** `backup` / sudoers verbs stay **unused** on this class. The numbered start list omits those rows and prints the not-available line (`requirement-shell-cli-default-interaction`). When **logged in**, that REQ also omits **sync-auth-from-remote** and **appends** the logged-in not-available line. `setup` and `check-session` stay this-login work.
 
 ---
 

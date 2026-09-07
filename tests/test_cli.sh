@@ -314,7 +314,8 @@ AUTH
             PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-17 TTY logged in when session valid" "$_out" "logged in"
         assert_not_contains "TP-CLI-17 TTY logged-in not logged out" "$_out" "logged out"
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="5
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            PTY_IN="sudoers
 9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-17 TTY submenu header nametag" "$_out" "${_ident}"
         assert_contains "TP-CLI-17 TTY submenu title" "$_out" "sudoers (grant and drafts)"
@@ -323,6 +324,123 @@ AUTH
         t_skip "TP-CLI-17 TTY header/session (no python3 for PTY)"
         t_skip "TP-CLI-17 TTY logged in (no python3 for PTY)"
         t_skip "TP-CLI-17 TTY submenu header (no python3 for PTY)"
+    fi
+
+    # TP-CLI-19: this-login-only hosts hide backup / sync-auth / sudoers and
+    # print the not-available line under the session (termux / gitbash / windows-cmd).
+    if command -v python3 >/dev/null 2>&1; then
+        ci_isolated_env
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
+            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-19 Termux not-available line" "$_out" \
+            "backup, sync-auth and sudoers features are not available in termux."
+        assert_not_contains "TP-CLI-19 Termux no backup row" "$_out" "1. backup:"
+        assert_not_contains "TP-CLI-19 Termux no sync-auth row" "$_out" "sync-auth:"
+        assert_not_contains "TP-CLI-19 Termux no sudoers row" "$_out" "sudoers:"
+        assert_contains "TP-CLI-19 Termux row 1 is sync-auth-from-remote" "$_out" \
+            "1. sync-auth-from-remote:"
+        assert_contains "TP-CLI-19 Termux row 2 is add-crontab" "$_out" "2. add-crontab:"
+        assert_contains "TP-CLI-19 Termux Exit 9" "$_out" "9. Exit"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
+            PTY_IN="5
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-19 Termux pick 5 is not a menu choice" "$_out" "Not a menu choice"
+        assert_not_contains "TP-CLI-19 Termux pick 5 does not open sudoers" "$_out" \
+            "1. generate-sudoer-request:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            MSYSTEM="MINGW64" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-19 Git Bash not-available line" "$_out" \
+            "backup, sync-auth and sudoers features are not available in gitbash."
+        assert_not_contains "TP-CLI-19 Git Bash no backup row" "$_out" "1. backup:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            OS="Windows_NT" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-19 Windows cmd not-available line" "$_out" \
+            "backup, sync-auth and sudoers features are not available in windows-cmd."
+        assert_not_contains "TP-CLI-19 Windows cmd no backup row" "$_out" "1. backup:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_not_contains "TP-CLI-19 multi-user has no not-available line" "$_out" \
+            "features are not available in"
+        assert_contains "TP-CLI-19 multi-user still lists backup" "$_out" "1. backup:"
+        ci_cleanup_env
+    else
+        t_skip "TP-CLI-19 Termux menu (no python3 for PTY)"
+        t_skip "TP-CLI-19 Git Bash menu (no python3 for PTY)"
+        t_skip "TP-CLI-19 Windows cmd menu (no python3 for PTY)"
+        t_skip "TP-CLI-19 multi-user control (no python3 for PTY)"
+    fi
+
+    # TP-CLI-20: logged-in session hides sync-auth / sync-auth-from-remote and
+    # appends the logged-in not-available line (does not replace the host line).
+    if command -v python3 >/dev/null 2>&1; then
+        ci_isolated_env
+        mkdir -p "${CI_HOME}/.grok"
+        cat > "${CI_HOME}/.grok/auth.json" <<'AUTH'
+{
+  "https://auth.x.ai::test-client": {
+    "key": "test-access-token",
+    "auth_mode": "oidc",
+    "refresh_token": "test-refresh-token",
+    "expires_at": "2099-01-01T00:00:00Z"
+  }
+}
+AUTH
+        ci_fake_grok_ok
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 multi-user logged in" "$_out" "logged in"
+        assert_contains "TP-CLI-20 multi-user logged-in not-available" "$_out" \
+            "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+        assert_not_contains "TP-CLI-20 multi-user no host not-available" "$_out" \
+            "features are not available in"
+        assert_contains "TP-CLI-20 multi-user backup is 1" "$_out" "1. backup:"
+        assert_contains "TP-CLI-20 multi-user add-crontab is 2" "$_out" "2. add-crontab:"
+        assert_contains "TP-CLI-20 multi-user sudoers is 3" "$_out" "3. sudoers:"
+        assert_not_contains "TP-CLI-20 multi-user no sync-auth row" "$_out" "sync-auth:"
+        assert_not_contains "TP-CLI-20 multi-user no from-remote row" "$_out" \
+            "sync-auth-from-remote:"
+        assert_contains "TP-CLI-20 multi-user Exit 9" "$_out" "9. Exit"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            PTY_IN="5
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 pick 5 is not a menu choice" "$_out" "Not a menu choice"
+        assert_not_contains "TP-CLI-20 pick 5 does not open sudoers" "$_out" \
+            "1. generate-sudoer-request:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            PTY_IN="3
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 listed sudoers number opens submenu" "$_out" \
+            "1. generate-sudoer-request:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            PTY_IN="sync-auth
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 typed sync-auth is not a menu choice" "$_out" \
+            "Not a menu choice"
+        assert_not_contains "TP-CLI-20 typed sync-auth does not run skip" "$_out" \
+            "No sync-auth for logged-in environment."
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
+            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 Termux host not-available kept" "$_out" \
+            "backup, sync-auth and sudoers features are not available in termux."
+        assert_contains "TP-CLI-20 Termux logged-in not-available appended" "$_out" \
+            "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+        _after=$(printf '%s\n' "$_out" | tr -d '\r' | grep -A2 "^logged in$")
+        assert_contains "TP-CLI-20 Termux host line still under session" "${_after}" \
+            "backup, sync-auth and sudoers features are not available in termux."
+        assert_contains "TP-CLI-20 Termux logged-in line after host line" "${_after}" \
+            "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+        assert_contains "TP-CLI-20 Termux add-crontab is 1" "$_out" "1. add-crontab:"
+        assert_not_contains "TP-CLI-20 Termux no from-remote row" "$_out" \
+            "sync-auth-from-remote:"
+        assert_not_contains "TP-CLI-20 Termux no backup row" "$_out" "1. backup:"
+        assert_not_contains "TP-CLI-20 Termux no sudoers row" "$_out" "sudoers:"
+        ci_cleanup_env
+    else
+        t_skip "TP-CLI-20 multi-user logged-in menu (no python3 for PTY)"
+        t_skip "TP-CLI-20 Termux logged-in append (no python3 for PTY)"
     fi
 
     # TP-CLI-18: Active requirement bodies must not freeze a session Unix login

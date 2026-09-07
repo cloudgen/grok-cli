@@ -33,7 +33,7 @@ Typing only `grok-cli` at a prompt shows the numbered start list. Piping the scr
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Start daily work at a prompt | Numbered list; **backup** is **1**; login status is under the title | `grok-cli` then `1` |
+| Start daily work at a prompt | Numbered list; on a multi-user host **backup** is **1** (Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers — `requirement-shell-cli-default-interaction`); login status is under the title | `grok-cli` then `1` |
 | First install from the channel | Pipe places `~/.local/bin/grok-cli` | `curl -fsSL https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli \| sh` |
 | Ask for usage in a script | Help screen | `grok-cli help` or `grok-cli --json` |
 | Open the numbered list by name | Same list as empty argv on a TTY | `grok-cli menu` |

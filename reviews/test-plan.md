@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.9  
-**Last plan update:** 2026-09-06  
-**Last suite run:** `./tests/run.sh` (1.8.9: PASS=479 FAIL=0 SKIP=0)
+**Product VERSION:** 1.8.13  
+**Last plan update:** 2026-09-07  
+**Last suite run:** `./tests/run.sh` (1.8.13: PASS=554 FAIL=0 SKIP=0)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -19,7 +19,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Active REQ samples do not freeze a session login | have | TP-CLI-18 |
 | version / help / about human + JSON | have | TP-CLI-02..06 |
 | Empty argv: TTY menu; off-TTY Type O ensure (not help) | have | TP-CLI-07 · TP-ONL-01 |
-| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 |
+| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 · TP-CLI-19 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Cache folder + persistence storage | have | TP-CLI-12 |
 | Termux/Android host writing (`PREFIX`, `pkg`, `noexec` smoke) | have | TP-VCLI-15..25 · TP-LC-01 |
@@ -62,6 +62,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-15 | Static: ship unit has no `$(prompt_ask` / `$(prompt_yes_no` (T1-PROMPT-CAPTURE; **TP-ELEV-10**) | `tests/test_cli.sh` | requirement-shell-script-coding · interactive-vs-noninteractive | **have** |
 | TP-CLI-17 | Default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; numbered explain italic + light gray SGR 3+37; number/name unstyled; not SGR 90; session line under title; no `check-session` row; submenu nametag; inherited `APP_VERSION` ignored | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-output-requirements | **have** |
 | TP-CLI-18 | Active `requirement-*.md` samples do not freeze a session Unix login | `tests/test_cli.sh` | requirement-sudoer-json-file · requirement-three-layer-privilege-model · requirement-domain-grok-cli | **have** |
+| TP-CLI-19 | Termux / Git Bash / Windows cmd main menu hides backup / sync-auth / sudoers; not-available line under session; remaining rows from **1**; pick **5** does not open sudoers; multi-user host unchanged | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-20 | Logged-in main menu hides sync-auth / sync-auth-from-remote; appends logged-in not-available line; host not-available line kept on this-login-only; remaining rows from **1**; listed sudoers number opens submenu; pick of hidden verb is not a menu choice | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
 
 ### TP-LC (local lifecycle)
 
@@ -157,3 +159,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-36 | grok `-p hello` stdout/stderr not printed (no token leak) | test_domain_grok_cli | grok-auth-backup | **have** |
 | TP-GROK-CLI-37 | Core tests fake `GROK_BIN`; no public network | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
 | TP-GROK-CLI-38 | valid-looking `auth.json` without grok is not logged in | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-39 | elevated (`uid 0` + `SUDO_USER`) `grok -p hello` uses invoking grok home, not `/root` | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-40 | grant present + elevated child fail → Next `grok login` (not generate-sudoer-request) | test_domain_grok_cli | grok-auth-backup · operator-readable-error | **have** |
+| TP-GROK-CLI-41 | successful `sync-auth-from-remote` saves SPEC to persistence `preferred-remote` (0600); TTY prompt shows `[SPEC]` at the end; Enter uses that default | test_domain_grok_cli | grok-auth-backup · shell-cli-storage | **have** |
+| TP-GROK-CLI-42 | `sync-auth` with valid live session does not copy; prints `No sync-auth for logged-in environment.`; dest unchanged; menu hides the row | test_domain_grok_cli | grok-auth-backup | **have** |
+| TP-GROK-CLI-43 | `sync-auth-from-remote` with valid live session does not scp; same skip message; dest unchanged | test_domain_grok_cli | grok-auth-backup | **have** |

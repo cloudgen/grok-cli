@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-storage.md  
-**Status**: Active (Version 1.2.1)  
+**Status**: Active (Version 1.3.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-storage`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -138,7 +138,8 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 3. **MUST NOT** use `${HOME}/.local/bin` as persistence (that is `USER_BIN`).  
 4. **MUST NOT** use `/var/grok-cli` as Type 0 persistence.  
 5. **MUST NOT** store scratch/temps in persistence when a cache root is available.  
-6. Persistence **MUST** be under the invoking login’s `$HOME` (per-user). **MUST** include `${APP_NAME}`.
+6. Persistence **MUST** be under the invoking login’s `$HOME` (per-user). **MUST** include `${APP_NAME}`.  
+7. Preferred remote SPEC for `sync-auth-from-remote` **MUST** live here as leaf **`preferred-remote`** (mode **0600**). Semantics (load / save / TTY default) are **`requirement-grok-auth-backup`**. **MUST NOT** put that leaf in the cache folder or under `/var/grok-cli`.
 
 ### 2.6 Wire and diagnostics
 
@@ -238,6 +239,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-5 | Scratch files use `util_mktemp` / `mktemp` XXXXXX; no `$$` names |
 | AC-6 | Live cache path is not `/dev/shm/${APP_NAME}-${USERNAME}` |
 | AC-7 | Persistence path is `${HOME}/.local/${APP_NAME}` and the directory exists after resolve |
+| AC-8 | Preferred remote SPEC is `${HOME}/.local/${APP_NAME}/preferred-remote` (not cache, not `/var/grok-cli`) — proven with TP-GROK-CLI-41 |
 
 ---
 
@@ -260,6 +262,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 |----------------|-------|--------|
 | **TP-CLI-06** | `tests/test_cli.sh` | **have** — about JSON cache + persistence fields + human labels |
 | **TP-CLI-12** | same | **have** — preferred cache `/dev/shm/cache/cache-${APP_NAME}`; persistence `${HOME}/.local/${APP_NAME}`; live dirs exist; cache not APP-USERNAME shape |
+| **TP-GROK-CLI-41** | `tests/test_domain_grok_cli.sh` | **have** — preferred-remote leaf under persistence, not cache |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -273,9 +276,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-08-30 | Active 1.1.0 | Preferred `/dev/shm/cache/cache-${APP_NAME}`; about Cache folder labels |
 | 2026-08-30 | Active 1.2.0 | Storage = cache folder **and** persistence `${HOME}/.local/${APP_NAME}` |
 | 2026-09-04 | Active 1.2.1 | Termux: cache/`tmp`/`shm` may be `noexec` — not a smoke path (point `requirement-shell-termux-coding`) |
+| 2026-09-07 | Active 1.3.0 | Persistence leaf `preferred-remote` for sync-auth-from-remote preferred SPEC |
 
 ---
 
-**Last Updated**: 2026-09-06  
+**Last Updated**: 2026-09-07  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

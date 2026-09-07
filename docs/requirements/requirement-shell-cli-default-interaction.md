@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 2.4.0)  
+**Status**: Active (Version 2.6.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -14,21 +14,21 @@ Empty-argv type and the TTY vs off-TTY split for **no command token** stay on `r
 
 ### 1.1 Human-facing
 
-Typing only `grok-cli` at a real terminal shows the numbered start list. In a script, bare `grok-cli` installs or reports already installed (not this menu). `grok-cli menu` (or `grok-cli main`) still opens the list on a TTY and prints help in a script. The list header is **grok-cli**(*version*) — **Alternative online installer for xAI grok** and the next line is **logged in** or **logged out**. Numbered rows are backup, sync-auth, sync-auth-from-remote, add-crontab, then **sudoers**. On a real terminal the “what it does” text after the colon is gray and italic (default CLI main menu style). `check-session` is not a row — login status is already under the title. Install, uninstall, self-update, where-is-me, version, and about stay off this list. Pick **sudoers** to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`.
+Typing only `grok-cli` at a real terminal shows the numbered start list. In a script, bare `grok-cli` installs or reports already installed (not this menu). `grok-cli menu` (or `grok-cli main`) still opens the list on a TTY and prints help in a script. The list header is **grok-cli**(*version*) — **Alternative online installer for xAI grok** and the next line is **logged in** or **logged out**. On a multi-user host, numbered rows are backup, sync-auth, sync-auth-from-remote, add-crontab, then **sudoers**. On Termux / Git Bash / Windows cmd (this login only), **backup**, **sync-auth**, and **sudoers** are omitted; immediately under the login status the list prints **backup, sync-auth and sudoers features are not available in {{termux/gitbash/windows-cmd}}.** When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are also omitted on every host; immediately under any host not-available line (or under the login status when there is none) the list **appends** **`sync-auth and sync-auth-from-remote features are not available for logged-in environment.`** — it **MUST NOT** replace the host line. Remaining rows start at **1**. On a real terminal the “what it does” text after the colon is gray and italic (default CLI main menu style). `check-session` is not a row — login status is already under the title. Install, uninstall, self-update, where-is-me, version, and about stay off this list. Pick **sudoers** (when listed) to open the grant/draft list; **8** goes back; **9** leaves. On a real terminal the `menu`/`main` list appears even if you also passed `--json`.
 
 | You | Another role | Not this |
 |-----|--------------|----------|
 | Type `grok-cli` or `grok-cli menu`, pick a number | CI / pipe: empty argv ensures install; `menu` prints help; `--json` with no command gets JSON help | A menu that hangs a pipeline; `restore` on the list; install/version on the list; `sudoers` as a typed CLI command |
 
-**Includes:** TTY empty argv numbered list; `menu`/`main` numbered TTY main list; default CLI main menu style (header `APP_NAME(APP_VERSION)`; TTY explain italic + light gray); session line under the title; family row **sudoers** + submenu; Exit **9**; Back **8**; off-TTY `menu` help. **Excludes:** off-TTY empty argv (Type O); `help` as a list row; `check-session` as a numbered row; install / uninstall / self-update / where-is-me / version / about on either list; a live `sudoers` dispatcher token; a second TTY look (unstyled explain, SGR 90, styled number/name).
+**Includes:** TTY empty argv numbered list; `menu`/`main` numbered TTY main list; default CLI main menu style (header `APP_NAME(APP_VERSION)`; TTY explain italic + light gray); session line under the title; **not-available** line on this-login-only hosts; **appended** logged-in not-available line when the session is valid; family row **sudoers** + submenu on multi-user hosts; Exit **9**; Back **8**; off-TTY `menu` help. **Excludes:** off-TTY empty argv (Type O); `help` as a list row; `check-session` as a numbered row; install / uninstall / self-update / where-is-me / version / about on either list; a live `sudoers` dispatcher token; showing backup / sync-auth / sudoers on Termux / Git Bash / Windows cmd; showing **sync-auth** / **sync-auth-from-remote** when **logged in**; replacing the host not-available line with the logged-in line; a second TTY look (unstyled explain, SGR 90, styled number/name).
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Start at a prompt | Daily auth work; **backup** is **1**; login status is under the title | `grok-cli` then `1` |
-| Push auth to the store | First row | `grok-cli` then `1` |
-| Pull from another host | Third row (prompts for SPEC on TTY) | `grok-cli` then `3` |
-| Install the timers | Fourth row | `grok-cli` then `4` |
-| Open grant/drafts | Family row **5**, then a number | `grok-cli` then `5` then `1` |
+| Start at a prompt | Daily auth work; on a multi-user host when **logged out** **backup** is **1**; login status is under the title | `grok-cli` then `1` |
+| Push auth to the store | First row (multi-user host) | `grok-cli` then `1` |
+| Pull from another host | Listed only when **logged out**: third row on a multi-user host; first remaining row on Termux / Git Bash / Windows cmd (prompts for SPEC on TTY) | `grok-cli` then `3` |
+| Install the timers | Fourth row (multi-user, logged out); second remaining row on this-login-only when logged out; **2** on a multi-user host when logged in; **1** on this-login-only when logged in | `grok-cli` then the listed number |
+| Open grant/drafts | Family row **5** on a multi-user host when **logged out**, **3** when **logged in**, then a number. **Not listed** on Termux / Git Bash / Windows cmd | `grok-cli` then the listed sudoers number then `1` |
 | Leave the grant list | Back to the start list | `8` |
 | Leave the menu | Exit | `9` |
 | Install the program | Not on this list | `grok-cli install` |
@@ -67,15 +67,17 @@ After flag parse, when the command token is `menu` or `main`, **or** when argv w
 2. **MUST NOT** list **install / setup**, **self-managed** commands (`install`, `uninstall`, `where-is-me`), **diagnostics** (`version`, `about`), or **test-purpose** verbs.  
 3. Command-row text **MUST** be `command: what it does`. The numbered list **MUST** follow **default CLI main menu style**: header as in rule 10; each numbered row `command: what it does` with the number and command name **unstyled**; on a TTY the **explain** text after `: ` **MUST** be *italic* **and** light gray (SGR **3** + **37**, CSI `ESC[3;37m` … `ESC[0m` via `out_menu_choice`). Off-TTY: plain. **MUST NOT** print explain unstyled on a TTY. **MUST NOT** a second house look (SGR 90, italic-only, gray-only, styled number/name).  
 4. **MUST NOT** list `help`, `restore`, `menu`/`main`, `check-session`, or the five sudoers verbs on the **main** list (sudoers verbs live on the submenu; session status is under the title).  
-5. Main command rows **N = 5** (four verbs + one family). Exit **MUST** be **9**. Unused integers **6–8** are omitted.  
+5. Main command rows **N** is the count of **listed** remaining verbs (plus family when listed). On a **multi-user** host when **logged out**, **N = 5**. On a **multi-user** host when **logged in**, **N = 3** (backup, add-crontab, sudoers). On **command line for normal user only** (Termux / Git Bash / Windows cmd — §2.3b) when **logged out**, **N = 2**. On that class when **logged in**, **N = 1** (add-crontab only). Exit **MUST** be **9**. Unused integers between the last listed row and **9** are omitted.  
 6. Accept a **number** or a **listed verb**. **9** / `exit` / `quit` returns 0.  
-7. **`sudoers` is not a live CLI command.** Choosing **5** or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). `grok-cli sudoers` **MUST** remain unknown.  
-8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut). Live verbs excluded from both lists **MUST NOT** run from the pick prompt (typed `check-session` **MAY** still run as a shortcut).  
+7. **`sudoers` is not a live CLI command.** On a multi-user host, choosing the **listed** sudoers number (**5** when logged out; **3** when logged in) or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). On Termux / Git Bash / Windows cmd, **sudoers** is not a listed row — choosing a leftover integer or typing `sudoers` **MUST** be “not a menu choice” (do not open the submenu). `grok-cli sudoers` **MUST** remain unknown.  
+8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut) when that verb is listed on this host’s menu. Live verbs excluded from both lists **MUST NOT** run from the pick prompt (typed `check-session` **MAY** still run as a shortcut). Hidden **backup** / **sync-auth** / **sudoers** on this-login-only hosts **MUST NOT** run from a listed number. Hidden **sync-auth** / **sync-auth-from-remote** when **logged in** **MUST NOT** run from a listed number.  
 9. The choice **MUST** be read in the **current shell**. **MUST NOT** `$()` / backticks a helper whose body contains `read` (**do-not-capture-read** / **PP-A-22**; current-shell `PROMPT_ASK_VALUE`).  
 10. **Header (mandatory — default CLI main menu style):** the first human line that names the program **MUST** be live **`APP_NAME(APP_VERSION)`** (`APP_VERSION` = Config `VERSION`) with **bold** name and *italic* version, then the product short description (`SHORT_DESCRIPTION` / `APP_DESC`). Typical: `out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"` which prints **Alternative online installer for xAI grok**. TTY: SGR 1 / SGR 3. Off-TTY: plain. **MUST NOT** a bare `APP_NAME` on that header. **MUST NOT** the generic board title “numbered list of live commands”.  
-11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. That word **MUST** use the live `grok -p hello` probe (`requirement-grok-auth-backup`) — **MUST NOT** treat `auth.json` parse alone as logged-in. The probe **MUST** close stdin and **MUST NOT** hang the menu (`GROK_PROMPT_TIMEOUT`; default 20 when `timeout` is present). **MUST NOT** make this a numbered row.
+11. **Session line (mandatory):** immediately under the header, print **`logged in`** when `gc_session_status_word` is `valid`, otherwise **`logged out`**. That word **MUST** use the live `grok -p hello` probe (`requirement-grok-auth-backup`) — **MUST NOT** treat `auth.json` parse alone as logged-in. The probe **MUST** close stdin and **MUST NOT** hang the menu (`GROK_PROMPT_TIMEOUT`; default 20 when `timeout` is present). **MUST NOT** make this a numbered row.  
+12. **Not-available line (mandatory on this-login-only hosts):** immediately under the session line, when the host is Termux / Git Bash / Windows cmd (detect in **Under command line for normal user only**), print exactly **`backup, sync-auth and sudoers features are not available in {{label}}.`** where **label** is **`termux`**, **`gitbash`**, or **`windows-cmd`**. **MUST NOT** make this a numbered row. **MUST NOT** print this line on a multi-user host.  
+13. **Logged-in not-available line (mandatory when session is valid):** when `gc_session_status_word` is `valid`, **MUST NOT** display **sync-auth** or **sync-auth-from-remote**. Immediately under the host not-available line when that line is printed, otherwise immediately under the session line, **MUST** print exactly **`sync-auth and sync-auth-from-remote features are not available for logged-in environment.`** This line **MUST** be an **additional** `out_plain` line — **MUST NOT** replace, rewrite, or drop the host not-available line. **MUST NOT** make this a numbered row. **MUST NOT** print this line when the session is not valid.
 
-Normative **main** order:
+Normative **main** order (multi-user host, **logged out**):
 
 | # | Token | Label |
 |---|-------|-------|
@@ -88,9 +90,51 @@ Normative **main** order:
 | 5 | family `sudoers` | `sudoers: Grant and drafts` |
 | **9** | **Exit** | leave the menu |
 
+### 2.3b Main menu on command line for normal user only
+
+When detect is Termux / Git Bash / Windows cmd, the start list **MUST NOT** display **backup**, **sync-auth**, or **sudoers**. Remaining listed verbs **MUST** be numbered from **1**. Direct CLI `{{APP_NAME}} backup` / `sync-auth` stay routed (unused on this class is menu honesty, not a second dispatcher).
+
+Normative **main** order (this-login-only host, **logged out**):
+
+| # | Token | Label |
+|---|-------|-------|
+| *(header)* | — | `**APP_NAME**(*APP_VERSION*) — Alternative online installer for xAI grok` |
+| *(status)* | — | `logged in` / `logged out` |
+| *(not-available)* | — | `backup, sync-auth and sudoers features are not available in {{termux\|gitbash\|windows-cmd}}.` |
+| 1 | `sync-auth-from-remote` | `sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok` |
+| 2 | `add-crontab` | `add-crontab: Add backup and sync-auth jobs to this login's crontab` |
+| **9** | **Exit** | leave the menu |
+
+### 2.3c Main menu when logged in
+
+When the session line is **logged in**, the start list **MUST NOT** display **sync-auth** or **sync-auth-from-remote** (any host). Direct CLI `{{APP_NAME}} sync-auth` / `sync-auth-from-remote` stay routed; the copy skip is `requirement-grok-auth-backup`. Remaining listed verbs **MUST** be numbered from **1**.
+
+Normative **main** order (multi-user host, **logged in**):
+
+| # | Token | Label |
+|---|-------|-------|
+| *(header)* | — | `**APP_NAME**(*APP_VERSION*) — Alternative online installer for xAI grok` |
+| *(status)* | — | `logged in` |
+| *(not-available)* | — | `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` |
+| 1 | `backup` | `backup: Push ~/.grok/auth.* to /var/grok-cli` |
+| 2 | `add-crontab` | `add-crontab: Add backup and sync-auth jobs to this login's crontab` |
+| 3 | family `sudoers` | `sudoers: Grant and drafts` |
+| **9** | **Exit** | leave the menu |
+
+Normative **main** order (this-login-only host, **logged in**) — host line **then** logged-in line (**append**, never replace):
+
+| # | Token | Label |
+|---|-------|-------|
+| *(header)* | — | `**APP_NAME**(*APP_VERSION*) — Alternative online installer for xAI grok` |
+| *(status)* | — | `logged in` |
+| *(not-available)* | — | `backup, sync-auth and sudoers features are not available in {{termux\|gitbash\|windows-cmd}}.` |
+| *(not-available)* | — | `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` |
+| 1 | `add-crontab` | `add-crontab: Add backup and sync-auth jobs to this login's crontab` |
+| **9** | **Exit** | leave the menu |
+
 ### 2.4 Sudoers submenu
 
-Choosing main **5** / `sudoers` **MUST** print a second numbered list of the grouped live verbs. Submenu header **MUST** use the same `APP_NAME(APP_VERSION)` nametag. Explain text **MUST** follow the same default CLI main menu style as the main list (*italic* + light gray SGR **3** + **37** on a TTY via `out_menu_choice`). **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
+On a multi-user host, choosing the listed sudoers number (**5** logged out; **3** logged in) / `sudoers` **MUST** print a second numbered list of the grouped live verbs. On Termux / Git Bash / Windows cmd the family row is omitted (§2.3b). Submenu header **MUST** use the same `APP_NAME(APP_VERSION)` nametag. Explain text **MUST** follow the same default CLI main menu style as the main list (*italic* + light gray SGR **3** + **37** on a TTY via `out_menu_choice`). **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
 
 | # | Command | Label |
 |---|---------|-------|
@@ -125,7 +169,8 @@ Submenu command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 | **Interactive + `--json`** | Ignore json on `menu`/`main`; still the menu |
 | **Non-interactive** | `app_help` (human; `--quiet` still prints help) |
 | **Look** | **default CLI main menu style** — header `APP_NAME(APP_VERSION)`; TTY explain *italic* + light gray (SGR 3+37) via `out_menu_choice`; number and name unstyled |
-| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title from live `grok -p hello`; main **N = 5**; submenu **N = 5**; Exit **9**; Back **8**. |
+| **Honesty** | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type O ensure (not help, not this menu). Header `APP_NAME(APP_VERSION)`; session line under the title from live `grok -p hello`; host not-available line on Termux / Git Bash / Windows cmd; logged-in not-available line **appended** when session is valid; main **N = 5 / 3 / 2 / 1** (multi-user logged out / multi-user logged in / this-login-only logged out / this-login-only logged in); submenu **N = 5**; Exit **9**; Back **8**. |
+| **Host detect** | `gc_host_is_normal_user_only` / `gc_host_normal_user_only_label` (`termux` · `gitbash` · `windows-cmd`) |
 
 ### 2.6 Why this requirement exists (CIAO)
 
@@ -149,7 +194,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 
 Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
 
-**This requirement:** the numbered list stays. Do not add sudo-install rows to the menu on this class.
+**This requirement:** omit **backup**, **sync-auth**, and **sudoers** from the numbered list on detect. Immediately under the login status print **`backup, sync-auth and sudoers features are not available in {{termux/gitbash/windows-cmd}}.`** When **logged in**, **also** omit **sync-auth-from-remote** and **append** the logged-in not-available line (§2.3c) after the host line. Remaining rows number from **1**. Do not add sudo-install rows.
 
 ---
 
@@ -181,10 +226,12 @@ Future agents **MUST NOT**:
 11. Capture the menu choice with `$()` of a `read` helper.  
 12. Draw the numbered list off **default CLI main menu style** — **MUST NOT** print numbered-choice explain unstyled on a TTY (it **MUST** be *italic* and light gray, SGR **3** + **37**, via `out_menu_choice`). **MUST NOT** invent a second house look (SGR 90, italic-only, gray-only, styled number/name).  
 13. Print the generic board title “numbered list of live commands” instead of Config `SHORT_DESCRIPTION` / `APP_DESC` (**Alternative online installer for xAI grok**).  
-14. Print **logged in** from `auth.json` parse alone (the session line **MUST** use `grok -p hello`).
-
----
+14. Print **logged in** from `auth.json` parse alone (the session line **MUST** use `grok -p hello`).  
 15. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
+16. Display **backup**, **sync-auth**, or **sudoers** on the main list on Termux / Git Bash / Windows cmd.  
+17. Omit the **host not-available** line on that class, print it on a multi-user host, or invent a different wording / host label (`termux` · `gitbash` · `windows-cmd`).  
+18. Display **sync-auth** or **sync-auth-from-remote** on the main list when the session is **logged in**, or omit the logged-in not-available line on that session.  
+19. Replace the host not-available line with the logged-in line, merge them into one sentence, or skip the host line because the session is logged in. The logged-in line **MUST** append.  
 
 
 ## Design-time verification
@@ -194,12 +241,14 @@ Future agents **MUST NOT**:
 | **TP-CLI-07** | `tests/test_cli.sh` | have (TTY empty argv = this menu; off-TTY empty argv = Type O ensure) |
 | **TP-CLI-13** | `tests/test_cli.sh` | have (main list, family row, submenu Back/Exit, off-TTY help) |
 | **TP-CLI-17** | `tests/test_cli.sh` | have (default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; board title **Alternative online installer for xAI grok**; numbered explain italic + light gray SGR 3+37; number/name unstyled; logged in/out from live `grok -p hello`; no check-session row) |
+| **TP-CLI-19** | `tests/test_cli.sh` | have (Termux / Git Bash / Windows cmd: hide backup / sync-auth / sudoers; not-available line under session; remaining rows from **1**) |
+| **TP-CLI-20** | `tests/test_cli.sh` | have (logged in: hide sync-auth / sync-auth-from-remote; append logged-in not-available line; host line still present on this-login-only; remaining rows from **1**; listed sudoers number opens submenu) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
 
 ---
 
-**Last Updated**: 2026-09-06 (2.4.0 — session line is live `grok -p hello`, not `auth.json` parse)  
+**Last Updated**: 2026-09-07 (2.6.0 — logged-in session hides sync-auth / sync-auth-from-remote and **appends** the logged-in not-available line)  
 **Owner**: product  
 **Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-grok-auth-backup` (session probe) · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

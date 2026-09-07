@@ -105,8 +105,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `setup` | Type 0 | `gc_setup` (domain) | Perform the studied xAI grok procedure (platform, channel pointer, artifact, `~/.grok` place) so peer `grok` is installed; **MUST NOT** fetch or exec `install.sh`; skip if grok already **runs on this host** unless `--force`. Stale session PATH is not an error. **MUST NOT** install grok-cli |
 | `check-session` | Type 0 | `gc_check_session` (domain) | Confirm grok is logged in by running `grok -p hello` first (not `auth.json` parse alone) |
 | `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
-| `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo |
-| `sync-auth-from-remote` | Type 0 | `gc_sync_auth_from_remote` (domain) | `scp` remote `/var/grok-cli/auth.*` into `~/.grok`; SPEC is `user@IPv4`, IPv4, domain, or `user@domain`; **does not** use sudo |
+| `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo; **skip** when grok is already logged in |
+| `sync-auth-from-remote` | Type 0 | `gc_sync_auth_from_remote` (domain) | `scp` remote `/var/grok-cli/auth.*` into `~/.grok`; SPEC is `user@IPv4`, IPv4, domain, or `user@domain`; **does not** use sudo; **skip** when grok is already logged in |
 | `add-crontab` | Type 0 | `gc_add_crontab` (domain) | Install this login’s crontab jobs (backup every 30 min; sync-auth at :45) after **this** login’s backup grant exists — **does not** write `/etc` |
 | `print-sudoers` | Type 0 | `gc_print_sudoers` (domain) | Emit sudoers fragment for admin to install under `/etc/sudoers.d/` — **does not** write `/etc` itself |
 | `print-sudoers-install-script` | Type 0 | `gc_print_sudoers_install_script` (domain) | Write admin handoff script (no `/etc` write) |
@@ -166,7 +166,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 
 Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
 
-**This requirement:** the Type 1 backup/sudoers rows stay **unused** on detect. Do not add sudo verbs because Linux has them.
+**This requirement:** the Type 1 backup/sudoers rows stay **unused** on detect. The main menu **MUST NOT** list `backup`, `sync-auth`, or `sudoers` on detect (not-available line: `requirement-shell-cli-default-interaction`). When **logged in**, that REQ also omits **sync-auth** / **sync-auth-from-remote** and **appends** the logged-in not-available line. Do not add sudo verbs because Linux has them.
 
 ---
 

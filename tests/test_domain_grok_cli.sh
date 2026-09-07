@@ -184,9 +184,12 @@ run_test_domain_grok_cli() {
     assert_contains "TP-GROK-CLI-08 overwrite restored token" "$(cat "${_store}/auth.json")" "test-refresh-token"
 
     # TP-GROK-CLI-09 sync-auth copies into a fresh grok home without sudo
+    # (logged-out dest: live probe must not be valid — drop fake grok).
+    unset GROK_BIN 2>/dev/null || true
+    rm -f "${CI_USER_BIN}/grok" "${CI_GLOBAL_BIN}/grok"
     _other="${CI_HOME}/other-grok"
     _out=$(HOME="${CI_HOME}" GROK_HOME="${_other}" GROK_CLI_ROOT="${_store}" \
-        sh "${SCRIPT}" sync-auth 2>&1)
+        env -u GROK_BIN sh "${SCRIPT}" sync-auth 2>&1)
     assert_eq "TP-GROK-CLI-09 sync-auth exit 0" 0 "$?"
     assert_contains "TP-GROK-CLI-09 complete" "$_out" "sync-auth complete"
     assert_file_exists "TP-GROK-CLI-09 dest auth.json" "${_other}/auth.json"
@@ -196,7 +199,7 @@ run_test_domain_grok_cli() {
 
     # TP-GROK-CLI-10 sync-auth missing store fail-closed
     _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_CLI_ROOT="${CI_HOME}/no-store" \
-        sh "${SCRIPT}" sync-auth 2>&1 >/dev/null)
+        env -u GROK_BIN sh "${SCRIPT}" sync-auth 2>&1 >/dev/null)
     assert_eq "TP-GROK-CLI-10 missing store exit 1" 1 "$?"
     assert_contains "TP-GROK-CLI-10 next backup" "$_err" "backup"
 
@@ -598,6 +601,9 @@ FAKECRON
     rm -f "${CI_SUDOERS_D}/grok-cli-${_user_cron}" "${_cron_store}" "${CI_GLOBAL_BIN}/grok-cli"
 
     # TP-GROK-CLI-30..34 sync-auth-from-remote (isolated fake scp; never real SSH)
+    # Logged-out dest: drop fake grok so the live probe is not valid.
+    unset GROK_BIN 2>/dev/null || true
+    rm -f "${CI_USER_BIN}/grok" "${CI_GLOBAL_BIN}/grok" "${CI_HOME}/.grok/bin/grok"
     mkdir -p "${CI_HOME}/bin" "${CI_HOME}/remote-store"
     gc_write_valid_auth "${CI_HOME}/remote-store"
     printf 'lock\n' > "${CI_HOME}/remote-store/auth.json.lock"
@@ -697,6 +703,8 @@ FAKESCP
 
     # TP-GROK-CLI-34: TTY menu pick 3 (sync-auth-from-remote) must show the SPEC prompt (INC-20260902-001).
     # Fake scp only; never real SSH. Kill the child if it still hangs after timeout.
+    # Clear preferred-remote so this case proves the prompt without a stored default.
+    rm -f "${CI_HOME}/.local/grok-cli/preferred-remote"
     if command -v python3 >/dev/null 2>&1; then
         _pty_out=$(
             HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-menu-remote" \
@@ -757,6 +765,138 @@ PY
         t_skip "TP-GROK-CLI-34 (python3 not available for PTY)"
     fi
 
+    # TP-GROK-CLI-41: successful pull saves preferred SPEC; TTY prompt shows it
+    # at the end as [default]; empty Enter uses that default.
+    : > "${_scp_log}"
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-pref" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
+        sh "${SCRIPT}" sync-auth-from-remote operator@192.0.2.10 2>/dev/null)
+    assert_eq "TP-GROK-CLI-41 save after success exit 0" 0 "$?"
+    _pref="${CI_HOME}/.local/grok-cli/preferred-remote"
+    assert_file_exists "TP-GROK-CLI-41 preferred-remote leaf" "${_pref}"
+    assert_eq "TP-GROK-CLI-41 stored SPEC" "operator@192.0.2.10" "$(tr -d '\r\n' < "${_pref}")"
+    _pmode=$(stat -c '%a' "${_pref}" 2>/dev/null || stat -f '%OLp' "${_pref}" 2>/dev/null || echo "")
+    assert_eq "TP-GROK-CLI-41 preferred-remote mode 0600" "600" "${_pmode}"
+    case "${_pref}" in
+        */.local/grok-cli/preferred-remote) t_pass "TP-GROK-CLI-41 leaf is under persistence" ;;
+        *) t_fail "TP-GROK-CLI-41 leaf not under persistence: ${_pref}" ;;
+    esac
+    if command -v python3 >/dev/null 2>&1; then
+        : > "${_scp_log}"
+        _pty_out=$(
+            HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-pref-tty" \
+            GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+            GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
+            PTY_IN="3
+
+" python3 - "${SCRIPT}" menu <<'PY'
+import os, pty, select, signal, sys, time
+script = sys.argv[1]
+cmd = sys.argv[2:]
+payload = os.environ.get("PTY_IN", "9\n").encode()
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv("/bin/sh", ["sh", script] + cmd)
+time.sleep(0.2)
+try:
+    os.write(fd, payload)
+except OSError:
+    pass
+out = bytearray()
+end = time.time() + 6
+exited = False
+while time.time() < end:
+    r, _, _ = select.select([fd], [], [], 0.2)
+    if fd in r:
+        try:
+            chunk = os.read(fd, 4096)
+        except OSError:
+            break
+        if not chunk:
+            break
+        out += chunk
+    wpid, _st = os.waitpid(pid, os.WNOHANG)
+    if wpid:
+        exited = True
+        break
+if not exited:
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        pass
+try:
+    os.waitpid(pid, 0)
+except ChildProcessError:
+    pass
+sys.stdout.buffer.write(out.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
+PY
+        )
+        assert_contains "TP-GROK-CLI-41 TTY prompt shows stored default at end" "${_pty_out}" \
+            "Remote (user@host, IPv4, domain, or user@domain) [operator@192.0.2.10]:"
+        assert_contains "TP-GROK-CLI-41 empty Enter uses stored SPEC" "${_pty_out}" \
+            "sync-auth-from-remote complete"
+        assert_contains "TP-GROK-CLI-41 empty Enter scp src" "$(cat "${_scp_log}")" \
+            "operator@192.0.2.10:/var/grok-cli/auth.json"
+        assert_file_exists "TP-GROK-CLI-41 dest from default" "${CI_HOME}/.grok-pref-tty/auth.json"
+    else
+        t_skip "TP-GROK-CLI-41 TTY default prompt (python3 not available for PTY)"
+    fi
+
+    # TP-GROK-CLI-42 sync-auth skips when grok is already logged in
+    ci_fake_grok_ok
+    _keep="${CI_HOME}/keep-grok"
+    mkdir -p "${_keep}"
+    printf 'keep-me\n' > "${_keep}/auth.json"
+    chmod 0600 "${_keep}/auth.json"
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${_keep}" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_ROOT="${_store}" sh "${SCRIPT}" sync-auth 2>&1)
+    assert_eq "TP-GROK-CLI-42 logged-in skip exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-42 skip message" "$_out" \
+        "No sync-auth for logged-in environment."
+    assert_not_contains "TP-GROK-CLI-42 did not copy" "$_out" "sync-auth complete"
+    assert_eq "TP-GROK-CLI-42 dest unchanged" "keep-me" "$(tr -d '\r\n' < "${_keep}/auth.json")"
+    _j=$(HOME="${CI_HOME}" GROK_HOME="${_keep}" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_ROOT="${_store}" sh "${SCRIPT}" --json sync-auth 2>/dev/null)
+    assert_contains "TP-GROK-CLI-42 json type" "${_j}" '"type":"sync-auth"'
+    assert_contains "TP-GROK-CLI-42 json skipped" "${_j}" '"status":"skipped"'
+    assert_contains "TP-GROK-CLI-42 json reason" "${_j}" '"reason":"logged-in"'
+    if command -v python3 >/dev/null 2>&1; then
+        _pty_out=$(HOME="${CI_HOME}" GROK_HOME="${_keep}" GROK_BIN="${GROK_BIN}" \
+            GROK_CLI_ROOT="${_store}" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-GROK-CLI-42 menu logged in" "${_pty_out}" "logged in"
+        assert_contains "TP-GROK-CLI-42 menu hides sync-auth" "${_pty_out}" \
+            "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+        assert_not_contains "TP-GROK-CLI-42 menu no sync-auth row" "${_pty_out}" "sync-auth:"
+        assert_not_contains "TP-GROK-CLI-42 menu did not copy" "${_pty_out}" "sync-auth complete"
+    else
+        t_skip "TP-GROK-CLI-42 menu skip (python3 not available for PTY)"
+    fi
+
+    # TP-GROK-CLI-43 sync-auth-from-remote skips when grok is already logged in
+    : > "${_scp_log}"
+    _keep2="${CI_HOME}/keep-grok-remote"
+    mkdir -p "${_keep2}"
+    printf 'keep-remote\n' > "${_keep2}/auth.json"
+    chmod 0600 "${_keep2}/auth.json"
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${_keep2}" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
+        sh "${SCRIPT}" sync-auth-from-remote operator@192.0.2.10 2>&1)
+    assert_eq "TP-GROK-CLI-43 logged-in skip exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-43 skip message" "$_out" \
+        "No sync-auth for logged-in environment."
+    assert_not_contains "TP-GROK-CLI-43 did not copy" "$_out" "sync-auth-from-remote complete"
+    assert_eq "TP-GROK-CLI-43 dest unchanged" "keep-remote" "$(tr -d '\r\n' < "${_keep2}/auth.json")"
+    assert_eq "TP-GROK-CLI-43 no scp" "" "$(cat "${_scp_log}")"
+    _j=$(HOME="${CI_HOME}" GROK_HOME="${_keep2}" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
+        GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
+        sh "${SCRIPT}" --json sync-auth-from-remote operator@192.0.2.10 2>/dev/null)
+    assert_contains "TP-GROK-CLI-43 json type" "${_j}" '"type":"sync-auth-from-remote"'
+    assert_contains "TP-GROK-CLI-43 json skipped" "${_j}" '"status":"skipped"'
+    assert_contains "TP-GROK-CLI-43 json reason" "${_j}" '"reason":"logged-in"'
+
     # TP-GROK-CLI-35 live probe wins over expired auth.json
     gc_write_expired_auth "${CI_HOME}/.grok"
     ci_fake_grok_ok
@@ -796,6 +936,107 @@ FAKE
         sh "${SCRIPT}" check-session 2>&1 >/dev/null)
     assert_eq "TP-GROK-CLI-38 valid file without grok exit 1" 1 "$?"
     assert_contains "TP-GROK-CLI-38 not installed" "$_err" "not installed"
+
+    # TP-GROK-CLI-39 elevated probe (uid 0 + SUDO_USER) uses invoking grok home, not /root
+    if ! command -v getent >/dev/null 2>&1; then
+        t_skip "TP-GROK-CLI-39 (getent not available to fake SUDO_USER home)"
+    else
+        _real_id=$(PATH="${CI_PATH_ORIG:-$PATH}" command -v id)
+        _real_getent=$(PATH="${CI_PATH_ORIG:-$PATH}" command -v getent)
+        _fakebin="${CI_HOME}/fake-root-bin"
+        mkdir -p "${_fakebin}"
+        cat > "${_fakebin}/id" <<FAKEID
+#!/bin/sh
+case "\${1:-}" in
+  -u) printf '0\\n'; exit 0 ;;
+  -un) printf 'root\\n'; exit 0 ;;
+esac
+exec ${_real_id} "\$@"
+FAKEID
+        cat > "${_fakebin}/getent" <<FAKEGETENT
+#!/bin/sh
+if [ "\${1:-}" = "passwd" ] && [ -n "\${2:-}" ] && [ "\${2}" = "\${FAKE_PASSWD_USER:-}" ]; then
+    printf '%s:x:1000:1000::%s:/bin/sh\\n' "\$2" "\${FAKE_PASSWD_HOME}"
+    exit 0
+fi
+exec ${_real_getent} "\$@"
+FAKEGETENT
+        chmod 0755 "${_fakebin}/id" "${_fakebin}/getent"
+        _probegrok="${CI_HOME}/probe-home-grok"
+        _envlog="${CI_HOME}/probe-env.log"
+        cat > "${_probegrok}" <<'FAKEGROK'
+#!/bin/sh
+if [ -n "${GROK_PROBE_ENV_LOG:-}" ]; then
+    printf 'HOME=%s\nGROK_HOME=%s\n' "${HOME}" "${GROK_HOME:-}" > "${GROK_PROBE_ENV_LOG}"
+fi
+_h="${GROK_HOME:-${HOME}/.grok}"
+if [ "${1:-}" = "-p" ]; then
+    if [ -f "${_h}/auth.json" ]; then
+        echo ok
+        exit 0
+    fi
+    echo "login required" >&2
+    exit 1
+fi
+exit 0
+FAKEGROK
+        chmod 0755 "${_probegrok}"
+        gc_write_valid_auth "${CI_HOME}/.grok"
+        _rootish="${CI_HOME}/as-root"
+        mkdir -p "${_rootish}"
+        _store39="${CI_HOME}/var-grok-cli-39"
+        mkdir -p "${_store39}"
+        rm -f "${_envlog}"
+        _out=$(HOME="${_rootish}" \
+            SUDO_USER="cli-sudo-user" \
+            FAKE_PASSWD_USER="cli-sudo-user" \
+            FAKE_PASSWD_HOME="${CI_HOME}" \
+            GROK_BIN="${_probegrok}" \
+            GROK_PROBE_ENV_LOG="${_envlog}" \
+            GROK_CLI_ROOT="${_store39}" \
+            PATH="${_fakebin}:${PATH}" \
+            env -u GROK_HOME \
+            sh "${SCRIPT}" backup 2>&1)
+        _ec=$?
+        assert_eq "TP-GROK-CLI-39 elevated backup exit 0" 0 "${_ec}"
+        assert_contains "TP-GROK-CLI-39 backup complete" "${_out}" "Backup complete"
+        assert_file_exists "TP-GROK-CLI-39 dest auth.json" "${_store39}/auth.json"
+        _plog=$(cat "${_envlog}" 2>/dev/null || true)
+        assert_contains "TP-GROK-CLI-39 probe HOME is invoking home" "${_plog}" "HOME=${CI_HOME}"
+        assert_contains "TP-GROK-CLI-39 probe GROK_HOME is invoking grok home" "${_plog}" "GROK_HOME=${CI_HOME}/.grok"
+        assert_not_contains "TP-GROK-CLI-39 probe HOME is not as-root" "${_plog}" "HOME=${_rootish}"
+        unset SUDO_USER FAKE_PASSWD_USER FAKE_PASSWD_HOME GROK_PROBE_ENV_LOG 2>/dev/null || true
+    fi
+
+    # TP-GROK-CLI-40 grant present + elevated child fail is not "sudo refused"
+    _user40=$(id -un 2>/dev/null || echo "unknown")
+    mkdir -p "${CI_SUDOERS_D}" "${CI_GLOBAL_BIN}" "${CI_HOME}/bin"
+    printf '%s ALL=(root) NOPASSWD: %s/grok-cli backup\n' "${_user40}" "${CI_GLOBAL_BIN}" \
+        > "${CI_SUDOERS_D}/grok-cli-${_user40}"
+    printf '#!/bin/sh\nexit 0\n' > "${CI_GLOBAL_BIN}/grok-cli"
+    chmod 0755 "${CI_GLOBAL_BIN}/grok-cli"
+    cat > "${CI_HOME}/bin/sudo" <<'FAKESUDO'
+#!/bin/sh
+while [ "${1:-}" = "-n" ]; do
+    shift
+done
+echo "Cannot backup: grok is not logged in (exit 1: login required). Next: grok login, then grok-cli backup." >&2
+exit 1
+FAKESUDO
+    chmod 0755 "${CI_HOME}/bin/sudo"
+    gc_write_valid_auth "${CI_HOME}/.grok"
+    ci_fake_grok_ok
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_ROOT=/var/grok-cli \
+        GLOBAL_BIN="${CI_GLOBAL_BIN}" \
+        SUDOERS_D_DIR="${CI_SUDOERS_D}" \
+        PATH="${CI_HOME}/bin:${PATH}" \
+        sh "${SCRIPT}" backup 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-40 grant-present child fail exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-40 grant already in place" "${_err}" "already in place"
+    assert_contains "TP-GROK-CLI-40 next grok login" "${_err}" "grok login"
+    assert_not_contains "TP-GROK-CLI-40 not generate-sudoer-request" "${_err}" "generate-sudoer-request"
+    rm -f "${CI_HOME}/bin/sudo" "${CI_SUDOERS_D}/grok-cli-${_user40}" "${CI_GLOBAL_BIN}/grok-cli"
 
     ci_cleanup_env
 }

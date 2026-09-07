@@ -36,7 +36,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | version | `app_version` | you (Type 0) | missing | `version: Show local version` |
 | where-is-me | `app_where_is_me` | you (Type 0) | 2026-08-03 | `where-is-me: Show running and install paths` |
 
-A TTY main menu **MUST** print daily-work **human-readable** lines as a **numbered list**, with related grant/draft verbs behind family row **`sudoers`** (submenu; **Back 8**, **Exit 9**). Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** `help`, `menu`/`main`, `check-session` (status is under the title), install/setup, self-managed (`install`, `uninstall`, `self-update`, `self-uninstall`, `where-is-me`), diagnostics (`version`, `about`, `version-check`), and test-purpose. **`sudoers` is not a live dispatcher token.** Main **N = 5**; submenu **K = 5**; **Exit 9**. Internal `ensure` is not a help verb.
+A TTY main menu **MUST** print daily-work **human-readable** lines as a **numbered list**, with related grant/draft verbs behind family row **`sudoers`** (submenu; **Back 8**, **Exit 9**). Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** `help`, `menu`/`main`, `check-session` (status is under the title), install/setup, self-managed (`install`, `uninstall`, `self-update`, `self-uninstall`, `where-is-me`), diagnostics (`version`, `about`, `version-check`), and test-purpose. **`sudoers` is not a live dispatcher token.** Main **N = 5** (multi-user, logged out); **N = 3** when logged in (hide `sync-auth` / `sync-auth-from-remote`); **N = 2** / **1** on this-login-only; submenu **K = 5**; **Exit 9**. Internal `ensure` is not a help verb.
 
 ## Not yet wired
 
@@ -46,5 +46,5 @@ A TTY main menu **MUST** print daily-work **human-readable** lines as a **number
 
 ---
 
-**Last Updated:** 2026-09-03 (main menu header `APP_NAME(APP_VERSION)`; session line; drop `check-session` row; **N = 5**)  
+**Last Updated:** 2026-09-07 (logged-in main **N = 3**; hide `sync-auth` / `sync-auth-from-remote`)  
 **Alignment:** term `cli-routed-verb-table` · **`SK-CLI-ROUTED-VERB-TABLE`** · **`SK-CLI-DEFAULT-INTERACTION`**

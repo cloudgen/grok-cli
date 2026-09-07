@@ -40,7 +40,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.9"
+# VERSION: hard-assign VERSION="1.8.13"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -56,8 +56,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.9"
-: "${VERSION:=1.8.9}"
+VERSION="1.8.13"
+: "${VERSION:=1.8.13}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -72,6 +72,7 @@ APP_VERSION="${VERSION}"
 : "${DEBUG:=0}"
 : "${TTY:=0}"
 : "${PROMPT_ASK_VALUE:=}"
+: "${GC_SESSION_STATUS_CACHE:=}"
 # Sudoers trust: local-only emit requires explicit test-mode allow (see three-layer privilege).
 : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
 
@@ -1146,8 +1147,9 @@ util_mktemp() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Displays a message, shows current/default values if available, and waits
-# for user input. Returns the answer (or the default if user presses Enter).
+# Displays a message, shows current on its own line when set, and waits
+# for user input. When a default is set, it is shown at the end of the
+# prompt as [default]; Enter keeps that default.
 # Fully respects --quiet, --json, and non-TTY environments.
 # Uses the centralized output system (out_info / out_msg_n).
 #
@@ -1169,7 +1171,7 @@ util_mktemp() {
 # See requirement-shell-interactive-vs-noninteractive.md and
 # requirement-shell-script-coding.md.
 #
-# Last updated: 2026-09-02
+# Last updated: 2026-09-07
 # =============================================================================
 
 prompt_ask() {
@@ -1201,9 +1203,10 @@ prompt_ask() {
         out_info "Current: ${current}"
     fi
     if [ -n "${default}" ]; then
-        out_info "Default: ${default}"
+        out_msg_n "${message} [${default}]: "
+    else
+        out_msg_n "${message}: "
     fi
-    out_msg_n "${message}: "
 
     local answer=""
     read -r answer || true
@@ -1946,11 +1949,13 @@ gc_resolve_grok_home() {
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
+# - requirement-grok-auth-backup.md
 #
-# Last updated: 2026-08-30
+# Last updated: 2026-09-06
 # =============================================================================
 gc_resolve_grok_peer() {
     : "${GROK_PEER_NAME:=grok}"
+    : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
     if [ -n "${GROK_BIN:-}" ] && [ -x "${GROK_BIN}" ]; then
         printf '%s' "${GROK_BIN}"
@@ -1964,6 +1969,12 @@ gc_resolve_grok_peer() {
     _vendor_bin="$(gc_resolve_grok_home)/bin/${GROK_PEER_NAME}"
     if [ -x "${_vendor_bin}" ]; then
         printf '%s' "${_vendor_bin}"
+        return 0
+    fi
+    # sudo env_reset leaves USER_BIN at /root/.local/bin; still find this login's grok.
+    _inv_bin="$(gc_invoking_home)/.local/bin/${GROK_PEER_NAME}"
+    if [ -x "${_inv_bin}" ]; then
+        printf '%s' "${_inv_bin}"
         return 0
     fi
     if [ -x "${USER_BIN}/${GROK_PEER_NAME}" ]; then
@@ -3122,9 +3133,18 @@ gc_iso_to_epoch() {
 # actually signed in. auth.json parse is NOT this gate — a future expires_at
 # can still be revoked, and Termux DNS/wrapper failures stay hidden until
 # grok runs. Never print grok's answer or token values.
+# When this process is root via sudo, grok MUST see the invoking login's
+# home (SUDO_USER), not /root — sudo env_reset otherwise makes grok say
+# "login required" after the unprivileged probe already succeeded.
 #
 # ALIGNMENT: requirement-grok-auth-backup.md
-# Last updated: 2026-09-05
+#
+# Lessons Learned (CIAO Reflection):
+# 2026-09-06: sudo -n grok-cli backup re-probed as root with HOME=/root, so
+# grok read /root/.grok and failed "login required" despite a valid adm01
+# session and an installed NOPASSWD grant. Pin HOME + GROK_HOME on the exec.
+#
+# Last updated: 2026-09-06
 # =============================================================================
 gc_grok_prompt_hello() {
     GC_GROK_PROMPT_STATUS="missing"
@@ -3144,19 +3164,28 @@ gc_grok_prompt_hello() {
         return 1
     fi
     : "${GROK_PROMPT_TIMEOUT:=20}"
+    : "${HOME:=/tmp}"
+    _ihome=$(gc_invoking_home)
+    _ghome=$(gc_resolve_grok_home)
+    _login=$(gc_invoking_login)
+    : "${_ihome:=${HOME}}"
+    : "${_ghome:=${_ihome}/.grok}"
+    : "${_login:=$(id -un 2>/dev/null || echo unknown)}"
     _ec=1
     if command -v timeout >/dev/null 2>&1; then
-        timeout "${GROK_PROMPT_TIMEOUT}" "${_peer}" -p hello </dev/null >"${_out}" 2>&1
+        HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
+            timeout "${GROK_PROMPT_TIMEOUT}" "${_peer}" -p hello </dev/null >"${_out}" 2>&1
         _ec=$?
     else
-        "${_peer}" -p hello </dev/null >"${_out}" 2>&1
+        HOME="${_ihome}" GROK_HOME="${_ghome}" USER="${_login}" LOGNAME="${_login}" \
+            "${_peer}" -p hello </dev/null >"${_out}" 2>&1
         _ec=$?
     fi
     if [ "${_ec}" -eq 0 ]; then
         GC_GROK_PROMPT_STATUS="ok"
         GC_GROK_PROMPT_DETAIL=""
         rm -f "${_out}"
-        unset _peer _out _ec
+        unset _peer _out _ec _ihome _ghome _login
         return 0
     fi
     GC_GROK_PROMPT_STATUS="failed"
@@ -3177,7 +3206,7 @@ gc_grok_prompt_hello() {
             ;;
     esac
     rm -f "${_out}"
-    unset _peer _out _ec _snip
+    unset _peer _out _ec _snip _ihome _ghome _login
     return 1
 }
 
@@ -3283,6 +3312,56 @@ gc_session_status_word() {
     fi
     printf '%s' "invalid"
     return 0
+}
+
+# =============================================================================
+# gc_session_is_valid() - 0 when grok is logged in
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# True when grok -p hello succeeded. Reuses GC_SESSION_STATUS_CACHE from
+# the main menu in the same process (avoids a second probe). Direct CLI
+# with an empty cache runs the live probe.
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
+# =============================================================================
+gc_session_is_valid() {
+    if [ -n "${GC_SESSION_STATUS_CACHE:-}" ]; then
+        [ "${GC_SESSION_STATUS_CACHE}" = "valid" ]
+        return $?
+    fi
+    _gc_ss=$(gc_session_status_word) || true
+    [ "${_gc_ss}" = "valid" ]
+}
+
+# =============================================================================
+# gc_sync_skip_if_logged_in() - 0 when sync must not copy
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# If this environment is already logged in, print the skip message and
+# return 0 so sync-auth / sync-auth-from-remote do not overwrite auth.*.
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
+# =============================================================================
+gc_sync_skip_if_logged_in() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    _verb="${1:-sync-auth}"
+    if gc_session_is_valid; then
+        out_info "No sync-auth for logged-in environment."
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "${_verb}" "No sync-auth for logged-in environment." \
+                "status" "skipped" \
+                "app" "${APP_NAME}" \
+                "reason" "logged-in" \
+                "session" "valid"
+        fi
+        return 0
+    fi
+    return 1
 }
 
 # =============================================================================
@@ -3433,6 +3512,14 @@ EOF
 # - requirement-grok-auth-backup.md
 # - requirement-sudoer-json-file.md (grant is grok-cli backup only)
 # - requirement-three-layer-privilege-model.md
+# - requirement-operator-readable-error.md
+#
+# Lessons Learned (CIAO Reflection):
+# 2026-09-06: sudo child "grok is not logged in" is not a missing grant.
+# Do not tell the operator to generate-sudoer-request when the fragment
+# already allows passwordless backup.
+#
+# Last updated: 2026-09-06
 # =============================================================================
 gc_backup() {
     : "${APP_NAME:=grok-cli}"
@@ -3467,14 +3554,21 @@ gc_backup() {
             out_die "sudo not found. Pushing into ${_dest} needs passwordless sudo ${APP_NAME} backup after sudoer-adm approval."
         fi
         out_info "Session valid. Elevating: sudo -n ${_bin} backup"
+        _sudo_ec=0
         if [ "${JSON}" -eq 1 ]; then
-            if ! sudo -n "${_bin}" backup >/dev/null; then
-                out_die "sudo ${APP_NAME} backup was refused. Next step: ${APP_NAME} generate-sudoer-request && ${APP_NAME} submit-sudoer-request, then ask sudoer-adm to approve the JSON grant (NOPASSWD ${_bin} backup)."
-            fi
+            sudo -n "${_bin}" backup >/dev/null
+            _sudo_ec=$?
         else
-            if ! sudo -n "${_bin}" backup; then
-                out_die "sudo ${APP_NAME} backup was refused. Next step: ${APP_NAME} generate-sudoer-request && ${APP_NAME} submit-sudoer-request, then ask sudoer-adm to approve the JSON grant (NOPASSWD ${_bin} backup)."
+            sudo -n "${_bin}" backup
+            _sudo_ec=$?
+        fi
+        if [ "${_sudo_ec}" -ne 0 ]; then
+            if gc_sudoers_grants_backup; then
+                out_die "Elevated ${APP_NAME} backup failed after sudo ran ${_bin} backup. The passwordless grant is already in place. See the error above. Next: grok login, then ${APP_NAME} backup."
             fi
+            out_die "sudo ${APP_NAME} backup was refused. Next step: ${APP_NAME} generate-sudoer-request && ${APP_NAME} submit-sudoer-request, then ask sudoer-adm to approve the JSON grant (NOPASSWD ${_bin} backup)."
+        fi
+        if [ "${JSON}" -ne 1 ]; then
             return 0
         fi
         # JSON parent: report dest after child deposit
@@ -3529,11 +3623,18 @@ EOF
 #
 # GENERAL PURPOSE:
 # A normal login reads the root-owned store and writes owner-only copies into
-# that login's grok home. MUST NOT call sudo.
+# that login's grok home. MUST NOT call sudo. MUST NOT copy when grok is
+# already logged in (No sync-auth for logged-in environment).
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
 # =============================================================================
 gc_sync_auth() {
     : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
+    if gc_sync_skip_if_logged_in "sync-auth"; then
+        return 0
+    fi
     _src=$(gc_resolve_cli_root)
     _dest=$(gc_resolve_grok_home)
 
@@ -3742,6 +3843,71 @@ gc_parse_remote_spec() {
 }
 
 # =============================================================================
+# gc_preferred_remote_path() - Class B: persistence leaf for preferred SPEC
+# =============================================================================
+#
+# ALIGNMENT: requirement-grok-auth-backup.md · requirement-shell-cli-storage.md
+# Last updated: 2026-09-07
+# =============================================================================
+gc_preferred_remote_path() {
+    : "${APP_NAME:=grok-cli}"
+    if [ -z "${PERSISTENT_STORAGE_DIR:-}" ]; then
+        PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)
+        export PERSISTENT_STORAGE_DIR
+    fi
+    printf '%s' "${PERSISTENT_STORAGE_DIR}/preferred-remote"
+}
+
+# =============================================================================
+# gc_preferred_remote_load() - Class B: stored SPEC or empty
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Read persistence preferred-remote. Print a valid SPEC or empty.
+# Invalid stored lines are ignored (not used as a default).
+#
+# ALIGNMENT: requirement-grok-auth-backup.md
+# Last updated: 2026-09-07
+# =============================================================================
+gc_preferred_remote_load() {
+    _pr_path=$(gc_preferred_remote_path)
+    if [ ! -f "${_pr_path}" ]; then
+        printf '%s' ""
+        return 0
+    fi
+    _pr_line=$(head -n1 "${_pr_path}" 2>/dev/null || true)
+    _pr_line=$(printf '%s' "${_pr_line}" | tr -d '\r')
+    if [ -z "${_pr_line}" ]; then
+        printf '%s' ""
+        return 0
+    fi
+    if gc_parse_remote_spec "${_pr_line}"; then
+        printf '%s' "${_pr_line}"
+        return 0
+    fi
+    printf '%s' ""
+    return 0
+}
+
+# =============================================================================
+# gc_preferred_remote_save() - write a valid SPEC to persistence
+# =============================================================================
+#
+# ALIGNMENT: requirement-grok-auth-backup.md · requirement-shell-cli-storage.md
+# Last updated: 2026-09-07
+# =============================================================================
+gc_preferred_remote_save() {
+    _pr_spec="${1-}"
+    if ! gc_parse_remote_spec "${_pr_spec}"; then
+        return 1
+    fi
+    _pr_path=$(gc_preferred_remote_path)
+    printf '%s\n' "${_pr_spec}" > "${_pr_path}" || return 1
+    chmod 0600 "${_pr_path}" 2>/dev/null || true
+    return 0
+}
+
+# =============================================================================
 # gc_sync_auth_from_remote() - Type 0: scp remote store auth.* into ~/.grok
 # =============================================================================
 #
@@ -3749,13 +3915,15 @@ gc_parse_remote_spec() {
 # Pull auth.* from a remote host's GROK_CLI_REMOTE_ROOT (default /var/grok-cli)
 # into this login's grok home. SPEC is user@host, host IPv4, domain-name, or
 # user@domain-name. Uses scp in BatchMode (no password hang). MUST NOT sudo.
-# Dest auth.json mode 0600. Tests inject GROK_CLI_SCP.
+# Dest auth.json mode 0600. Tests inject GROK_CLI_SCP. Preferred SPEC is
+# loaded/saved under persistence preferred-remote.
 #
 # ALIGNMENT:
 # - requirement-grok-auth-backup.md
+# - requirement-shell-cli-storage.md
 # - requirement-operator-readable-error.md
 #
-# Last updated: 2026-09-02
+# Last updated: 2026-09-07
 # =============================================================================
 gc_sync_auth_from_remote() {
     : "${APP_NAME:=grok-cli}"
@@ -3764,9 +3932,14 @@ gc_sync_auth_from_remote() {
     : "${GROK_CLI_REMOTE_ROOT:=/var/grok-cli}"
     : "${HOME:=/tmp}"
 
+    if gc_sync_skip_if_logged_in "sync-auth-from-remote"; then
+        return 0
+    fi
+
     _spec="${1-}"
     if [ -z "${_spec}" ] && [ "${TTY}" -eq 1 ] && [ "${JSON}" -ne 1 ]; then
-        prompt_ask "Remote (user@host, IPv4, domain, or user@domain)" ""
+        _pref=$(gc_preferred_remote_load)
+        prompt_ask "Remote (user@host, IPv4, domain, or user@domain)" "${_pref}"
         _spec="${PROMPT_ASK_VALUE}"
     fi
     if [ -z "${_spec}" ]; then
@@ -3854,6 +4027,7 @@ gc_sync_auth_from_remote() {
             "files" "${_copied}" \
             "count" "${_n}"
     fi
+    gc_preferred_remote_save "${_spec}" || true
     return 0
 }
 
@@ -5622,19 +5796,182 @@ app_about() {
 }
 
 # =============================================================================
+# gc_host_is_termux() / gc_host_is_git_bash() / gc_host_is_windows_cmd()
+# gc_host_is_normal_user_only() / gc_host_normal_user_only_label()
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Detect command-line-for-normal-user-only hosts (this login only: Termux,
+# Git Bash, Windows cmd). Label is termux / gitbash / windows-cmd for the
+# main-menu not-available line.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+# - requirement-shell-cli-interface.md
+#
+# Last updated: 2026-09-07
+# =============================================================================
+gc_host_is_termux() {
+    if [ -n "${TERMUX_VERSION:-}" ]; then
+        return 0
+    fi
+    if [ -n "${PREFIX:-}" ]; then
+        return 0
+    fi
+    gc_setup_host_is_android
+}
+
+gc_host_is_git_bash() {
+    if [ -n "${MSYSTEM:-}" ]; then
+        return 0
+    fi
+    case "$(uname -s 2>/dev/null)" in
+        MINGW*|MSYS*) return 0 ;;
+    esac
+    return 1
+}
+
+gc_host_is_windows_cmd() {
+    if [ "${OS:-}" != "Windows_NT" ]; then
+        return 1
+    fi
+    if gc_host_is_git_bash; then
+        return 1
+    fi
+    case "$(uname -s 2>/dev/null)" in
+        CYGWIN*|MINGW*|MSYS*) return 1 ;;
+    esac
+    if [ -n "${WSL_DISTRO_NAME:-}" ] || [ -n "${WSL_INTEROP:-}" ]; then
+        return 1
+    fi
+    case "$(uname -r 2>/dev/null)" in
+        *[Mm]icrosoft*) return 1 ;;
+    esac
+    return 0
+}
+
+gc_host_is_normal_user_only() {
+    if gc_host_is_termux; then
+        return 0
+    fi
+    if gc_host_is_git_bash; then
+        return 0
+    fi
+    gc_host_is_windows_cmd
+}
+
+gc_host_normal_user_only_label() {
+    if gc_host_is_termux; then
+        printf '%s' "termux"
+        return 0
+    fi
+    if gc_host_is_git_bash; then
+        printf '%s' "gitbash"
+        return 0
+    fi
+    if gc_host_is_windows_cmd; then
+        printf '%s' "windows-cmd"
+        return 0
+    fi
+    printf '%s' ""
+}
+
+# =============================================================================
+# gc_menu_main_tokens() - Visible main-menu tokens (one per line, board order)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Class B: print the listed main-menu tokens for this host and session.
+# Consumes GC_SESSION_STATUS_CACHE (valid = logged in). Hide backup /
+# sync-auth / sudoers on this-login-only hosts. Hide sync-auth and
+# sync-auth-from-remote when the session is valid.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-07
+# =============================================================================
+gc_menu_main_tokens() {
+    if ! gc_host_is_normal_user_only; then
+        printf '%s\n' "backup"
+        if [ "${GC_SESSION_STATUS_CACHE-}" != "valid" ]; then
+            printf '%s\n' "sync-auth"
+        fi
+    fi
+    if [ "${GC_SESSION_STATUS_CACHE-}" != "valid" ]; then
+        printf '%s\n' "sync-auth-from-remote"
+    fi
+    printf '%s\n' "add-crontab"
+    if ! gc_host_is_normal_user_only; then
+        printf '%s\n' "sudoers"
+    fi
+}
+
+# =============================================================================
+# gc_menu_row_explain() - Class B: explain text for one main-menu token
+# =============================================================================
+gc_menu_row_explain() {
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
+    case "${1-}" in
+        backup) printf '%s' "Push ~/.grok/auth.* to ${GROK_CLI_ROOT}" ;;
+        sync-auth) printf '%s' "Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok" ;;
+        sync-auth-from-remote) printf '%s' "Copy a remote host's auth.* into ~/.grok" ;;
+        add-crontab) printf '%s' "Add backup and sync-auth jobs to this login's crontab" ;;
+        sudoers) printf '%s' "Grant and drafts" ;;
+        *) printf '%s' "" ;;
+    esac
+}
+
+# =============================================================================
+# gc_menu_main_count() - Class B: number of listed main-menu command rows
+# =============================================================================
+gc_menu_main_count() {
+    _c=0
+    while IFS= read -r _tok; do
+        [ -n "${_tok}" ] || continue
+        _c=$((_c + 1))
+    done <<EOF
+$(gc_menu_main_tokens)
+EOF
+    printf '%s' "${_c}"
+}
+
+# =============================================================================
+# gc_menu_pick_is_sudoers() - 0 when pick is the listed sudoers family
+# =============================================================================
+gc_menu_pick_is_sudoers() {
+    _want="${1-}"
+    _n=0
+    while IFS= read -r _tok; do
+        [ -n "${_tok}" ] || continue
+        _n=$((_n + 1))
+        if [ "${_tok}" = "sudoers" ]; then
+            if [ "${_want}" = "sudoers" ] || [ "${_want}" = "${_n}" ]; then
+                return 0
+            fi
+            return 1
+        fi
+    done <<EOF
+$(gc_menu_main_tokens)
+EOF
+    return 1
+}
+
+# =============================================================================
 # app_default_print_menu() - Numbered main-menu list (TTY)
 # =============================================================================
 #
 # GENERAL PURPOSE:
 # Print the grok-cli daily-work list: APP_NAME(APP_VERSION) header plus
-# SHORT_DESCRIPTION, login status, then backup, sync-auth,
-# sync-auth-from-remote, add-crontab, sudoers family, then Exit 9.
-# Session status is under the title (not a row).
+# SHORT_DESCRIPTION, login status, host not-available (this-login-only),
+# appended logged-in not-available when session is valid, then remaining
+# listed rows from 1, then Exit 9. Session status is under the title
+# (not a row). Host not-available is never replaced by the logged-in line.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-07
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=grok-cli}"
@@ -5645,16 +5982,27 @@ app_default_print_menu() {
 
     out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"
     _st=$(gc_session_status_word) || true
+    GC_SESSION_STATUS_CACHE="${_st}"
+    export GC_SESSION_STATUS_CACHE
     if [ "${_st}" = "valid" ]; then
         out_plain "logged in"
     else
         out_plain "logged out"
     fi
-    out_menu_choice "1" "backup" "Push ~/.grok/auth.* to ${GROK_CLI_ROOT}"
-    out_menu_choice "2" "sync-auth" "Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok"
-    out_menu_choice "3" "sync-auth-from-remote" "Copy a remote host's auth.* into ~/.grok"
-    out_menu_choice "4" "add-crontab" "Add backup and sync-auth jobs to this login's crontab"
-    out_menu_choice "5" "sudoers" "Grant and drafts"
+    if gc_host_is_normal_user_only; then
+        out_plain "backup, sync-auth and sudoers features are not available in $(gc_host_normal_user_only_label)."
+    fi
+    if [ "${_st}" = "valid" ]; then
+        out_plain "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+    fi
+    _n=0
+    while IFS= read -r _tok; do
+        [ -n "${_tok}" ] || continue
+        _n=$((_n + 1))
+        out_menu_choice "${_n}" "${_tok}" "$(gc_menu_row_explain "${_tok}")"
+    done <<EOF
+$(gc_menu_main_tokens)
+EOF
     out_menu_choice "9" "Exit"
 }
 
@@ -5690,51 +6038,80 @@ app_default_print_sudoers_menu() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Map a main-list pick to a live handler. Family row sudoers is not handled
-# here (caller opens the submenu). Returns 1 if the pick is not on the list.
-# Returns 0 after a run or Exit.
+# Map a main-list pick to a live handler using the same visible-token list
+# as the printer. Family row sudoers is not handled here (caller opens the
+# submenu). Returns 1 if the pick is not on the list. Returns 0 after a
+# run or Exit. Hidden rows (host or logged-in) MUST NOT run from a number.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-07
 # =============================================================================
 app_default_run_pick() {
     _pick="${1:-}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     case "${_pick}" in
-        1|backup)
-            gc_backup
-            ;;
-        2|sync-auth)
-            gc_sync_auth
-            ;;
-        3|sync-auth-from-remote)
-            gc_sync_auth_from_remote
-            ;;
-        4|add-crontab)
-            gc_add_crontab
-            ;;
         check-session)
             gc_check_session
-            ;;
-        generate-sudoer-request)
-            gc_generate_sudoer_request
-            ;;
-        submit-sudoer-request)
-            gc_submit_sudoer_request
-            ;;
-        print-sudoers)
-            gc_print_sudoers
-            ;;
-        print-sudoers-install-script)
-            gc_print_sudoers_install_script
-            ;;
-        remove-project-sudoers)
-            gc_remove_project_sudoers
+            return 0
             ;;
         9|99|exit|quit|Exit|QUIT)
+            return 0
+            ;;
+    esac
+
+    if ! gc_host_is_normal_user_only; then
+        case "${_pick}" in
+            generate-sudoer-request)
+                gc_generate_sudoer_request
+                return 0
+                ;;
+            submit-sudoer-request)
+                gc_submit_sudoer_request
+                return 0
+                ;;
+            print-sudoers)
+                gc_print_sudoers
+                return 0
+                ;;
+            print-sudoers-install-script)
+                gc_print_sudoers_install_script
+                return 0
+                ;;
+            remove-project-sudoers)
+                gc_remove_project_sudoers
+                return 0
+                ;;
+        esac
+    fi
+
+    _run=""
+    _n=0
+    while IFS= read -r _tok; do
+        [ -n "${_tok}" ] || continue
+        _n=$((_n + 1))
+        if [ "${_pick}" = "${_n}" ] || [ "${_pick}" = "${_tok}" ]; then
+            _run="${_tok}"
+            break
+        fi
+    done <<EOF
+$(gc_menu_main_tokens)
+EOF
+
+    case "${_run}" in
+        backup)
+            gc_backup
+            ;;
+        sync-auth)
+            gc_sync_auth
+            ;;
+        sync-auth-from-remote)
+            gc_sync_auth_from_remote
+            ;;
+        add-crontab)
+            gc_add_crontab
             ;;
         *)
             return 1
@@ -5842,7 +6219,7 @@ app_default_sudoers_loop() {
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-shell-cli-zero-arguments.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-07
 # =============================================================================
 app_default() {
     : "${TTY:=0}"
@@ -5883,22 +6260,22 @@ app_default() {
                 export JSON QUIET
                 return 0
                 ;;
-            5|sudoers)
+        esac
+        if gc_menu_pick_is_sudoers "${_pick}"; then
+            JSON="${_menu_json}"
+            QUIET="${_menu_quiet}"
+            export JSON QUIET
+            if app_default_sudoers_loop; then
                 JSON="${_menu_json}"
                 QUIET="${_menu_quiet}"
                 export JSON QUIET
-                if app_default_sudoers_loop; then
-                    JSON="${_menu_json}"
-                    QUIET="${_menu_quiet}"
-                    export JSON QUIET
-                    return 0
-                fi
-                JSON=0
-                QUIET=0
-                export JSON QUIET
-                continue
-                ;;
-        esac
+                return 0
+            fi
+            JSON=0
+            QUIET=0
+            export JSON QUIET
+            continue
+        fi
         JSON="${_menu_json}"
         QUIET="${_menu_quiet}"
         export JSON QUIET
@@ -5908,7 +6285,12 @@ app_default() {
         JSON=0
         QUIET=0
         export JSON QUIET
-        out_warn "Not a menu choice. Type 1-5, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+        _menu_n=$(gc_menu_main_count)
+        if [ "${_menu_n}" -eq 1 ]; then
+            out_warn "Not a menu choice. Type 1, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+        else
+            out_warn "Not a menu choice. Type 1-${_menu_n}, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+        fi
     done
 }
 
@@ -5959,11 +6341,13 @@ app_help() {
     out_plain "  backup               Push ~/.grok/auth.* to ${GROK_CLI_ROOT}/"
     out_plain "                       (runs grok -p hello first; sudo -n ${GLOBAL_BIN}/${APP_NAME} backup after sudoer-adm grant;"
     out_plain "                       chown root:root, chmod 0644 so others can sync-auth)"
-    out_plain "  sync-auth            Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok (no sudo)"
+    out_plain "  sync-auth            Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok (no sudo;"
+    out_plain "                       skipped when grok is already logged in)"
     out_plain "  sync-auth-from-remote SPEC"
     out_plain "                       Copy a remote host's ${GROK_CLI_REMOTE_ROOT:-/var/grok-cli}/auth.* into ~/.grok"
     out_plain "                       (SPEC: user@IPv4, IPv4, domain-name, or user@domain-name;"
-    out_plain "                       scp BatchMode; no sudo; dest auth.json 0600)"
+    out_plain "                       scp BatchMode; no sudo; dest auth.json 0600;"
+    out_plain "                       skipped when grok is already logged in)"
     out_plain "  add-crontab          Add backup and sync-auth jobs to this login's crontab"
     out_plain "                       (*/30 sudo ${GLOBAL_BIN}/${APP_NAME} backup; minute 45 ${GLOBAL_BIN}/${APP_NAME} sync-auth;"
     out_plain "                       needs this login's NOPASSWD ${GLOBAL_BIN}/${APP_NAME} backup grant; does not write /etc)"

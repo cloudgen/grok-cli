@@ -11,6 +11,7 @@ Durable failure modes. **Always re-check on product review.**
 | L-INST-MODE-01 | Install leaves `0711`/`0700` (chmod +x after mktemp) so non-owners cannot run shell ship unit | absolute `chmod 0755` + heal on reinstall; TP-LC-09/10; local-self-management §2.3.1 | open watch |
 | L-DEPOSIT-01 | Unprivileged write to `/var/grok-cli` or silent deposit success without grant | fail-closed + `sudo grok-cli backup`; TP-GROK-CLI-12 | open watch |
 | L-AUTH-01 | Backup without valid grok session, or printing tokens | session gate; never print JWT/refresh; TP-GROK-CLI-03..06 | open watch |
+| L-AUTH-02 | Elevated `backup` probes `/root/.grok` (sudo `env_reset`) then calls a valid grant “refused” | Pin `HOME`/`GROK_HOME` to `SUDO_USER`; grant-present child fail → `grok login`; TP-GROK-CLI-39/40 | open watch |
 | L-SYNC-01 | sync-auth uses sudo or leaves home `auth.json` world-readable | Type 0 only; dest 0600; TP-GROK-CLI-09/10 | open watch |
 | L-SUDOERS-01 | Auto-write `/etc/sudoers.d` or `NOPASSWD: ALL` fragment | print-only + install-script handoff; narrow Cmnd; TP-GROK-CLI-01/02/14 | open watch |
 | L-SUDOERS-02 | Local `~/.local/bin` treated as production-secure for sudoers (user rewrites binary/stage → jailbreak) | trust tier **S13**; `--allow-test-local`; global preferred; TP-GROK-CLI-01/01b | open watch |
@@ -27,5 +28,9 @@ Durable failure modes. **Always re-check on product review.**
 | L-TEST-REVIEW-01 | Green emit TP-22 + stub TP-20 + S14 Pass miss sibling decode drop | Assert inbound after **real** sudoer-cli; pretty + compact fixtures; do not treat `tests/run.sh` PASS as grant fidelity; INC-20260817-001 | open watch |
 | L-PROMPT-CAPTURE-01 | TTY menu `sync-auth-from-remote` row (main **3**; was pick 4 before 1.8.0) hangs because `_spec=$(prompt_ask …)` swallows the prompt | **MUST NOT** `$()` `prompt_ask` / any `read` helper; current-shell `PROMPT_ASK_VALUE`; TP-CLI-15 · TP-GROK-CLI-34; mold §8.1.5; INC-20260902-001 | open watch |
 | L-NEX-01 | JSON/sudoers grant samples freeze a session Unix login | Samples use `id -un`; TP-CLI-18; **PO-NON-EXPOSE-LOCAL-MACHINE** | open watch |
+| L-MENU-01 | Termux / Git Bash / Windows cmd main menu still lists backup / sync-auth / sudoers (or omits the not-available line) | Hide those rows; print `backup, sync-auth and sudoers features are not available in {{label}}.`; TP-CLI-19 | open watch |
+| L-MENU-02 | Logged-in main menu still lists sync-auth / sync-auth-from-remote, or the logged-in not-available line replaces the host line | Hide those two rows; **append** `sync-auth and sync-auth-from-remote features are not available for logged-in environment.`; TP-CLI-20 | open watch |
+| L-REMOTE-01 | TTY `sync-auth-from-remote` forgets the last SPEC, or default is not at the end of the prompt | Persistence `preferred-remote`; prompt `[SPEC]`; Enter uses default; TP-GROK-CLI-41 | open watch |
+| L-SYNC-02 | `sync-auth` / `sync-auth-from-remote` overwrite a grok home that is already logged in | Live `grok -p hello` first (or menu cache); skip with `No sync-auth for logged-in environment.`; TP-GROK-CLI-42/43 | open watch |
 
 **Bootstrap parent lessons:** cli-template still owns output SSOT, no basename gate, storage isolation, checkout `install`. selfmanaged owns channel `SCRIPT_URL`, Type O off-TTY empty argv, companion digest, `version-check` / `self-update` / `self-uninstall`. TTY numbered menu is grok-cli case 3 (not selfmanaged).
