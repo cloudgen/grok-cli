@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.8.27 (current) | Yes |
+| 1.8.28 (current) | Yes |
+| 1.8.27 | Yes |
 | 1.8.26 | Yes |
 | 1.8.25 | Yes |
 | 1.8.24 | Yes |

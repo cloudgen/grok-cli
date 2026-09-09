@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-09 (1.8.27 shell-rc path-and-shell-support)  
-**Product VERSION:** 1.8.27
+**Updated:** 2026-09-09 (1.8.28 menu session/not-available `[INFO]`)  
+**Product VERSION:** 1.8.28
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -16,7 +16,7 @@
 | requirement-grok-crontab | domain | TP-GROK-CLI-26..29 · TP-CLI-04 · TP-CLI-13 | Per-login crontab jobs; grant gate is this `id -un` |
 | requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-ONL-* · TP-GROK-CLI-46 | Commands, flags, dispatch; `setup`; `run`; online verbs; TP-CLI-18 no frozen login in Active REQ samples; `--debug` dual mention TP-CLI-25..28 |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-CLI-29 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure; overlay `--debug` / `--quiet` follow empty argv |
-| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); this-login-only lists `run` first; session line from `grok -p hello` (logged in / timeout / logged out; default 14s); hide backup/sync-auth/sudoers on that class; logged-in hide; Termux hang-grok prints timeout not logged out |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); this-login-only lists `run` first; session and not-available lines are independent `[INFO]`; hide backup/sync-auth/sudoers on that class; logged-in hide |
 | requirement-shell-local-self-management | shell | TP-LC-* | checkout install/uninstall/where-is-me; 0755; Termux dest is `USER_BIN` |
 | requirement-shell-online-install | shell | TP-ONL-01 · TP-CLI-07 | Channel `SCRIPT_URL`; pipe place |
 | requirement-shell-self-management | shell | TP-ONL-03 · 04 · 05 · TP-CLI-04 · 10 · TP-VCLI-32 · TP-GROK-CLI-49 | version-check / self-update (start line names versions; heals Android wrapper) / self-uninstall |

@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.28] - 2026-09-09
+
+### Fixed
+
+- **Menu login status and not-available lines had no `[INFO]`:** on Termux the list printed `[INFO] grok-cli(…)` then untagged `logged out` and untagged `backup, sync-auth and sudoers features are not available in termux.` Each of those lines is now its own `out_info`. Same for `timeout`, `logged in`, and the logged-in not-available sentence. Law: `requirement-shell-cli-default-interaction` **2.14.0**. Suite **TP-CLI-17** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-23**.
+
 ## [1.8.27] - 2026-09-09
 
 ### Added

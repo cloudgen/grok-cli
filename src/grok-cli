@@ -42,7 +42,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.27"
+# VERSION: hard-assign VERSION="1.8.28"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -58,8 +58,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.27"
-: "${VERSION:=1.8.27}"
+VERSION="1.8.28"
+: "${VERSION:=1.8.28}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -7286,7 +7286,7 @@ EOF
 # - requirement-shell-cli-default-interaction.md
 # - requirement-shell-internal-volatile-timer.md
 #
-# Last updated: 2026-09-07
+# Last updated: 2026-09-09
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=grok-cli}"
@@ -7316,23 +7316,23 @@ app_default_print_menu() {
         export GC_SESSION_STATUS_CACHE
     fi
     if [ "${_st}" = "valid" ]; then
-        out_plain "logged in"
+        out_info "logged in"
     elif [ "${_st}" = "timeout" ]; then
-        out_plain "timeout"
+        out_info "timeout"
     else
-        out_plain "logged out"
+        out_info "logged out"
     fi
     util_int_timer_debug_end "session"
 
     util_int_timer_debug_begin "host"
     if gc_host_is_normal_user_only; then
-        out_plain "backup, sync-auth and sudoers features are not available in $(gc_host_normal_user_only_label)."
+        out_info "backup, sync-auth and sudoers features are not available in $(gc_host_normal_user_only_label)."
     fi
     util_int_timer_debug_end "host"
 
     util_int_timer_debug_begin "logged-in"
     if [ "${_st}" = "valid" ]; then
-        out_plain "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+        out_info "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
     fi
     util_int_timer_debug_end "logged-in"
 

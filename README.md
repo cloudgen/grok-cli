@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.27-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.28-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -120,8 +120,8 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.27*) — Alternative online installer for xAI grok
-logged out
+[INFO] **grok-cli**(*1.8.28*) — Alternative online installer for xAI grok
+[INFO] logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
 3. sync-auth-from-remote: *Copy a remote host's auth.* into ~/.grok*
@@ -130,20 +130,33 @@ logged out
 9. Exit
 ```
 
-On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. The line under **logged in** / **timeout** / **logged out** says those features are not available on that host. Remaining rows start at **1** with **run** (start grok without auto-update). When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are omitted on every host, and a second line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Live capture on a multi-user host that is **logged in**:
+On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. Each of those notices is its own `[INFO]` line. Remaining rows start at **1** with **run** (start grok without auto-update). When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are omitted on every host, and a second `[INFO]` line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Termux, logged out:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.27*) — Alternative online installer for xAI grok
-logged in
-sync-auth and sync-auth-from-remote features are not available for logged-in environment.
+[INFO] **grok-cli**(*1.8.28*) — Alternative online installer for xAI grok
+[INFO] logged out
+[INFO] backup, sync-auth and sudoers features are not available in termux.
+1. run: *Start grok without auto-update*
+2. sync-auth-from-remote: *Copy a remote host's auth.* into ~/.grok*
+3. add-crontab: *Add backup and sync-auth jobs to this login's crontab*
+9. Exit
+```
+
+Live capture on a multi-user host that is **logged in**:
+
+```text
+$ grok-cli menu
+[INFO] **grok-cli**(*1.8.28*) — Alternative online installer for xAI grok
+[INFO] logged in
+[INFO] sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. add-crontab: *Add backup and sync-auth jobs to this login's crontab*
 3. sudoers: *Grant and drafts*
 9. Exit
 ```
 
-Choose a number, or type the command name. `9` exits. The line under the title is **logged in**, **timeout**, or **logged out**. On Termux/PRoot that line comes from local `auth.json` cookies (no `grok -p hello` wait). On other hosts it is a live `grok -p hello`; a hang that hits the bound prints **timeout**, not **logged out**. On a real terminal the descriptions after the colon are gray and italic. `setup` is not on this list — type `grok-cli setup`. A later `sync-auth-from-remote` remembers the last remote in persistence and offers it as the prompt default.
+Choose a number, or type the command name. `9` exits. The line under the title is an independent `[INFO]` **logged in**, **timeout**, or **logged out**. On Termux/PRoot that line comes from local `auth.json` cookies (no `grok -p hello` wait). On other hosts it is a live `grok -p hello`; a hang that hits the bound prints **timeout**, not **logged out**. On a real terminal the descriptions after the colon are gray and italic. `setup` is not on this list — type `grok-cli setup`. A later `sync-auth-from-remote` remembers the last remote in persistence and offers it as the prompt default.
 
 ## Usage
 
@@ -310,4 +323,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-09 — version **1.8.27**: shell-rc PATH + profile ensure (sibling unify, heal on already-installed, routed `rc-test`). Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-09 — version **1.8.28**: menu login status and not-available lines are independent `[INFO]`. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

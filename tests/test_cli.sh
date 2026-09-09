@@ -342,6 +342,8 @@ run_test_cli() {
         assert_not_contains "TP-CLI-17 TTY header not generic board title" "$_out" "numbered list of live commands"
         assert_not_contains "TP-CLI-17 TTY nametag ignores inherited APP_VERSION" "$_out" "9.9.9"
         assert_contains "TP-CLI-17 TTY logged out when no session" "$_out" "logged out"
+        _sess=$(printf '%s\n' "$_out" | tr -d '\r' | grep 'logged out' | head -n1)
+        assert_contains "TP-CLI-17 TTY logged out is INFO" "${_sess}" "[INFO]"
         assert_not_contains "TP-CLI-17 TTY no check-session row" "$_out" "check-session:"
         assert_contains "TP-CLI-17 TTY number and short-descript unstyled" "$_out" "1. backup: "
         assert_contains "TP-CLI-17 TTY desc is italic + light gray (SGR 3+37)" "$_out" "${_gray_italic}"
@@ -386,6 +388,10 @@ AUTH
             PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-19 Termux not-available line" "$_out" \
             "backup, sync-auth and sudoers features are not available in termux."
+        _sess=$(printf '%s\n' "$_out" | tr -d '\r' | grep 'logged out' | head -n1)
+        assert_contains "TP-CLI-19 Termux logged out is INFO" "${_sess}" "[INFO]"
+        _na=$(printf '%s\n' "$_out" | tr -d '\r' | grep 'features are not available in termux' | head -n1)
+        assert_contains "TP-CLI-19 Termux not-available is INFO" "${_na}" "[INFO]"
         assert_not_contains "TP-CLI-19 Termux no backup row" "$_out" "1. backup:"
         assert_not_contains "TP-CLI-19 Termux no sync-auth row" "$_out" "sync-auth:"
         assert_not_contains "TP-CLI-19 Termux no sudoers row" "$_out" "sudoers:"
@@ -487,7 +493,11 @@ AUTH
             "backup, sync-auth and sudoers features are not available in termux."
         assert_contains "TP-CLI-20 Termux logged-in not-available appended" "$_out" \
             "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
-        _after=$(printf '%s\n' "$_out" | tr -d '\r' | grep -A2 "^logged in$")
+        _li=$(printf '%s\n' "$_out" | tr -d '\r' | grep 'logged in' | head -n1)
+        assert_contains "TP-CLI-20 Termux logged in is INFO" "${_li}" "[INFO]"
+        _na2=$(printf '%s\n' "$_out" | tr -d '\r' | grep 'features are not available for logged-in environment' | head -n1)
+        assert_contains "TP-CLI-20 Termux logged-in not-available is INFO" "${_na2}" "[INFO]"
+        _after=$(printf '%s\n' "$_out" | tr -d '\r' | grep -A2 "logged in")
         assert_contains "TP-CLI-20 Termux host line still under session" "${_after}" \
             "backup, sync-auth and sudoers features are not available in termux."
         assert_contains "TP-CLI-20 Termux logged-in line after host line" "${_after}" \
@@ -580,7 +590,20 @@ AUTH
     assert_contains "TP-CLI-23 menu checking session line" "${_src}" "checking session (grok -p hello, timeout"
     assert_contains "TP-CLI-23 default GROK_PROMPT_TIMEOUT 14" "${_src}" 'GROK_PROMPT_TIMEOUT:=14'
     assert_contains "TP-CLI-23 timeout status word" "${_src}" 'GC_GROK_PROMPT_STATUS="timeout"'
-    assert_contains "TP-CLI-23 menu prints timeout" "${_src}" 'out_plain "timeout"'
+    assert_contains "TP-CLI-23 menu prints timeout" "${_src}" 'out_info "timeout"'
+    assert_contains "TP-CLI-23 menu prints logged in" "${_src}" 'out_info "logged in"'
+    assert_contains "TP-CLI-23 menu prints logged out" "${_src}" 'out_info "logged out"'
+    assert_contains "TP-CLI-23 host not-available is INFO" "${_src}" \
+        'out_info "backup, sync-auth and sudoers features are not available in'
+    assert_contains "TP-CLI-23 logged-in not-available is INFO" "${_src}" \
+        'out_info "sync-auth and sync-auth-from-remote features are not available for logged-in environment."'
+    assert_not_contains "TP-CLI-23 no out_plain timeout" "${_src}" 'out_plain "timeout"'
+    assert_not_contains "TP-CLI-23 no out_plain logged in" "${_src}" 'out_plain "logged in"'
+    assert_not_contains "TP-CLI-23 no out_plain logged out" "${_src}" 'out_plain "logged out"'
+    assert_not_contains "TP-CLI-23 no out_plain host not-available" "${_src}" \
+        'out_plain "backup, sync-auth and sudoers features are not available'
+    assert_not_contains "TP-CLI-23 no out_plain logged-in not-available" "${_src}" \
+        'out_plain "sync-auth and sync-auth-from-remote features are not available'
     assert_contains "TP-CLI-23 local-auth helper" "${_src}" "gc_session_uses_local_auth"
     assert_contains "TP-CLI-23 local-auth cookies helper" "${_src}" "gc_session_from_local_auth"
     assert_contains "TP-CLI-23 timeout env protected" "${_src}" "DO NOT REMOVE GROK_PROMPT_TIMEOUT"
