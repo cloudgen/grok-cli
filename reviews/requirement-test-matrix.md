@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-07 (1.8.25 session timeout vs logged out; default 14s)  
-**Product VERSION:** 1.8.26  
+**Updated:** 2026-09-09 (1.8.27 shell-rc path-and-shell-support)  
+**Product VERSION:** 1.8.27
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |

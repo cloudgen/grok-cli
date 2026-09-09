@@ -87,7 +87,7 @@ Studied installer behavior that this procedure **MUST** keep:
 | Artifact | `{{base}}/grok-{{version}}-{{os}}-{{arch}}`; try `.zst` if `zstd`, then `.gz` if `gzip`, then uncompressed | Same |
 | Place | `$HOME/.grok/downloads/grok-{{os}}-{{arch}}` (download + smoke a `mktemp` sibling **in that directory**, not cache/`/tmp`/`/dev/shm`); `chmod +x`; smoke `--version`; relative symlink `$HOME/.grok/bin/grok` and `agent` | Same (`GROK_HOME` / `GROK_BIN_DIR`). Cache folder **MUST NOT** be the smoke path (Termux/Android `noexec`). Android ET_EXEC that only runs via opt-out or `proot`: POSIX wrapper at `bin/grok` (vendor file unchanged) |
 | PATH now | If a dir already on PATH is writable: `$HOME/.local/bin` then `/usr/local/bin` | Same (`USER_BIN` then `GLOBAL_BIN`); **also** `${PREFIX}/bin` when `PREFIX` is set (Termux) |
-| PATH later | Append `# >>> grok installer >>>` block to bash/zsh/fish rc | **MUST** for bash (`~/.bashrc`); **SHOULD** for zsh/fish |
+| PATH later | Append `# >>> grok installer >>>` block to bash/zsh/fish rc | **MUST** for bash (`~/.bashrc`); **SHOULD** for zsh/fish. This block is for `~/.grok/bin`, **not** grok-cli’s shared `USER_BIN` line (`requirement-shell-path-and-shell-support`). **MUST NOT** strip the vendor block on grok-cli uninstall |
 | Completions / `config.toml` | Best-effort | **SHOULD** (must not fail setup if they fail) |
 | Deployment key / managed config | Optional enterprise | **MUST NOT** unless `GROK_DEPLOYMENT_KEY` is set; **MUST NOT** print the key |
 | Auth for install | Optional | Optional; runtime login is `grok login` / `XAI_API_KEY` |

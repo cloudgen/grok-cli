@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-local-self-management.md  
-**Status**: Active (Version 1.3.1)  
+**Status**: Active (Version 1.4.0)  
 **Area**: shell  
 **Key**: `requirement-shell-local-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -56,7 +56,7 @@ Install copies grok-cli into your bin; uninstall removes that copy. It does not 
 3b. On Termux, missing `${GLOBAL_BIN}` **MUST NOT** fail a non-root `install` to `${USER_BIN}`. **MUST NOT** place grok-cli into `${PREFIX}/bin` as a Termux package (`requirement-shell-termux-coding` / `requirement-project-folder`). `${PREFIX}/bin` is a PATH candidate for peer `grok` only (`requirement-grok-setup`).  
 4. Create target bin dir when missing; fail loud if not writable.  
 5. Atomic place: stage → set mode → `mv` onto final path (or equivalent `install -m`).  
-6. Idempotent: already installed + force off → success no-op **for content**; mode **MUST** still be healed to the required mode when the installer can write the target (see §2.3.1).  
+6. Idempotent: already installed + force off → success no-op **for content**; mode **MUST** still be healed to the required mode when the installer can write the target (see §2.3.1). User-bin: **MUST** still run `inst_ensure_companion` (PATH / profile — `requirement-shell-path-and-shell-support`).  
 7. **MUST NOT** require network for install.  
 8. **`install --global`** (or `FORCE_GLOBAL=1`): target **`${GLOBAL_BIN}/${APP_NAME}`**; if not writable, fail with clear root/sudo guidance.  
 9. For hosts that will admin-install **sudoers**, operators **SHOULD** use global install (root). Local install alone is **not** production-secure for elevation (see `requirement-three-layer-privilege-model` §2.3.1a).
@@ -84,7 +84,8 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 3. Absent → success no-op.  
 4. Interactive confirm unless `--force`; non-interactive/json/quiet without force → **fail closed** (`confirm_required`).  
 5. **MUST NOT** delete domain data, `/var/backup` archives, home trees, or unrelated binaries.  
-6. After remove, human mode **SHOULD** warn that host sudoers fragments under **`/etc/sudoers.d/grok-cli-<user>`** (and any legacy `/etc/sudoers.d/grok-cli`) are **not** removed by uninstall; admin must remove or reinstall fragment separately when leaving test elevation.
+6. After remove, human mode **SHOULD** warn that host sudoers fragments under **`/etc/sudoers.d/grok-cli-<user>`** (and any legacy `/etc/sudoers.d/grok-cli`) are **not** removed by uninstall; admin must remove or reinstall fragment separately when leaving test elevation.  
+7. User-bin uninstall **MUST** call `inst_self_uninstall_cleanup_path`. What may be edited in rc (this product’s comments only; shared PATH only if `USER_BIN` empty; never delete `.profile`) is `requirement-shell-path-and-shell-support`.
 
 ### 2.5 Where-is-me rules
 
@@ -115,6 +116,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | **Ship unit** | `src/grok-cli` |
 | **Primary install path story** | Type 0 day-to-day: `${HOME}/.local/bin/grok-cli`; production elevation: `/usr/local/bin/grok-cli` |
 | **Handlers** | `inst_local_install`, `inst_local_uninstall`, `app_where_is_me`, `app_version` |
+| **PATH / login rc** | **Call site only:** `inst_ensure_companion` → `path_add_shell`. Bodies, exact PATH line, sibling unify, scoped uninstall, `BASHRC` env, and `rc-test`: `requirement-shell-path-and-shell-support` |
 | **Detect** | `inst_is_installed` / privilege-correct path helpers |
 | **Online package** | **Dual-mode secondary** — checkout copy here; channel owned by `requirement-shell-online-install` |
 
@@ -198,6 +200,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `requirement-shell-idempotency` | Already installed / uninstalled |
 | `requirement-bootstrap-chain` | Dual-mode: checkout keep; channel from selfmanaged |
 | `requirement-shell-online-install` | Channel pipe primary |
+| `requirement-shell-path-and-shell-support` | PATH / profile bodies; companion + uninstall **call site** |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -221,9 +224,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-08-09 | Active 1.2.0 | §2.3.1 mode **0755** multi-user; ban `chmod +x`→`0711` trap; AC-6..8; TP-LC-09/10 |
 | 2026-09-02 | Active 1.3.0 | Dual-mode secondary: checkout `install` stays offline; channel owned by online-install |
 | 2026-09-04 | Active 1.3.1 | Termux: missing `GLOBAL_BIN` does not fail user install; `PREFIX/bin` is not grok-cli dest |
+| 2026-09-09 | Active 1.4.0 | Companion + PATH cleanup call sites → `requirement-shell-path-and-shell-support` |
 
 ---
 
-**Last Updated**: 2026-09-06  
+**Last Updated**: 2026-09-09  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

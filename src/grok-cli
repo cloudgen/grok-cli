@@ -29,6 +29,7 @@
 # - requirement-shell-output-requirements.md
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-shell-script-coding.md
+# - requirement-shell-path-and-shell-support.md  (PATH / profile / sibling unify / rc-test)
 # - requirement-shell-termux-coding.md  (Termux/Android: PREFIX, pkg, noexec; not FHS)
 # - requirement-shell-internal-volatile-timer.md  (named volatile stages; --debug menu elapsed)
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
@@ -41,7 +42,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.26"
+# VERSION: hard-assign VERSION="1.8.27"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -55,10 +56,10 @@ APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
 : "${APP_DESC:=Alternative online installer for xAI grok}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.26"
-: "${VERSION:=1.8.26}"
+VERSION="1.8.27"
+: "${VERSION:=1.8.27}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -654,22 +655,50 @@ inst_get_version() {
 path_add_bashrc() {
     : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
-    local bashrc="${HOME}/.bashrc"
+    : "${BASHRC:=${HOME}/.bashrc}"
+    : "${APP_NAME:=grok-cli}"
+    : "${VERSION:=0}"
+    : "${JSON:=0}"
+    local bashrc="${BASHRC}"
     local path_line
+    local created=0
+    local comment
     path_line=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
+    comment=$(printf '# Added by %s installer (%s)' "${APP_NAME}" "${VERSION}")
+
     if [ ! -f "$bashrc" ]; then
-        return 1
+        if ! printf '# Interactive rc created by %s installer (%s)\n' "$APP_NAME" "$VERSION" > "$bashrc"; then
+            if [ "${JSON}" -eq 0 ]; then
+                out_warn "Could not create ${bashrc}. Next: create that file as this login, then re-run ${APP_NAME} install."
+            fi
+            return 1
+        fi
+        chmod 0644 "$bashrc" 2>/dev/null || true
+        created=1
+        if [ "${JSON}" -eq 0 ]; then
+            out_plain "→ Created ${bashrc}"
+        fi
     fi
 
-    if ! grep -qF "${USER_BIN}" "$bashrc" 2>/dev/null; then
-        printf "\n# Added by %s installer (%s)\n" "$APP_NAME" "$VERSION" >> "$bashrc"
+    if ! grep -qF "${path_line}" "$bashrc" 2>/dev/null; then
+        printf "\n%s\n" "${comment}" >> "$bashrc"
         printf '%s\n' "${path_line}" >> "$bashrc"
         if [ "${JSON}" -eq 0 ]; then
             out_plain "→ Added ${USER_BIN} to PATH for bash"
         fi
         return 0
     fi
-    return 1  # already present
+    if ! grep -qF "${comment}" "$bashrc" 2>/dev/null; then
+        printf "\n%s\n" "${comment}" >> "$bashrc"
+        if [ "${JSON}" -eq 0 ]; then
+            out_plain "→ Noted ${APP_NAME} installer on bash PATH"
+        fi
+        return 0
+    fi
+    if [ "$created" -eq 1 ]; then
+        return 0
+    fi
+    return 1
 }
 
 # =============================================================================
@@ -692,22 +721,33 @@ path_add_bashrc() {
 path_add_zshrc() {
     : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
-    local zshrc="${HOME}/.zshrc"
+    : "${ZSHRC:=${HOME}/.zshrc}"
+    : "${APP_NAME:=grok-cli}"
+    : "${VERSION:=0}"
+    : "${JSON:=0}"
+    local zshrc="${ZSHRC}"
     local path_line
+    local comment
     path_line=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
+    comment=$(printf '# Added by %s installer (%s)' "${APP_NAME}" "${VERSION}")
+
     if [ ! -f "$zshrc" ]; then
         return 1
     fi
 
-    if ! grep -qF "${USER_BIN}" "$zshrc" 2>/dev/null; then
-        printf "\n# Added by %s installer (%s)\n" "$APP_NAME" "$VERSION" >> "$zshrc"
+    if ! grep -qF "${path_line}" "$zshrc" 2>/dev/null; then
+        printf "\n%s\n" "${comment}" >> "$zshrc"
         printf '%s\n' "${path_line}" >> "$zshrc"
         if [ "${JSON}" -eq 0 ]; then
             out_plain "→ Added ${USER_BIN} to PATH for zsh"
         fi
         return 0
     fi
-    return 1  # already present
+    if ! grep -qF "${comment}" "$zshrc" 2>/dev/null; then
+        printf "\n%s\n" "${comment}" >> "$zshrc"
+        return 0
+    fi
+    return 1
 }
 
 # =============================================================================
@@ -731,20 +771,31 @@ path_add_zshrc() {
 path_add_fish() {
     : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
-    local fish_config="${HOME}/.config/fish/config.fish"
+    : "${FISH_CONFIG:=${HOME}/.config/fish/config.fish}"
+    : "${APP_NAME:=grok-cli}"
+    : "${VERSION:=0}"
+    : "${JSON:=0}"
+    local fish_config="${FISH_CONFIG}"
     local path_line
+    local comment
+    local fish_dir
     path_line=$(printf 'set -gx PATH %s $PATH' "${USER_BIN}")
+    comment=$(printf '# Added by %s installer (%s)' "${APP_NAME}" "${VERSION}")
+    fish_dir=$(dirname "${fish_config}")
 
-    # Ensure directory exists
-    if [ ! -d "${HOME}/.config/fish" ] && ! mkdir -p "${HOME}/.config/fish" 2>/dev/null; then
+    if [ ! -d "${fish_dir}" ] && ! mkdir -p "${fish_dir}" 2>/dev/null; then
         return 1
     fi
 
-    if [ -f "$fish_config" ] && grep -qF "${USER_BIN}" "$fish_config" 2>/dev/null; then
-        return 1  # already present
+    if [ -f "$fish_config" ] && grep -qF "${path_line}" "$fish_config" 2>/dev/null; then
+        if ! grep -qF "${comment}" "$fish_config" 2>/dev/null; then
+            printf "\n%s\n" "${comment}" >> "$fish_config"
+            return 0
+        fi
+        return 1
     fi
 
-    printf "\n# Added by %s installer (%s)\n" "$APP_NAME" "$VERSION" >> "$fish_config"
+    printf "\n%s\n" "${comment}" >> "$fish_config"
     printf '%s\n' "${path_line}" >> "$fish_config"
 
     if [ "${JSON}" -eq 0 ]; then
@@ -769,36 +820,318 @@ path_add_fish() {
 path_add_shell() {
     local added=0
     local shell_config="N/A"
+    : "${HOME:=/tmp}"
+    : "${BASHRC:=${HOME}/.bashrc}"
+    : "${ZSHRC:=${HOME}/.zshrc}"
+    : "${FISH_CONFIG:=${HOME}/.config/fish/config.fish}"
+    : "${JSON:=0}"
 
-    # Bash
     if path_add_bashrc; then
         added=1
-        shell_config="${HOME}/.bashrc"
+        shell_config="${BASHRC}"
     fi
 
-    # Zsh
     if path_add_zshrc; then
         added=1
         if [ "$shell_config" = "N/A" ]; then
-            shell_config="${HOME}/.zshrc"
+            shell_config="${ZSHRC}"
         else
-            shell_config="${shell_config} ${HOME}/.zshrc"
+            shell_config="${shell_config} ${ZSHRC}"
         fi
     fi
 
-    # Fish
     if path_add_fish; then
         added=1
         if [ "$shell_config" = "N/A" ]; then
-            shell_config="${HOME}/.config/fish/config.fish"
+            shell_config="${FISH_CONFIG}"
         else
-            shell_config="${shell_config} ${HOME}/.config/fish/config.fish"
+            shell_config="${shell_config} ${FISH_CONFIG}"
+        fi
+    fi
+
+    if path_ensure_profile; then
+        added=1
+        if [ "$shell_config" = "N/A" ]; then
+            shell_config="${PROFILE:-${HOME}/.profile}"
         fi
     fi
 
     if [ "$added" -eq 1 ] && [ "${JSON}" -eq 0 ]; then
         out_plain "→ Restart your terminal or run: source ${shell_config}"
     fi
+}
+
+# =============================================================================
+# path_ensure_profile() - Create ~/.profile if absent (never overwrite)
+# =============================================================================
+#
+# ALIGNMENT: requirement-shell-path-and-shell-support.md
+# Last reviewed: 2026-09-09
+# =============================================================================
+path_ensure_profile() {
+    : "${HOME:=/tmp}"
+    : "${PROFILE:=${HOME}/.profile}"
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    local profile="${PROFILE}"
+
+    if [ -f "$profile" ]; then
+        return 1
+    fi
+
+    if ! {
+        printf '# BEGIN %s profile source-bashrc\n' "$APP_NAME"
+        printf '# Created so a bash login shell sources interactive rc.\n'
+        printf 'if [ -n "${BASH_VERSION:-}" ]; then\n'
+        printf '    if [ -f "${HOME}/.bashrc" ]; then\n'
+        printf '        . "${HOME}/.bashrc"\n'
+        printf '    fi\n'
+        printf 'fi\n'
+        printf '# END %s profile source-bashrc\n' "$APP_NAME"
+    } > "$profile"; then
+        if [ "${JSON}" -eq 0 ]; then
+            out_warn "Could not create ${profile}. Next: create that file as this login so SSH login reads ~/.bashrc, then re-run ${APP_NAME} install."
+        fi
+        return 1
+    fi
+    chmod 0644 "$profile" 2>/dev/null || true
+    if [ "${JSON}" -eq 0 ]; then
+        out_plain "→ Created ${profile} (login shell sources ~/.bashrc)"
+    fi
+    return 0
+}
+
+# =============================================================================
+# path_rc_test() - Type 0 test-purpose: create/modify/no-op against --root
+# =============================================================================
+#
+# ALIGNMENT: requirement-shell-path-and-shell-support.md
+# MUST NOT write this login's real ~/.bashrc. Keep real HOME.
+# Last reviewed: 2026-09-09
+# =============================================================================
+path_rc_test() {
+    : "${JSON:=0}"
+    : "${HOME:=/tmp}"
+    : "${APP_NAME:=grok-cli}"
+    _prt_root=""
+    _prt_file="bashrc"
+    _prt_case="create"
+    _prt_feature=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --root)
+                [ $# -ge 2 ] || out_die "rc-test --root requires a folder. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file bashrc --case create"
+                _prt_root="$2"
+                shift
+                ;;
+            --file)
+                [ $# -ge 2 ] || out_die "rc-test --file requires bashrc|zshrc|profile"
+                _prt_file="$2"
+                shift
+                ;;
+            --case)
+                [ $# -ge 2 ] || out_die "rc-test --case requires create|modify|noop"
+                _prt_case="$2"
+                shift
+                ;;
+            --feature)
+                [ $# -ge 2 ] || out_die "rc-test --feature requires path-ensure|profile-ensure"
+                _prt_feature="$2"
+                shift
+                ;;
+            *)
+                out_die "Unknown rc-test argument: $1. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file bashrc --case create"
+                ;;
+        esac
+        shift
+    done
+    if [ -z "${_prt_root}" ]; then
+        out_die "rc-test requires --root a tmp/cache folder. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file bashrc --case create"
+    fi
+    case "${_prt_file}" in
+        bashrc|zshrc|profile|fish) ;;
+        *) out_die "rc-test --file must be bashrc, zshrc, profile, or fish" ;;
+    esac
+    case "${_prt_case}" in
+        create|modify|noop) ;;
+        *) out_die "rc-test --case must be create, modify, or noop" ;;
+    esac
+    if ! mkdir -p "${_prt_root}" 2>/dev/null; then
+        out_die "rc-test cannot create --root ${_prt_root}"
+    fi
+
+    _prt_home_bashrc="${HOME}/.bashrc"
+    _prt_home_profile="${HOME}/.profile"
+    _prt_snap_b=""
+    _prt_snap_p=""
+    [ -f "${_prt_home_bashrc}" ] && _prt_snap_b=$(cat "${_prt_home_bashrc}" 2>/dev/null || true)
+    [ -f "${_prt_home_profile}" ] && _prt_snap_p=$(cat "${_prt_home_profile}" 2>/dev/null || true)
+
+    : "${USER_BIN:=${HOME}/.local/bin}"
+    _prt_path=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
+    _prt_comment=$(printf '# Added by %s installer (%s)' "${APP_NAME}" "${VERSION}")
+
+    BASHRC="${_prt_root}/.bashrc"
+    ZSHRC="${_prt_root}/.zshrc"
+    PROFILE="${_prt_root}/.profile"
+    FISH_CONFIG="${_prt_root}/config.fish"
+    export BASHRC ZSHRC PROFILE FISH_CONFIG
+
+    case "${_prt_file}" in
+        bashrc)
+            case "${_prt_case}" in
+                create) rm -f "${BASHRC}" ;;
+                modify)
+                    printf '%s\n' "# dongle-bashrc-keep" "alias dongle_probe=true" > "${BASHRC}"
+                    ;;
+                noop)
+                    {
+                        printf '%s\n' "# dongle-already-good"
+                        printf '%s\n' "${_prt_comment}"
+                        printf '%s\n' "${_prt_path}"
+                    } > "${BASHRC}"
+                    ;;
+            esac
+            path_add_bashrc || true
+            ;;
+        zshrc)
+            case "${_prt_case}" in
+                create)
+                    out_die "rc-test zshrc create is not claimed (do not invent .zshrc). Next: --file bashrc --case create"
+                    ;;
+                modify)
+                    printf '%s\n' "# dongle-zshrc-keep" > "${ZSHRC}"
+                    ;;
+                noop)
+                    {
+                        printf '%s\n' "${_prt_comment}"
+                        printf '%s\n' "${_prt_path}"
+                    } > "${ZSHRC}"
+                    ;;
+            esac
+            path_add_zshrc || true
+            ;;
+        profile)
+            case "${_prt_case}" in
+                create) rm -f "${PROFILE}" ;;
+                modify|noop)
+                    printf '%s\n' "# keep-existing-profile" > "${PROFILE}"
+                    ;;
+            esac
+            path_ensure_profile || true
+            ;;
+        fish)
+            case "${_prt_case}" in
+                create) rm -f "${FISH_CONFIG}" ;;
+                modify)
+                    mkdir -p "$(dirname "${FISH_CONFIG}")"
+                    printf '%s\n' "# dongle-fish-keep" > "${FISH_CONFIG}"
+                    ;;
+                noop)
+                    mkdir -p "$(dirname "${FISH_CONFIG}")"
+                    {
+                        printf '%s\n' "${_prt_comment}"
+                        printf 'set -gx PATH %s $PATH\n' "${USER_BIN}"
+                    } > "${FISH_CONFIG}"
+                    ;;
+            esac
+            path_add_fish || true
+            ;;
+    esac
+
+    _prt_now_b=""
+    _prt_now_p=""
+    [ -f "${_prt_home_bashrc}" ] && _prt_now_b=$(cat "${_prt_home_bashrc}" 2>/dev/null || true)
+    [ -f "${_prt_home_profile}" ] && _prt_now_p=$(cat "${_prt_home_profile}" 2>/dev/null || true)
+    if [ "${_prt_now_b}" != "${_prt_snap_b}" ] || [ "${_prt_now_p}" != "${_prt_snap_p}" ]; then
+        out_die "rc-test wrote this login's real home rc. Fixture --root only."
+    fi
+
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "rc-test" "ok" \
+            "root" "${_prt_root}" \
+            "file" "${_prt_file}" \
+            "case" "${_prt_case}" \
+            "status" "ok"
+        return 0
+    fi
+    out_success "rc-test ${_prt_file} ${_prt_case} under ${_prt_root}"
+    return 0
+}
+
+# =============================================================================
+# inst_ensure_companion() - User-bin PATH + profile (install companion)
+# =============================================================================
+#
+# ALIGNMENT: requirement-shell-path-and-shell-support.md
+# Runs even when the CLI binary is already installed.
+# Last reviewed: 2026-09-09
+# =============================================================================
+inst_ensure_companion() {
+    : "${HOME:=/tmp}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    _iec_target=$(util_get_install_bin_path 2>/dev/null || printf '%s/%s' "${USER_BIN}" "${APP_NAME}")
+    case "${_iec_target}" in
+        "${GLOBAL_BIN}"/*)
+            return 0
+            ;;
+    esac
+    path_add_shell
+    return 0
+}
+
+# =============================================================================
+# inst_self_uninstall_cleanup_path() - Remove grok-cli stickers; PATH only if safe
+# =============================================================================
+#
+# ALIGNMENT: requirement-shell-path-and-shell-support.md
+# MUST match "# Added by grok-cli installer" only — never "# Added by .* installer".
+# MUST NOT delete .profile, vendor grok installer block, or login-hook scraps.
+# Last reviewed: 2026-09-09
+# =============================================================================
+inst_self_uninstall_cleanup_path() {
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+        return 0
+    fi
+    : "${HOME:=/tmp}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+    : "${BASHRC:=${HOME}/.bashrc}"
+    : "${ZSHRC:=${HOME}/.zshrc}"
+    : "${FISH_CONFIG:=${HOME}/.config/fish/config.fish}"
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    _cup_should_path=1
+    if [ -d "${USER_BIN}" ]; then
+        if [ -n "$(ls -A "${USER_BIN}" 2>/dev/null)" ]; then
+            _cup_should_path=0
+            if [ "${JSON}" -eq 0 ]; then
+                out_warn "Keeping ${USER_BIN} in PATH because it still contains files."
+            fi
+        fi
+    fi
+    _cup_path=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
+    _cup_fish=$(printf 'set -gx PATH %s $PATH' "${USER_BIN}")
+    _cup_prefix="# Added by ${APP_NAME} installer"
+    for _cup_cfg in "${BASHRC}" "${ZSHRC}" "${FISH_CONFIG}"; do
+        [ -f "${_cup_cfg}" ] || continue
+        _cup_tmp=$(mktemp "${EFFECTIVE_STORAGE_DIR:-/tmp}/${APP_NAME}.rc.XXXXXX" 2>/dev/null || mktemp)
+        while IFS= read -r _cup_line || [ -n "${_cup_line}" ]; do
+            case "${_cup_line}" in
+                "${_cup_prefix}"*)
+                    continue
+                    ;;
+            esac
+            if [ "${_cup_should_path}" -eq 1 ]; then
+                if [ "${_cup_line}" = "${_cup_path}" ] || [ "${_cup_line}" = "${_cup_fish}" ]; then
+                    continue
+                fi
+            fi
+            printf '%s\n' "${_cup_line}"
+        done < "${_cup_cfg}" > "${_cup_tmp}"
+        mv -f "${_cup_tmp}" "${_cup_cfg}"
+    done
+    return 0
 }
 
 # =============================================================================
@@ -1694,6 +2027,9 @@ inst_local_install() {
         if [ "${FORCE}" -eq 0 ] && [ "${FORCE_REINSTALL}" -eq 0 ]; then
             # Mode heal: prior chmod +x after mktemp left 0711/0700; keep multi-user runnable.
             chmod "${INST_MANAGED_MODE}" "${_target}" 2>/dev/null || true
+            if [ "${_target_dir}" = "${USER_BIN}" ]; then
+                inst_ensure_companion
+            fi
             out_success "${APP_NAME} already installed at ${_target}"
             if [ "${_target_dir}" = "${USER_BIN}" ] && [ "${JSON}" -eq 0 ]; then
                 out_warn "Local install is fine for Type 0 use. For durable sudoers, prefer: sudo ${APP_NAME} install  (global ${GLOBAL_BIN})"
@@ -1755,8 +2091,7 @@ inst_local_install() {
 
     out_success "Installed ${APP_NAME} to ${_target}"
     if [ "${_target_dir}" = "${USER_BIN}" ]; then
-        # Best-effort PATH integration for user bin (function, not external)
-        path_add_shell 2>/dev/null || true
+        inst_ensure_companion
         if [ "${JSON}" -eq 0 ]; then
             out_warn "Local install is user-rewritable. Durable sudoers should use global install (root → ${GLOBAL_BIN})."
         fi
@@ -1822,6 +2157,13 @@ inst_local_uninstall() {
     if ! rm -f "${_target}"; then
         out_die "Failed to remove ${_target}"
     fi
+    _unin_was_user=0
+    case "${_target}" in
+        "${USER_BIN}"/*) _unin_was_user=1 ;;
+    esac
+    if [ "${_unin_was_user}" -eq 1 ]; then
+        inst_self_uninstall_cleanup_path
+    fi
     out_success "Removed ${APP_NAME} from ${_target}"
     _installed=$(gc_default_installed_sudoers_path)
     if [ "${JSON}" -eq 0 ]; then
@@ -1879,6 +2221,7 @@ inst_perform_channel_install() {
     fi
 
     if inst_is_installed && [ "${FORCE_REINSTALL}" -ne 1 ] && [ "${FORCE}" -ne 1 ]; then
+        inst_ensure_companion
         out_success "${APP_NAME} is already installed at $(util_get_install_bin_path)."
         if [ "${JSON}" -eq 1 ]; then
             out_json "install" "${APP_NAME} is already installed." \
@@ -1963,7 +2306,7 @@ inst_perform_channel_install() {
     fi
     chmod "${INST_MANAGED_MODE}" "${INSTALL_PATH}" || true
     if [ "${_ici_dir}" = "${USER_BIN}" ]; then
-        path_add_shell 2>/dev/null || true
+        inst_ensure_companion
     fi
     out_success "Installed ${APP_NAME} to ${INSTALL_PATH}"
     if [ "${JSON}" -eq 1 ]; then
@@ -1988,6 +2331,7 @@ inst_channel_ensure() {
     : "${FORCE_REINSTALL:=0}"
     : "${JSON:=0}"
     if inst_is_installed && [ "${FORCE_REINSTALL}" -ne 1 ] && [ "${FORCE}" -ne 1 ]; then
+        inst_ensure_companion
         out_success "${APP_NAME} is already installed at $(util_get_install_bin_path)."
         if [ "${JSON}" -eq 1 ]; then
             out_json "install" "${APP_NAME} is already installed." \
@@ -7316,7 +7660,7 @@ app_default() {
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
-    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request.}"
+    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
@@ -7348,6 +7692,10 @@ app_help() {
     out_plain "  help                 Show this help"
     out_plain "  menu                 Show the numbered list of live commands (TTY; help off-TTY)"
     out_plain "  main                 Same as menu (also empty argv on a TTY)"
+    out_empty_line
+    out_info "Test-purpose (local fixture only — not install):"
+    out_plain "  rc-test              Create/modify/no-op PATH or profile in --root tmp folder"
+    out_plain "                       (does not write this login's real ~/.bashrc)"
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
     out_plain "  setup                Install grok from x.ai (channel + artifact; skip if grok already runs here)"
@@ -7417,6 +7765,8 @@ app_help() {
     out_plain "  GROK_PROMPT_TIMEOUT  seconds for grok -p hello (default 14; always bounded)"
     out_plain "  GROK_PROMPT_KILL_AFTER  SIGKILL grace after the probe deadline (default 2)"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
+    out_plain "  BASHRC               interactive rc write path (default ~/.bashrc; tests retarget)"
+    out_plain "  ZSHRC / PROFILE / FISH_CONFIG  other rc write paths (tests retarget)"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers / generate / submit"
     out_plain "  SUDOER_CLI              override path to sudoer-cli"
     out_plain "  SUDOER_ADM_USER         approver login (default sudoer-adm)"
@@ -7534,6 +7884,12 @@ app_main() {
                 COMMAND="$1"
                 _saw_command=1
                 ;;
+            rc-test)
+                COMMAND="$1"
+                _saw_command=1
+                shift
+                break
+                ;;
             run)
                 COMMAND="$1"
                 _saw_command=1
@@ -7580,6 +7936,7 @@ app_main() {
         ensure)       inst_channel_ensure ;;
         install)      inst_local_install ;;
         uninstall)    inst_local_uninstall ;;
+        rc-test)      path_rc_test "$@" ;;
         where-is-me)  app_where_is_me ;;
         version-check) ver_check ;;
         self-update)  inst_self_update ;;

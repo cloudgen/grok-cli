@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.27] - 2026-09-09
+
+### Added
+
+- **Shell-rc topic-owner:** `requirement-shell-path-and-shell-support` — one shared `USER_BIN` PATH line, create `.bashrc` / `.profile` if missing, sibling unify with sshd-cli / sudoer-cli / dns-cli, scoped uninstall (only `# Added by grok-cli installer`), heal on already-installed skip (**L-PATH-01**), routed Type 0 `rc-test --root`. Dual mention `requirement-shell-cli-interface` **2.9.0**. Suite **TP-LC-11..14**, **TP-LC-20..29**, **TP-LC-31..33**.
+
+### Changed
+
+- User-bin `install` / channel ensure / `self-update` always run PATH+profile companion, including already-installed. `uninstall` / `self-uninstall` remove only grok-cli stickers; keep the shared PATH line while `~/.local/bin` still has files; never delete `.profile` or the vendor `# >>> grok installer >>>` block.
+
 ## [1.8.26] - 2026-09-07
 
 ### Changed

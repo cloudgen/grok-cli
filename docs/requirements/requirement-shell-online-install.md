@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-online-install.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0)  
 **Area**: shell  
 **Key**: `requirement-shell-online-install`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -41,7 +41,7 @@ It is specialized from the selfmanaged online package onto grok-cli. Empty-argv 
 
 1. **MUST** compose default `SCRIPT_URL` as `https://raw.githubusercontent.com/${REPO_USER}/${REPO_NAME}/main/src/${APP_NAME}`.  
 2. Pipe **MUST** call `app_main "$@"` (no basename gate).  
-3. Off-TTY empty argv **MUST** run channel ensure (`inst_channel_ensure` → `inst_perform_channel_install` when a place is needed).  
+3. Off-TTY empty argv **MUST** run channel ensure (`inst_channel_ensure` → `inst_perform_channel_install` when a place is needed). Already-installed skip **MUST** still run `inst_ensure_companion` (PATH / profile — `requirement-shell-path-and-shell-support`). User-bin place **MUST** run the same companion.  
 4. Download to a unique temp under storage `TMPDIR`; verify; `chmod 0755`; `mv` onto `${USER_BIN}/grok-cli` or `${GLOBAL_BIN}/grok-cli`.  
 5. Missing `curl` and `wget` → fail closed.  
 6. Core tests **MUST** fake the channel (no public network).  
@@ -138,6 +138,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `docs/requirements/requirement-shell-automatic-checksum.md` | Companion digest |
 | `docs/requirements/requirement-shell-self-management.md` | version-check / self-update / self-uninstall |
 | `docs/requirements/requirement-shell-local-self-management.md` | Checkout copy |
+| `docs/requirements/requirement-shell-path-and-shell-support.md` | PATH / profile; companion **call site** |
 | `./src/grok-cli` | Implementation |
 
 ---
@@ -154,7 +155,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | Date | Status | Note |
 |------|--------|------|
 | 2026-09-02 | Active (1.0.0) | Channel + dual-mode; specialize from selfmanaged |
+| 2026-09-09 | Active (1.1.0) | Already-installed skip still runs PATH companion (`requirement-shell-path-and-shell-support`) |
 
-**Last Updated**: 2026-09-06  
+**Last Updated**: 2026-09-09  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.26-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.27-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -120,7 +120,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.23*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.27*) — Alternative online installer for xAI grok
 logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -134,7 +134,7 @@ On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** a
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.23*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.27*) — Alternative online installer for xAI grok
 logged in
 sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
@@ -310,4 +310,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-07 — version **1.8.26**: Termux/PRoot login check uses local auth cookies; live `grok -p hello` timeout stays protected for other hosts. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-09 — version **1.8.27**: shell-rc PATH + profile ensure (sibling unify, heal on already-installed, routed `rc-test`). Full history: [`CHANGELOG.md`](./CHANGELOG.md).

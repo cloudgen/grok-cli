@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.8.1)  
+**Status**: Active (Version 2.9.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -8,7 +8,7 @@
 
 This requirement is the **project Single Source of Truth** for the **POSIX shell CLI interface** of grok-cli: command surface, privilege typing, global flags, dispatcher behavior, help/about contracts, and mode rules.
 
-It defines a **Type 0 shell CLI** with **dual-mode install** (channel `curl|sh` plus checkout `install`), **domain grok-auth** commands, **`setup`** (peer `grok` via the studied xAI procedure, not `install.sh`), and a **narrow elevated deposit** path. Empty argv: TTY menu; off-TTY Type O ensure. Full domain semantics live in `requirement-domain-grok-cli.md`. Peer grok install lives in `requirement-grok-setup.md`. Channel place lives in `requirement-shell-online-install.md`.
+It defines a **Type 0 shell CLI** with **dual-mode install** (channel `curl|sh` plus checkout `install`), **domain grok-auth** commands, **`setup`** (peer `grok` via the studied xAI procedure, not `install.sh`), and a **narrow elevated deposit** path. Empty argv: TTY menu; off-TTY Type O ensure. Full domain semantics live in `requirement-domain-grok-cli.md`. Peer grok install lives in `requirement-grok-setup.md`. Channel place lives in `requirement-shell-online-install.md`. PATH / profile / `rc-test` live in `requirement-shell-path-and-shell-support.md`.
 
 ---
 
@@ -68,6 +68,7 @@ Additional flags **MAY** be added only when documented here (or a superseding re
 - Privilege category (Type 0 vs elevated deposit)  
 - Global flags  
 - Honest note that deposit requires admin-installed sudoers fragment  
+- **Test-purpose** verbs (when any exist, including `rc-test`) under a heading **apart** from operational verbs  
 
 In JSON mode, help **MUST NOT** dump long human text; return a short structured success/note object.
 
@@ -82,6 +83,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **Version SSOT** | ship unit `VERSION=` in `src/grok-cli` (do not pin a stale number here) |
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
 | **Primary install story** | User bin: `~/.local/bin/grok-cli` |
+| **Interactive rc write path** | `BASHRC` default `${HOME}/.bashrc`. User-bin PATH ensure creates/modifies this file. Tests/CI **MAY** set `BASHRC` to a file in a temp folder. Dual mention: `requirement-shell-path-and-shell-support`. |
 | **Online channel env** | `SCRIPT_URL` default `https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli` |
 | **Type 2 commands** | None |
 | **Dedicated system user** | Not required |
@@ -91,11 +93,12 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | Command | Type | Handler family | Required behavior |
 |---------|------|----------------|-------------------|
 | *(no command token — empty argv; overlay flags such as `--debug` allowed)* | Type 0 | TTY → `app_default`; off-TTY → `inst_channel_ensure` | TTY numbered menu; off-TTY Type O ensure (**MUST NOT** help). `--json` no-command is 0-argv **special case** → JSON help (TTY and off-TTY) |
-| `install` | Type 0 | `inst_local_install` | Checkout copy of the running ship unit; idempotent unless `--force` |
-| `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
+| `install` | Type 0 | `inst_local_install` | Checkout copy of the running ship unit; idempotent unless `--force`. User-bin: **always** `inst_ensure_companion` (PATH + profile), including already-installed skip. Dual mention: `requirement-shell-local-self-management` · `requirement-shell-path-and-shell-support` |
+| `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force`. User-bin: PATH cleanup per `requirement-shell-path-and-shell-support` |
+| `rc-test` | Type 0 **test-purpose** | `path_rc_test` | Fixture create / modify / no-op against `--root` tmp/cache. **MUST NOT** write this login’s real `{{HOME}}/.bashrc`. Help lists this **apart** from operational verbs. Dual mention: `requirement-shell-path-and-shell-support`. Sample: `grok-cli rc-test --root "$tmpdir" --file bashrc --case create` |
 | `version-check` | Type 0 | `ver_check` | Compare local vs remote VERSION on `SCRIPT_URL` |
 | `self-update` | Type 0 | `inst_self_update` | Re-download from `SCRIPT_URL` when remote is newer (or `--force`). Proceeding first INFO: `Starting the self-update of {{APP_NAME}}({{local}}) to new version:{{remote}}...` |
-| `self-uninstall` | Type 0 | `inst_self_uninstall` | Remove managed binary (channel name; same dest as `uninstall`) |
+| `self-uninstall` | Type 0 | `inst_self_uninstall` | Remove managed binary (channel name; same dest as `uninstall`). User-bin PATH cleanup: `requirement-shell-path-and-shell-support` |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
 | `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY; **Cache folder (preferred)** `/dev/shm/cache/cache-${APP_NAME}` and **Cache folder (fallback)**; **Persistence storage** `${HOME}/.local/${APP_NAME}`; grok home, session, deposit dir; **no** channel one-liner |
@@ -130,7 +133,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 1. Unknown token after flag parse → `out_die` with pointer to `grok-cli help`.  
 2. Zero-arg (no command token, including overlay `--debug` / `--quiet`) → TTY numbered menu; off-TTY Type O ensure (never help, never `setup`). `--json` with no command is 0-argv special case → JSON help (TTY and off-TTY).  
-3. Command routing table in `app_main` **must** include every **Supported commands** row above.  
+3. Command routing table in `app_main` **must** include every **Supported commands** row above. **`rc-test`** is routed; help **MUST** list it under a heading **apart** from operational verbs (`requirement-shell-path-and-shell-support`).  
 4. Help text **must** stay aligned with that table.  
 5. Domain catalog detail is owned by `requirement-domain-grok-cli.md` — this file owns the **listed verbs** and routing. Auth ops detail is `requirement-grok-auth-backup.md`. Peer grok install is `requirement-grok-setup.md`.
 
@@ -194,6 +197,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 7. Add a second submit verb (`submit-sudoer`) without routing + help, or invent inbound `mkdir` as this CLI’s job.
 
 8. Strip the **Under command line for normal user only** section, or enable admin privilege / a dedicated system user on Termux / Git Bash / Windows cmd.  
+9. Drop `rc-test` from the dual-mention table without updating `requirement-shell-path-and-shell-support`, mix it into operational help grouping, or treat it as install.  
 
 **Violating this rule is a critical CLI interface regression.**
 
@@ -216,6 +220,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-11 | `setup` is Type 0, routed, listed in help; dual mention `requirement-grok-setup`; **MUST NOT** fetch or exec `install.sh` |
 | AC-12 | `--debug` listed in help; TTY `menu` elapsed owned by `requirement-shell-internal-volatile-timer` |
 | AC-13 | `run` is Type 0, routed, listed in help; starts grok with `--no-auto-update`; dual mention `requirement-grok-setup` · `requirement-domain-grok-cli` |
+| AC-14 | `rc-test` is Type 0 test-purpose, routed, listed **apart** from operational verbs; dual mention `requirement-shell-path-and-shell-support` |
 
 ---
 
@@ -229,6 +234,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `requirement-shell-cli-default-interaction` | Numbered list body; TTY empty argv and `menu`/`main` |
 | `requirement-shell-internal-volatile-timer` | Dual mention of `--debug` menu elapsed (helpers, not domain verbs) |
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
+| `requirement-shell-path-and-shell-support` | PATH / profile; `BASHRC`; dual mention `rc-test` |
 | `requirement-shell-output-requirements` | `out_*` catalog |
 | `requirement-domain-grok-cli` | Domain four pillars |
 | `requirement-grok-setup` | Dual mention of `setup` and `run` |
@@ -280,9 +286,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active 2.7.9 | `--json` no-command is 0-argv special case: JSON help even on a TTY (`requirement-shell-cli-zero-arguments` 2.2.0) |
 | 2026-09-07 | Active 2.8.0 | `run` Type 0 — start peer grok without auto-update (Termux hang) |
 | 2026-09-07 | Active 2.8.1 | `self-update` first INFO names local and remote VERSION (dual mention) |
+| 2026-09-09 | Active 2.9.0 | `rc-test` dual mention + routed; PATH owner `requirement-shell-path-and-shell-support` |
 
 ---
 
-**Last Updated**: 2026-09-07 (2.8.1 — version-aware self-update start line)  
+**Last Updated**: 2026-09-09 (2.9.0 — `rc-test` dual mention; PATH owner `requirement-shell-path-and-shell-support`)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

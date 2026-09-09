@@ -4,8 +4,8 @@
 **Class:** software-development · domain SSOT present · **dual-mode** install (channel `curl\|sh` primary; checkout `install` secondary).  
 **Always load first:** `reviews/lessons.md`
 
-**Last plan update:** 2026-09-07  
-**Ship unit VERSION:** 1.8.24  
+**Last plan update:** 2026-09-09  
+**Ship unit VERSION:** 1.8.27  
 **Suite baseline:** `reviews/test-plan.md`
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + domain grok-cli + grok-auth-backup + three-layer |
-| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.24**) |
+| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.27**) |
 | P3 | Load `reviews/lessons.md` and re-check every open L-* | Mandatory (esp. **L-SUDOERS-01/02** · **L-SUDOERS-06** · **L-OUTPUT-01** · **L-AUTH-01** · **L-PROMPT-CAPTURE-01**) |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP; **must include TP-GROK-CLI-22e** and **TP-24*/25*** when generate/submit is in scope |
 | P5 | Confirm install **channel** | `SCRIPT_URL` default github raw `src/grok-cli`; companion `.sha256`; dual-mode matrix |
@@ -50,6 +50,7 @@
 | Empty argv | `requirement-shell-cli-zero-arguments.md` | TTY = numbered menu; off-TTY = Type O ensure |
 | Default interaction | `requirement-shell-cli-default-interaction.md` | case 3 menu; off-TTY `menu` = help |
 | Local self-management | `requirement-shell-local-self-management.md` | checkout install/uninstall; 0755 |
+| **Shell-rc PATH / profile** | `requirement-shell-path-and-shell-support.md` | sibling unify; heal on already-installed; routed `rc-test`; APP_NAME-only uninstall |
 | Online install | `requirement-shell-online-install.md` | `SCRIPT_URL`; dual-mode matrix |
 | Self-management | `requirement-shell-self-management.md` | version-check / self-update / self-uninstall |
 | Automatic checksum | `requirement-shell-automatic-checksum.md` | companion mismatch abort |
@@ -69,6 +70,7 @@
 | Path / symbol | Risk | Lesson / TP |
 |--------------|------|-------------|
 | Empty argv | TTY stolen by install-ensure; off-TTY hang on numbered menu | L-TYPE-N-01 · L-ARGV-01 · TP-CLI-07/13 · TP-ONL-01 |
+| `inst_channel_ensure` / `path_add_bashrc` | Termux `curl\|sh` already-installed skip never writes `USER_BIN` into `.bashrc`; missing `.bashrc` is a silent PATH miss | L-PATH-01 · **INC-20260909-001** |
 | `gc_run_grok` | `--json` execs grok / hangs; missing grok no Next setup; this-login-only menu omits `run` | L-WRAP-02 · TP-GROK-CLI-46 · TP-CLI-19/20 |
 | `app_default_print_menu` / `gc_grok_p_once_run` | Silent ~14s after INFO header; DEBUG looks like a different path; Ctrl-Z stops the reaper; empty stdout never idles | L-MENU-04 · **INC-20260907-004** |
 | `inst_self_update` / `gc_setup_heal_android_wrapper` | grok-cli-only update leaves 2026-09-04 `bin/grok` (no `--kill-on-exit` / start-services bind / reaper) | L-WRAP-04 · **INC-20260907-004** |

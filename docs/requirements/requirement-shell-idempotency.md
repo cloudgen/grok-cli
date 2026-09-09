@@ -36,7 +36,7 @@ Every **state-changing** shell operation that **ensures** a desired configuratio
 1. **Detect** whether the desired state already holds.  
 2. **Skip or no-op** unsafe work when it does.  
 3. **Succeed** when already achieved — **MUST NOT** fail solely because state “already exists.”  
-4. **Avoid duplicates** (binary installs, PATH lines, identical archive slot collisions handled by numbering).  
+4. **Avoid duplicates** (binary installs, PATH lines, identical archive slot collisions handled by numbering). PATH / profile **bodies** (exact `export PATH=` line, sibling unify, scoped uninstall) live on `requirement-shell-path-and-shell-support`; this file keeps the re-run matrix.  
 5. **Leave the system consistent** on every run (including partial prior installs).  
 6. **Communicate** clearly when already done in human mode; respect quiet/json via output SSOT.
 

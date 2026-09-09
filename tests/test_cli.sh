@@ -72,6 +72,9 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help self-uninstall" "$_out" "self-uninstall"
     assert_contains "TP-CLI-04 help version-check" "$_out" "version-check"
     assert_contains "TP-CLI-04 help SCRIPT_URL channel" "$_out" "SCRIPT_URL"
+    assert_contains "TP-CLI-04 help testers heading" "$_out" "Test-purpose"
+    assert_contains "TP-CLI-04 help rc-test" "$_out" "rc-test"
+    assert_contains "TP-CLI-04 help BASHRC env" "$_out" "BASHRC"
     assert_not_contains "TP-CLI-04 no CHECKSUM" "$_out" "CHECKSUM"
 
     # TP-CLI-05 help json
@@ -345,7 +348,7 @@ run_test_cli() {
         assert_contains "TP-CLI-17 TTY backup explain is gray italic" "$_out" "${_backup_desc}"
         assert_not_contains "TP-CLI-17 TTY not SGR 90 house look" "$_out" "${_sgr90}"
         _after_header=$(printf '%s\n' "$_out" | grep -A1 "Alternative online installer for xAI grok" | tail -n1)
-        assert_contains "TP-CLI-17 TTY session line under header" "${_after_header}" "logged out"
+        assert_contains "TP-CLI-17 TTY session line under header" "${_after_header}" "checking session"
         mkdir -p "${CI_HOME}/.grok"
         cat > "${CI_HOME}/.grok/auth.json" <<'AUTH'
 {

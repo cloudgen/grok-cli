@@ -8,6 +8,7 @@ Durable failure modes. **Always re-check on product review.**
 | L-ARGV-01 | Off-TTY empty argv draws or hangs the numbered menu | Off-TTY empty argv is Type O ensure; `menu` off-TTY is help; TP-CLI-07/13 | open watch |
 | L-ARGV-02 | Overlay flags-only (`--debug`) treated as help because empty argv was `$# -eq 0` | Empty argv = no command token after flag parse; TP-CLI-29 | open watch |
 | L-ONLINE-01 | Drop channel / dual-mode matrix while advertising `curl\|sh` | `requirement-shell-online-install` matrix; TP-ONL-* · TP-CLI-04/10 | open watch |
+| L-PATH-01 | Termux `curl\|sh` already-installed skip leaves `~/.local/bin` off PATH; `path_add_bashrc` no-ops if `.bashrc` missing; Termux default PATH has no `USER_BIN` | Already-installed user-bin ensure still `path_add_shell`; create `.bashrc` on Termux; **INC-20260909-001** | open watch |
 | L-UNIN-01 | Non-interactive uninstall succeeds without force | TP-LC-05 confirm fail-closed | open watch |
 | L-INST-MODE-01 | Install leaves `0711`/`0700` (chmod +x after mktemp) so non-owners cannot run shell ship unit | absolute `chmod 0755` + heal on reinstall; TP-LC-09/10; local-self-management §2.3.1 | open watch |
 | L-DEPOSIT-01 | Unprivileged write to `/var/grok-cli` or silent deposit success without grant | fail-closed + `sudo grok-cli backup`; TP-GROK-CLI-12 | open watch |

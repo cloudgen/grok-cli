@@ -125,6 +125,32 @@ ci_isolated_env() {
     # env do not steal TP-CLI-07/13/17. Termux cases set TERMUX_VERSION.
     unset TERMUX_VERSION 2>/dev/null || true
     export GROK_CLI_HOST_OVERRIDE=multiuser
+    unset BASHRC 2>/dev/null || true
+    unset ZSHRC 2>/dev/null || true
+    unset PROFILE 2>/dev/null || true
+    unset FISH_CONFIG 2>/dev/null || true
+    CI_BASHRC=
+    CI_BASHRC_DIR=
+}
+
+# Redirect BASHRC to a file in a random temp folder (not ${HOME}/.bashrc).
+ci_isolated_bashrc() {
+    CI_BASHRC_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-bashrc.XXXXXX")
+    CI_BASHRC="${CI_BASHRC_DIR}/.bashrc"
+    export BASHRC="${CI_BASHRC}"
+}
+
+ci_cleanup_bashrc() {
+    if [ -n "${CI_BASHRC_DIR:-}" ] && [ -d "${CI_BASHRC_DIR}" ]; then
+        rm -rf "${CI_BASHRC_DIR}"
+    fi
+    CI_BASHRC_DIR=
+    CI_BASHRC=
+    unset BASHRC 2>/dev/null || true
+}
+
+ci_bashrc_path_line() {
+    printf 'export PATH="%s:$PATH"' "${CI_USER_BIN}"
 }
 
 # Write a fake peer grok that never hits the network.
@@ -217,6 +243,7 @@ ci_session_uses_local_auth() {
 }
 
 ci_cleanup_env() {
+    ci_cleanup_bashrc
     if [ -n "${CI_HOME:-}" ] && [ -d "${CI_HOME}" ]; then
         rm -rf "${CI_HOME}"
         CI_HOME=

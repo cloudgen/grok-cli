@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-self-management.md  
-**Status**: Active (Version 1.2.0)  
+**Status**: Active (Version 1.3.0)  
 **Area**: shell  
 **Key**: `requirement-shell-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -37,7 +37,7 @@ This requirement is the **remote lifecycle Single Source of Truth** for grok-cli
 3. `self-update` **MUST** reuse `inst_perform_channel_install` with force when remote is newer, or when `--force`. **MUST NOT** downgrade without `--force`.  
 3b. The first human INFO line of a **proceeding** `self-update` **MUST** name both versions, after remote `VERSION=` is known: `Starting the self-update of {{APP_NAME}}({{local}}) to new version:{{remote}}...` (`{{local}}` = `inst_get_version`; `{{remote}}` = channel `VERSION=`). **MUST** fetch remote first. **MUST NOT** print a version-less start line (`Starting self-update of {{APP_NAME}}...`). Fetch fail **MUST** fail closed with Next (no start line). Already-at-remote without `--force` **MUST NOT** print that start line. Dual mention: `requirement-shell-cli-interface`.  
 3c. After a **proceeding** `self-update` **and** on the already-at-remote success path, **MUST** rewrite a stale Android `bin/grok` wrapper (`gc_setup_heal_android_wrapper`) with no vendor re-download. Dual mention: `requirement-grok-setup` 18e. **MUST NOT** require the operator to type `setup` to receive wrapper hang fixes after `self-update`.  
-4. `self-uninstall` **MUST** remove the managed binary (same dest as `uninstall`). Interactive confirm unless `--force` / off-TTY. Already absent → success.  
+4. `self-uninstall` **MUST** remove the managed binary (same dest as `uninstall`). Interactive confirm unless `--force` / off-TTY. Already absent → success. User-bin: PATH cleanup call `inst_self_uninstall_cleanup_path` — **what** may be edited in rc is `requirement-shell-path-and-shell-support`.
 5. **MUST NOT** appear on the TTY numbered main menu.  
 6. Core tests fake the channel.
 
@@ -48,6 +48,7 @@ This requirement is the **remote lifecycle Single Source of Truth** for grok-cli
 | Handlers | `ver_check` · `inst_self_update` · `inst_self_uninstall` |
 | Channel | `SCRIPT_URL` as in online-install |
 | Compare | `ver_gt` POSIX |
+| **PATH / login rc** | **Call site only:** `self-update` reuses channel place (companion). `self-uninstall` PATH cleanup: `requirement-shell-path-and-shell-support` |
 
 ### 2.2 Why This Requirement Exists (CIAO)
 
@@ -116,6 +117,7 @@ grok-cli self-uninstall --force
 | `docs/requirements/index.md` | Registry |
 | `docs/requirements/requirement-shell-cli-interface.md` | Dual mention |
 | `docs/requirements/requirement-shell-online-install.md` | Place primitives |
+| `docs/requirements/requirement-shell-path-and-shell-support.md` | PATH / profile; uninstall cleanup **call site** |
 | `./src/grok-cli` | Implementation |
 
 ---
@@ -134,7 +136,8 @@ grok-cli self-uninstall --force
 | 2026-09-02 | Active (1.0.0) | Specialized from selfmanaged lifecycle |
 | 2026-09-07 | Active (1.1.0) | `self-update` first INFO names local and remote VERSION |
 | 2026-09-07 | Active (1.2.0) | `self-update` heals stale Android `bin/grok` (already-at-remote too) |
+| 2026-09-09 | Active (1.3.0) | PATH cleanup call site → `requirement-shell-path-and-shell-support` |
 
-**Last Updated**: 2026-09-07 (1.2.0 — self-update heals Android grok wrapper)  
+**Last Updated**: 2026-09-09 (1.3.0 — PATH cleanup call site)
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -88,6 +88,24 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LC-08 | about shows installed | test_local_lifecycle | local self-management | **have** |
 | TP-LC-09 | installed mode is `0755` | test_local_lifecycle | local self-management | **have** |
 | TP-LC-10 | reinstall heals `0711` → `0755` | test_local_lifecycle | local self-management | **have** |
+| TP-LC-11 | install creates `~/.bashrc` with exact PATH | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-12 | install creates `~/.profile` sourcing bashrc | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-13 | second install does not duplicate PATH | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-14 | existing `.profile` body kept | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-20 | `BASHRC` env create-if-missing | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-21 | `BASHRC` env modify dongle | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-22 | `BASHRC` env VERSION+exact-PATH no-op | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-23 | `ZSHRC` env modify existing | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-24 | `ZSHRC` env no-op | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-25 | `PROFILE` env create-if-absent | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-26 | `PROFILE` env keep body | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-27 | already-installed skip heals missing PATH | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-28 | sibling comment + exact PATH, grok-cli sticker MAY | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-29 | grok-cli comment present, PATH restored | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-31 | vendor grok installer block unchanged | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-32 | uninstall keeps PATH while `USER_BIN` has files | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-33 | sudoer-cli login-hook block kept | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| rc-test | routed `--root` create; real home rc untouched | test_local_lifecycle | requirement-shell-path-and-shell-support · requirement-shell-cli-interface | **have** |
 
 ### TP-VCLI (vendor peer grok installer)
 
