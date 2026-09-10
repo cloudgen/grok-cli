@@ -45,6 +45,7 @@ run_test_cli() {
     assert_eq "TP-CLI-04 help exit 0" 0 "$_ec"
     assert_contains "TP-CLI-04 help install" "$_out" "install"
     assert_contains "TP-CLI-04 help setup" "$_out" "setup"
+    assert_contains "TP-CLI-04 help update-grok" "$_out" "update-grok"
     assert_contains "TP-CLI-04 help run" "$_out" "run"
     assert_contains "TP-CLI-04 help menu" "$_out" "menu"
     assert_contains "TP-CLI-04 help uninstall" "$_out" "uninstall"

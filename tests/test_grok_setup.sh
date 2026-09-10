@@ -195,6 +195,22 @@ EOF
     chmod +x "${_dir}/uname"
 }
 
+# Fake uname for Git Bash / MINGW so detect_platform is windows-{arch}.
+ci_write_mingw_uname() {
+    _dir="$1"
+    _host_m=$(uname -m 2>/dev/null || echo x86_64)
+    rm -f "${_dir}/uname"
+    cat > "${_dir}/uname" <<EOF
+#!/bin/sh
+case "\${1:-}" in
+    -s) printf '%s\\n' "MINGW64_NT-10.0" ;;
+    -m) printf '%s\\n' "${_host_m}" ;;
+    *) printf '%s\\n' "MINGW64_NT-10.0" ;;
+esac
+EOF
+    chmod +x "${_dir}/uname"
+}
+
 # Fake Termux pkg: install -y proot writes a proot stub next to this pkg
 # (same PATH dir). Does not talk to packages.termux.org.
 ci_write_fake_pkg() {
@@ -252,6 +268,7 @@ run_test_grok_setup() {
     assert_contains "TP-VCLI-02 help lists setup" "${_out}" "setup"
     assert_contains "TP-VCLI-02 help names x.ai" "${_out}" "x.ai"
     assert_contains "TP-VCLI-02 help lists self-update" "${_out}" "self-update"
+    assert_contains "TP-VCLI-02 help lists update-grok" "${_out}" "update-grok"
     assert_contains "TP-VCLI-02 help names SCRIPT_URL" "${_out}" "SCRIPT_URL"
     assert_not_contains "TP-VCLI-02 help no install.sh" "${_out}" "install.sh"
     ci_cleanup_env
@@ -944,4 +961,115 @@ EOS
     assert_contains "TP-VCLI-32 healed wrapper has kill-on-exit" "${_wrap}" "kill-on-exit"
     assert_contains "TP-VCLI-32 healed wrapper has proot-exit-reaper" "${_wrap}" "proot-exit-reaper"
     ci_cleanup_env
+
+    # TP-VCLI-33 update-grok is routed; help is not grok-cli self-update
+    ci_isolated_env
+    _tb=$(ci_toolbin)
+    _err=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_USER_BIN}:${_tb}" \
+            sh "${SCRIPT}" update-grok 2>&1 >/dev/null
+    ) || true
+    assert_not_contains "TP-VCLI-33 update-grok is routed" "${_err}" "Unknown command"
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" help 2>/dev/null)
+    assert_contains "TP-VCLI-33 help lists update-grok" "${_out}" "update-grok"
+    assert_contains "TP-VCLI-33 help says not grok-cli" "${_out}" "not grok-cli"
+    assert_contains "TP-VCLI-33 self-update still grok-cli" "${_out}" "Re-download grok-cli"
+    ci_cleanup_env
+
+    # TP-VCLI-34 missing grok → fail closed Next setup
+    ci_isolated_env
+    _tb=$(ci_toolbin)
+    _err=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_USER_BIN}:${_tb}" \
+            sh "${SCRIPT}" update-grok 2>&1 >/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-34 missing grok exit 1" 1 "${_ec}"
+    assert_contains "TP-VCLI-34 happened not installed" "${_err}" "not installed"
+    assert_contains "TP-VCLI-34 Next is setup" "${_err}" "Next:"
+    assert_contains "TP-VCLI-34 Next names setup" "${_err}" "setup"
+    ci_cleanup_env
+
+    # TP-VCLI-35 already-installed grok is fetched again (not grok auto-update)
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    CURL_LOG="${CI_HOME}/curl.log"
+    export CURL_LOG
+    printf '%s\n' '#!/bin/sh' 'echo grok-stub' > "${CI_USER_BIN}/grok"
+    chmod +x "${CI_USER_BIN}/grok"
+    _out=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_USER_BIN}:${CI_HOME}/fakecurl:${_tb}" \
+            CURL_LOG="${CURL_LOG}" \
+            sh "${SCRIPT}" --json update-grok 2>/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-35 update-grok exit 0" 0 "${_ec}"
+    assert_contains "TP-VCLI-35 JSON type update-grok" "${_out}" '"type":"update-grok"'
+    assert_contains "TP-VCLI-35 JSON status updated" "${_out}" '"status":"updated"'
+    if [ -f "${CURL_LOG}" ] && grep -q '/stable' "${CURL_LOG}" && grep -q 'grok-' "${CURL_LOG}"; then
+        t_pass "TP-VCLI-35 curl hit channel pointer and artifact"
+    else
+        t_fail "TP-VCLI-35 curl log missing channel/artifact URL"
+    fi
+    if [ -f "${CURL_LOG}" ] && grep -q 'install.sh' "${CURL_LOG}"; then
+        t_fail "TP-VCLI-35 curl must not fetch install.sh"
+    else
+        t_pass "TP-VCLI-35 curl did not fetch install.sh"
+    fi
+    if [ -f "${CURL_LOG}" ] && grep -qi 'auto-update' "${CURL_LOG}"; then
+        t_fail "TP-VCLI-35 must not invoke grok auto-update"
+    else
+        t_pass "TP-VCLI-35 did not invoke grok auto-update"
+    fi
+    ci_cleanup_env
+    unset CURL_LOG
+
+    # TP-VCLI-36 Git Bash / MINGW: windows-* .exe fetch, copy grok.exe (no USER_BIN symlink)
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    ci_write_mingw_uname "${_tb}"
+    CURL_LOG="${CI_HOME}/curl.log"
+    export CURL_LOG
+    _host_m=$(uname -m 2>/dev/null || true)
+    _win_plat=""
+    case "${_host_m}" in
+        x86_64|amd64|AMD64) _win_plat="windows-x86_64" ;;
+        aarch64|arm64|ARM64) _win_plat="windows-aarch64" ;;
+    esac
+    if [ -z "${_win_plat}" ]; then
+        t_skip "TP-VCLI-36 host arch ${_host_m}"
+        ci_cleanup_env
+        unset CURL_LOG
+        return 0
+    fi
+    _out=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+            CURL_LOG="${CURL_LOG}" \
+            sh "${SCRIPT}" --json setup 2>/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-36 mingw setup exit 0" 0 "${_ec}"
+    assert_contains "TP-VCLI-36 JSON installed" "${_out}" '"status":"installed"'
+    assert_file_exists "TP-VCLI-36 placed grok.exe" "${CI_HOME}/.grok/bin/grok.exe"
+    assert_file_exists "TP-VCLI-36 placed agent.exe" "${CI_HOME}/.grok/bin/agent.exe"
+    assert_file_exists "TP-VCLI-36 downloads windows exe" "${CI_HOME}/.grok/downloads/grok-${_win_plat}.exe"
+    if [ -f "${CURL_LOG}" ] && grep -q "${_win_plat}.exe" "${CURL_LOG}"; then
+        t_pass "TP-VCLI-36 curl hit windows .exe artifact"
+    else
+        t_fail "TP-VCLI-36 curl log missing windows .exe URL"
+    fi
+    if [ -f "${CURL_LOG}" ] && grep -q 'install.sh' "${CURL_LOG}"; then
+        t_fail "TP-VCLI-36 curl must not fetch install.sh"
+    else
+        t_pass "TP-VCLI-36 curl did not fetch install.sh"
+    fi
+    if [ -e "${CI_USER_BIN}/grok" ] || [ -e "${CI_USER_BIN}/grok.exe" ]; then
+        t_fail "TP-VCLI-36 must not symlink grok into USER_BIN"
+    else
+        t_pass "TP-VCLI-36 no USER_BIN grok symlink"
+    fi
+    ci_cleanup_env
+    unset CURL_LOG
 }

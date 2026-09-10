@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.30] - 2026-09-10
+
+### Added
+
+- **Git Bash / MSYS / Cygwin `setup`:** `uname` maps to `windows-*`; fetch `grok-{{version}}-windows-{{arch}}.exe`; copy `~/.grok/bin/grok.exe` and `agent.exe` (no USER_BIN symlink). Native PowerShell stays `irm https://x.ai/cli/install.ps1 | iex`. README host comparison tables. Law: `requirement-grok-setup` **2.13.0**. Suite **TP-VCLI-36**.
+
+## [1.8.29] - 2026-09-10
+
+### Added
+
+- **`update-grok`:** refresh peer `grok` from the xAI channel + artifact (same place path as `setup --force`). Does **not** use grok auto-update (unsupported on Termux). Does **not** update grok-cli (`self-update` stays that). Missing grok Next `grok-cli setup`. Help one-liner: `Update grok from x.ai (not grok-cli; avoids grok auto-update)`. Law: `requirement-grok-setup` **2.12.0** · `requirement-shell-cli-interface` **2.10.0** · `requirement-domain-grok-cli` **1.7.0**. Suite **TP-VCLI-33** · **TP-VCLI-34** · **TP-VCLI-35**. Incident **INC-20260910-002**.
+
 ## [1.8.28] - 2026-09-09
 
 ### Fixed

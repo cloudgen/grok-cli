@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.26  
+**Product VERSION:** 1.8.30  
 **Last plan update:** 2026-09-07  
-**Last suite run:** pending 1.8.25 (`./tests/run.sh`). 1.8.25: hang-grok session line is **timeout** (not **logged out**); default `GROK_PROMPT_TIMEOUT` 14.
+**Last suite run:** PASS=816 FAIL=0 SKIP=0 (2026-09-10; 1.8.30 Git Bash `windows-*`)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -205,3 +205,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-48 | Fake `proot` on PATH: instant grok `check-session` still exit 0 (reaper path, no freeze) | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
 | TP-GROK-CLI-49 | Reaper `setsid` / ignore TSTP / wait reaper first; `self-update` calls wrapper heal | test_domain_grok_cli | grok-auth-backup · termux-coding · self-management | **have** |
 | TP-VCLI-32 | `self-update` already-at-remote heals a stale Android wrapper (no vendor re-download) | test_grok_setup | grok-setup · self-management | **have** |
+| TP-VCLI-33 | `update-grok` is routed; help lists it distinct from grok-cli `self-update` | test_grok_setup | requirement-grok-setup · requirement-shell-cli-interface · INC-20260910-002 | **have** |
+| TP-VCLI-34 | `update-grok` with no grok fail-closes; Next `setup` | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
+| TP-VCLI-35 | already-installed grok is fetched again (channel+artifact; not grok auto-update); JSON `update-grok`/`updated` | test_grok_setup | requirement-grok-setup · INC-20260910-002 | **have** |
+| TP-VCLI-36 | Git Bash/MINGW: `windows-*` `.exe` fetch; `bin/grok.exe` copy; no USER_BIN symlink | test_grok_setup | requirement-grok-setup | **have** |

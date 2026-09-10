@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-grok-setup.md  
-**Status**: Active (Version 2.11.0)  
+**Status**: Active (Version 2.13.0)  
 **Area**: domain  
 **Key**: `requirement-grok-setup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **operations Single Source of Truth** for grok-cli **`setup`** and **`run`**: Type 0 commands that **install** the peer xAI Grok Build CLI (`grok`) by performing the **same procedure** xAI’s published installer uses (platform detect, channel pointer, artifact fetch, place under `~/.grok`, PATH), **without downloading or executing** `https://x.ai/cli/install.sh`, and **start** that peer with auto-update off so Termux/PRoot is not left hanging.
+This requirement is the **operations Single Source of Truth** for grok-cli **`setup`**, **`update-grok`**, and **`run`**: Type 0 commands that **install** the peer xAI Grok Build CLI (`grok`) by performing the **same procedure** xAI’s published installer uses (platform detect, channel pointer, artifact fetch, place under `~/.grok`, PATH), **without downloading or executing** `https://x.ai/cli/install.sh`, **refresh** that peer from the same channel (Termux grok auto-update is unsupported), and **start** that peer with auto-update off so Termux/PRoot is not left hanging.
 
 Operators can then `grok-cli run` (or `grok login` / set `XAI_API_KEY`) and use `grok-cli check-session` / `backup`. A PATH line written to `~/.bashrc` does **not** apply to the current session; that is not an install failure.
 
@@ -16,23 +16,23 @@ This does **not** install grok-cli itself (checkout `install` and channel `curl|
 
 ### 1.1 Human-facing
 
-**In one sentence:** you type `grok-cli setup` so this login downloads the matching `grok` program from xAI under `~/.grok`, then `grok-cli run` so grok starts without auto-update.
+**In one sentence:** you type `grok-cli setup` so this login downloads the matching `grok` program from xAI under `~/.grok`, `grok-cli update-grok` when grok is already there and you want the latest, then `grok-cli run` so grok starts without auto-update.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
-| You / this login | Run setup without sudo; start grok without auto-update | `grok-cli setup` · `grok-cli run` |
+| You / this login | Run setup without sudo; update grok from xAI; start grok without auto-update | `grok-cli setup` · `grok-cli update-grok` · `grok-cli run` |
 | The other role | xAI publishes the `grok` **binary** and a version pointer; grok-cli does not ship grok | `https://x.ai/cli/stable` then `https://x.ai/cli/grok-{{version}}-{{os}}-{{arch}}` |
 | Not this file | grok-cli’s own copy-to-bin; sudo backup; session parse; executing xAI’s `install.sh` | `grok-cli install` · `grok-cli backup` |
 
 | Includes | Excludes |
 |----------|----------|
-| Detect OS/arch; fetch channel version; fetch artifact; smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder); place `~/.grok/downloads` + `~/.grok/bin`; skip if `grok` already **runs on this host**; refuse wrong ELF; Android ET_EXEC retry (TERMUX_EXEC_OPTOUT / Termux `pkg install -y proot` / `proot` wrapper with `--kill-on-exit` and `grok -p` SIGKILL); `--force`; rewrite a stale Android wrapper on skip (no network); **`run`** starts grok with `--no-auto-update` | Downloading or running `install.sh`; installing grok-cli; `self-update`; empty-argv install-ensure; sudo; `pkg`/`apt` on non-Android; hanging `pkg` prompts; byte-patching the vendor binary (DNS string or ELF `e_type`); smoking a file that lives only in cache/`/tmp`/`/dev/shm`; treating an x86_64 scp as installed on aarch64; leaving `grok -p` hung so the operator must Ctrl-Z; starting grok under `--json` |
+| Detect OS/arch; fetch channel version; fetch artifact; smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder); place `~/.grok/downloads` + `~/.grok/bin`; skip if `grok` already **runs on this host**; refuse wrong ELF; Android ET_EXEC retry (TERMUX_EXEC_OPTOUT / Termux `pkg install -y proot` / `proot` wrapper with `--kill-on-exit` and `grok -p` SIGKILL); `--force`; **`update-grok`** (same fetch as `--force` when grok is already installed; missing grok Next `setup`); rewrite a stale Android wrapper on skip (no network); **`run`** starts grok with `--no-auto-update` | Downloading or running `install.sh`; installing grok-cli; treating `self-update` as a grok update; grok’s own auto-update on Termux; empty-argv install-ensure; sudo; `pkg`/`apt` on non-Android; hanging `pkg` prompts; byte-patching the vendor binary (DNS string or ELF `e_type`); smoking a file that lives only in cache/`/tmp`/`/dev/shm`; treating an x86_64 scp as installed on aarch64; leaving `grok -p` hung so the operator must Ctrl-Z; starting grok under `--json` |
 | Fail closed if curl/uname/download/smoke fails | Hitting the public network from Core tests |
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
-| `./src/grok-cli` | ship unit | live `setup` / `run` |
-| `grok-cli help` | command | listed `setup` and `run` rows |
+| `./src/grok-cli` | ship unit | live `setup` / `update-grok` / `run` |
+| `grok-cli help` | command | listed `setup`, `update-grok`, and `run` rows |
 | `grok` | peer CLI after setup | `grok-cli run` · `grok login` |
 
 | You do… | What it means | What you type |
@@ -40,6 +40,7 @@ This does **not** install grok-cli itself (checkout `install` and channel `curl|
 | First machine | grok-cli fetches the version pointer and the matching binary, then links `grok` | `grok-cli setup` |
 | grok already there | success, no download | `grok-cli setup` |
 | Replace grok | fetch again | `grok-cli setup --force` |
+| Latest grok | fetch channel + artifact (not grok auto-update; not grok-cli `self-update`) | `grok-cli update-grok` |
 | Start grok | grok starts with auto-update off (Termux does not hang) | `grok-cli run` |
 | One-shot prompt | same, plus grok `-p hello` | `grok-cli run -p hello` |
 | Sign in after | session files appear under `~/.grok` | `grok login` then `grok-cli check-session` |
@@ -56,7 +57,8 @@ Jargon: this is ordinary-user work, not a root host bootstrap and not grok-cli�
 2. **MUST** be Type 0 (invoking login). **MUST NOT** require `sudo` to fetch or place the peer binary.  
 3. **MUST** appear in `help` with one-line purpose.  
 4. **MUST NOT** appear on the TTY numbered main menu (install/setup excluded).  
-5. Dual mention: this file **and** `requirement-shell-cli-interface`. Domain catalog: `requirement-domain-grok-cli`.
+5. Dual mention: this file **and** `requirement-shell-cli-interface`. Domain catalog: `requirement-domain-grok-cli`.  
+5a. **MUST** route **`update-grok`** from `app_main` (Type 0). **MUST** appear in `help` with one-line purpose that is **not** grok-cli `self-update`. **MUST NOT** appear on the TTY numbered main menu. **MUST** use the same channel+artifact place path as `setup --force`. **MUST NOT** exec grok’s auto-update. Missing grok **MUST** fail closed with Next `{{APP_NAME}} setup`. JSON type **MUST** be `update-grok` with `status=updated` on success. Dual mention: this file **and** `requirement-shell-cli-interface` · `requirement-domain-grok-cli`. Incident **INC-20260910-002**.
 
 ### 2.2 Peer probe
 
@@ -78,15 +80,15 @@ Studied installer behavior that this procedure **MUST** keep:
 
 | Step | Studied installer | grok-cli `setup` |
 |------|-------------------|------------------|
-| OS | `uname -s`: Darwin → `macos`; Linux → `linux`; else fail | Same; **Windows/MINGW out of scope** (fail closed) |
-| Arch | `uname -m`: `x86_64`/`amd64` → `x86_64`; `arm64`/`aarch64` → `aarch64`; else fail | Same |
+| OS | `uname -s`: Darwin → `macos`; Linux → `linux`; MINGW*/MSYS*/CYGWIN* → `windows`; else fail | Same. **Git Bash / MSYS / Cygwin supported** (`windows-*` PE). Native Windows cmd / PowerShell stay **out of scope** (use `install.ps1`) |
+| Arch | `uname -m`: `x86_64`/`amd64`/`AMD64` → `x86_64`; `arm64`/`aarch64`/`ARM64` → `aarch64`; else fail | Same |
 | Rosetta | macOS `x86_64` + `hw.optional.arm64=1` → install `aarch64` | Same when `sysctl` is present |
 | Channel | `GROK_CHANNEL` default `stable`; allow `stable` \| `alpha` \| `enterprise` | Same |
 | Version pointer | GET `{{base}}/{{channel}}`; first line is `X.Y.Z` or `X.Y.Z-suffix` | Same; optional pin `GROK_SETUP_VERSION` skips the pointer |
 | Base URL | Primary `https://x.ai/cli`; fallback GCS `https://storage.googleapis.com/grok-build-public-artifacts/cli` | Same (`GROK_VENDOR_BASE_URL` / `GROK_VENDOR_FALLBACK_URL`) |
-| Artifact | `{{base}}/grok-{{version}}-{{os}}-{{arch}}`; try `.zst` if `zstd`, then `.gz` if `gzip`, then uncompressed | Same |
-| Place | `$HOME/.grok/downloads/grok-{{os}}-{{arch}}` (download + smoke a `mktemp` sibling **in that directory**, not cache/`/tmp`/`/dev/shm`); `chmod +x`; smoke `--version`; relative symlink `$HOME/.grok/bin/grok` and `agent` | Same (`GROK_HOME` / `GROK_BIN_DIR`). Cache folder **MUST NOT** be the smoke path (Termux/Android `noexec`). Android ET_EXEC that only runs via opt-out or `proot`: POSIX wrapper at `bin/grok` (vendor file unchanged) |
-| PATH now | If a dir already on PATH is writable: `$HOME/.local/bin` then `/usr/local/bin` | Same (`USER_BIN` then `GLOBAL_BIN`); **also** `${PREFIX}/bin` when `PREFIX` is set (Termux) |
+| Artifact | `{{base}}/grok-{{version}}-{{os}}-{{arch}}`; try `.zst` if `zstd`, then `.gz` if `gzip`, then uncompressed. **Windows:** try `.exe` then uncompressed | Same. Git Bash/MSYS/Cygwin: `grok-{{version}}-windows-{{arch}}.exe` then without `.exe` |
+| Place | `$HOME/.grok/downloads/grok-{{os}}-{{arch}}` (download + smoke a `mktemp` sibling **in that directory**, not cache/`/tmp`/`/dev/shm`); `chmod +x`; smoke `--version`; relative symlink `$HOME/.grok/bin/grok` and `agent`. **Windows:** `grok-{{os}}-{{arch}}.exe`; **copy** to `bin/grok.exe` and `bin/agent.exe` (no symlink) | Same (`GROK_HOME` / `GROK_BIN_DIR`). Cache folder **MUST NOT** be the smoke path (Termux/Android `noexec`). Android ET_EXEC that only runs via opt-out or `proot`: POSIX wrapper at `bin/grok` (vendor file unchanged). Git Bash: copy `.exe` like studied `install.sh` |
+| PATH now | If a dir already on PATH is writable: `$HOME/.local/bin` then `/usr/local/bin`. **Windows:** skip those symlinks | Same (`USER_BIN` then `GLOBAL_BIN`); **also** `${PREFIX}/bin` when `PREFIX` is set (Termux). **MUST NOT** symlink into USER_BIN/GLOBAL_BIN on `windows-*` |
 | PATH later | Append `# >>> grok installer >>>` block to bash/zsh/fish rc | **MUST** for bash (`~/.bashrc`); **SHOULD** for zsh/fish. This block is for `~/.grok/bin`, **not** grok-cli’s shared `USER_BIN` line (`requirement-shell-path-and-shell-support`). **MUST NOT** strip the vendor block on grok-cli uninstall |
 | Completions / `config.toml` | Best-effort | **SHOULD** (must not fail setup if they fail) |
 | Deployment key / managed config | Optional enterprise | **MUST NOT** unless `GROK_DEPLOYMENT_KEY` is set; **MUST NOT** print the key |
@@ -104,6 +106,7 @@ Studied installer behavior that this procedure **MUST** keep:
 18d. After the opt-out retry in 18c fails, if `proot` is **not** on PATH and this host is Android **and** Termux `pkg` is available (`${PREFIX}/bin/pkg` when `PREFIX` is set, else `command -v pkg`), **MUST** run `pkg install -y proot` (stdin closed; `DEBIAN_FRONTEND=noninteractive`) and then retry the `proot` smoke (still with `LD_PRELOAD` unset). **MUST NOT** `sudo pkg`. **MUST NOT** run `pkg` or `apt` when `uname` is not Android (FreeBSD `pkg` is a different tool). **MUST NOT** hang under `--json` / off-TTY waiting for a `pkg` prompt. A failed `pkg install` is **not** itself a blocking error — **MUST** print WARN with exit/stderr snippet, then fall through to the 18c Next. **MUST NOT** install `proot` when opt-out already made `--version` succeed, or when `proot` is already on PATH.  
 18e. The Android wrapper **MUST** let `grok -p` return to the shell. When the method is `proot`, the wrapper **MUST** pass `proot --kill-on-exit` when `proot --help` advertises that option (long option only — **MUST NOT** pass `-k`, which is `--kernel-release`). When `PREFIX` is set and `${PREFIX}/etc/profile.d/start-services.sh` exists, the wrapper **MUST** pass `proot -b /dev/null:${PREFIX}/etc/profile.d/start-services.sh` so grok’s `bash -lc` env capture does not spawn extra `runsvdir` (on-device chain: login profile → `start-services.sh` → `start-stop-daemon -b runsvdir`; those daemons stay PRoot tracees after grok-linux `_exit`s; `wait4(-1,__WALL)` never drains). **MUST NOT** edit Termux’s `start-services.sh`. When argv includes `-p` / `--single` / `--prompt-file` / `--prompt-json`, the wrapper **MUST** pass grok `--no-auto-update` unless the operator already did, **MUST NOT** `exec` (stay parent), **MUST** SIGKILL the grok/proot child on SIGINT/SIGTERM (Ctrl-C), **and MUST** include the **PRoot-exit reaper** (`proot-exit-reaper`): treat **guest disappearance** (or idle stdout) as done, match leftovers by **args/exe** not truncated `comm`, kill only **new** `runsvdir` PIDs, then SIGKILL PRoot if it still will not exit. `--kill-on-exit` **MUST NOT** be treated as a guest-exit detector. Interactive `grok` (no `-p`) **MUST** still `exec` so the TUI owns the TTY (the start-services bind still applies). **MUST NOT** byte-patch the vendor file. On Android, if grok already **runs** and `bin/grok` is a POSIX wrapper that lacks `--kill-on-exit`, `--no-auto-update`, `proot-exit-reaper`, **or** the `start-services.sh` bind, `setup` **MUST** rewrite that wrapper from the existing vendor file with **no** network (**MUST NOT** require `--force` for this heal). JSON status stays `already_installed`. **`self-update` MUST** run the same heal after a proceeding update **and** on already-at-remote (`requirement-shell-self-management` 3c) so a grok-cli-only channel update is enough. The `-p` reaper **MUST** `setsid` the collector when advertised, ignore `SIGTSTP`, wait the reaper first, and SIGKILL immediately on guest-gone / idle / empty-stdout guest-death. Writing SSOT for the hang class: `requirement-shell-termux-coding` 2.4c.  
 18f. Routed verb **`run`** **MUST** start the peer grok with `--no-auto-update` unless the operator already passed that flag, then remaining grok argv (`{{APP_NAME}} run -p hello` → `grok --no-auto-update -p hello`). Missing grok → Next `{{APP_NAME}} setup`. `--json` **MUST NOT** exec grok (Next `{{APP_NAME}} run`). **MUST** `exec` the peer so grok owns the TTY. Dual mention `requirement-shell-cli-interface` · `requirement-domain-grok-cli`.  
+18g. When `uname -s` is `MINGW*` / `MSYS*` / `CYGWIN*` (Git Bash / MSYS / Cygwin), platform **MUST** be `windows-{{arch}}`. Fetch **MUST** try `grok-{{version}}-windows-{{arch}}.exe` then the uncompressed URL. Place **MUST** copy to `{{GROK_HOME}}/downloads/grok-windows-{{arch}}.exe` and **copy** to `bin/grok.exe` and `bin/agent.exe` (locked-file rename-aside like studied `install.sh`). **MUST** smoke `--version` before replace. **MUST NOT** apply Android ET_EXEC / `proot` / resolv-bind. **MUST NOT** symlink into `USER_BIN` / `GLOBAL_BIN`. **MUST** still write the bash `~/.bashrc` vendor PATH block when `SHELL` is bash. **MUST** INFO that cmd.exe / PowerShell need User PATH `%USERPROFILE%\\.grok\\bin`. Native Windows PowerShell **MUST NOT** be claimed as this POSIX `setup` path (`install.ps1` remains official there). Peer probe **MUST** accept `bin/grok.exe`.  
 19. Version string **MUST** match `X.Y.Z` or `X.Y.Z-suffix` (`[A-Za-z0-9._]+`). Invalid pointer → fail closed.  
 20. Relative symlink **MUST** be used when `bin` and `downloads` share a parent (default `~/.grok/bin` → `../downloads/grok-{{os}}-{{arch}}`), **except** when rule 18c requires an Android exec wrapper: then `bin/grok` is that POSIX script (vendor file under `downloads` stays unmodified; `agent` **MAY** be a symlink to `grok`).  
 21. **MUST NOT** byte-patch the vendor binary (including the 16-byte `/etc/resolv.conf` string).  
@@ -118,7 +121,7 @@ Blocking copy **MUST** say what happened and **`Next:`**.
 |------|------|
 | No curl | install curl, then `grok-cli setup` |
 | No uname | install coreutils/uname, then `grok-cli setup` |
-| Unsupported OS or arch | use linux or macos on x86_64 or aarch64, then `grok-cli setup` |
+| Unsupported OS or arch | use linux, macos, or Git Bash/MSYS/Cygwin on x86_64 or aarch64, then `grok-cli setup`. Native PowerShell: `irm https://x.ai/cli/install.ps1 \| iex` |
 | Invalid channel | set `GROK_CHANNEL` to stable, alpha, or enterprise, then `grok-cli setup` |
 | Version pointer failed | check network to x.ai, then `grok-cli setup` (happened sentence **MUST** include `HTTP NNN` or curl exit when curl ran) |
 | Binary download failed | check network to x.ai, then `grok-cli setup` (happened sentence **MUST** include `HTTP NNN` or curl exit when curl ran) |
@@ -136,6 +139,8 @@ JSON `message` **MUST** match the human sentence.
 grok-cli setup
 grok-cli setup --force
 grok-cli setup --json
+grok-cli update-grok
+grok-cli update-grok --json
 grok-cli run
 grok-cli run -p hello
 ```
@@ -145,8 +150,8 @@ grok-cli run -p hello
 | Item | Value |
 |------|--------|
 | Product | `grok-cli` |
-| Verb | `setup` (place) · `run` (start without auto-update) |
-| Handler | `gc_setup` · `gc_run_grok` |
+| Verb | `setup` (place) · `update-grok` (refresh peer grok) · `run` (start without auto-update) |
+| Handler | `gc_setup` · `gc_update_grok` · `gc_run_grok` |
 | Peer | `grok` (xAI Grok Build CLI) |
 | Base URL | `https://x.ai/cli` (`GROK_VENDOR_BASE_URL`) |
 | Fallback URL | `https://storage.googleapis.com/grok-build-public-artifacts/cli` (`GROK_VENDOR_FALLBACK_URL`) |
@@ -158,7 +163,7 @@ grok-cli run -p hello
 | Overrides | `GROK_VENDOR_BASE_URL`, `GROK_VENDOR_FALLBACK_URL`, `GROK_CHANNEL`, `GROK_SETUP_VERSION`, `GROK_BIN`, `GROK_BIN_DIR`, `GROK_HOME`, `GROK_SETUP_RESOLV_FILE` (resolv probe; default `/etc/resolv.conf`) |
 | Privilege | Type 0 |
 | grok-cli install class | **not this file** — dual-mode owned by `requirement-shell-online-install` |
-| Menu | setup excluded; this-login-only lists `run` first (`requirement-shell-cli-default-interaction`) |
+| Menu | setup and `update-grok` excluded; this-login-only lists `run` first (`requirement-shell-cli-default-interaction`) |
 | `install.sh` | **forbidden** as a fetch/exec target |
 | Egress | version pointer + artifact (+ compressed suffixes) on the two bases above; **not** `/install.sh`. Termux `pkg install -y proot` (packages.termux.org / mirror) **only** on Android when rule 18d applies. Core tests fake `pkg` |
 
@@ -231,6 +236,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 27. Require `setup --force` (a re-download) to rewrite a stale Android wrapper that already runs.  
 28. Exec grok under `--json` for **`run`**, skip `--no-auto-update` when the operator did not pass it, or fail missing grok without Next `{{APP_NAME}} setup`.  
 29. Treat `--kill-on-exit` as a grok-exit detector, omit `proot-exit-reaper` from the Android `-p` wrapper, match leftovers by truncated `comm`, skip the `start-services.sh` no-op bind, edit Termux’s `start-services.sh`, or require `--force` to heal a wrapper that lacks the reaper or that bind.  
+30. Treat grok-cli **`self-update`** as updating peer grok, omit **`update-grok`**, tell a Termux operator to use grok’s auto-update, exec grok’s updater from **`update-grok`**, or treat `setup` skip (`already_installed`) as “grok is the latest channel version.”  
+31. Treat Git Bash / MSYS / Cygwin as unsupported, fetch a **linux-*** artifact there, or claim native Windows **cmd / PowerShell** `setup` (those stay `install.ps1`).  
 
 **Violating this rule is a critical setup / install-class regression.**
 
@@ -240,7 +247,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | `setup` and `run` are routed and listed in help |
+| AC-1 | `setup`, `update-grok`, and `run` are routed and listed in help |
 | AC-2 | Already-present `grok` is exit 0 with no curl |
 | AC-3 | `--force` fetches the channel pointer and/or artifact (not `install.sh`) |
 | AC-4 | Curl/uname/download/smoke failures are operator-readable and non-zero |
@@ -269,6 +276,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-27 | Android `proot` wrapper source contains `proot-exit-reaper` (guest-death reaper; args/exe match) (TP-VCLI-29) |
 | AC-28 | Already-installed wrapper that has `--kill-on-exit` but lacks `proot-exit-reaper` is rewritten with no curl (TP-VCLI-30) |
 | AC-29 | Android `proot` wrapper source binds `/dev/null` over `${PREFIX}/etc/profile.d/start-services.sh` (TP-VCLI-31) |
+| AC-30 | `update-grok` is Type 0, routed, listed in help (not grok-cli `self-update`); missing grok Next `setup`; already-installed grok fetches channel+artifact (not grok auto-update); JSON `type=update-grok` `status=updated` (TP-VCLI-33..35; **INC-20260910-002**) |
+| AC-31 | Git Bash / MSYS / Cygwin `uname` maps to `windows-*`; fetch hits `.exe`; place `bin/grok.exe` (copy, not USER_BIN symlink) (TP-VCLI-36) |
 
 ---
 
@@ -277,7 +286,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | Artifact | Role |
 |----------|------|
 | `docs/requirements/index.md` | Registry SSOT |
-| `docs/requirements/requirement-shell-cli-interface.md` | Dual mention of `setup` and `run` / dispatch |
+| `docs/requirements/requirement-shell-cli-interface.md` | Dual mention of `setup`, `update-grok`, and `run` / dispatch |
 | `docs/requirements/requirement-domain-grok-cli.md` | Domain catalog |
 | `docs/requirements/requirement-grok-auth-backup.md` | Session after `grok login` |
 | `docs/requirements/requirement-shell-cli-default-interaction.md` | Menu excludes setup; this-login-only lists `run` first |
@@ -306,6 +315,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active (2.9.0) | Android `-p` wrapper: PRoot-exit reaper (guest already exited; args/exe match); heal if marker missing |
 | 2026-09-07 | Active (2.10.0) | Bind `/dev/null` over `start-services.sh` (login-shell `runsvdir`); keep reaper |
 | 2026-09-07 | Active (2.11.0) | Heal Android wrapper on `self-update` (not only `setup` skip); reaper `setsid` / TSTP-safe / wait reaper first |
+| 2026-09-10 | Active (2.12.0) | Verb `update-grok`: refresh peer grok from xAI channel+artifact (not grok auto-update; not grok-cli `self-update`); **INC-20260910-002** |
+| 2026-09-10 | Active (2.13.0) | Git Bash / MSYS / Cygwin: `windows-*` PE, `.exe` fetch, copy `grok.exe` / `agent.exe` |
 
 ---
 
@@ -314,13 +325,15 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-VCLI-01**–**09**, **11**–**32** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-33**–**35** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-36** | `tests/test_grok_setup.sh` | have |
 | **TP-GROK-CLI-46** | `tests/test_domain_grok_cli.sh` | have — `run` injects `--no-auto-update` |
-| **TP-CLI-04** (help lists setup and run) | `tests/test_cli.sh` | have |
+| **TP-CLI-04** (help lists setup, update-grok, and run) | `tests/test_cli.sh` | have |
 | **TP-CLI-13** (menu excludes setup) | `tests/test_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07 (2.11.0 — self-update heals wrapper; TSTP-safe reaper)  
+**Last Updated**: 2026-09-10 (2.13.0 — Git Bash/MSYS/Cygwin `windows-*`)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -34,7 +34,7 @@
 # - requirement-shell-internal-volatile-timer.md  (named volatile stages; --debug menu elapsed)
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
 # - requirement-grok-crontab.md      (add-crontab: per-login backup/sync-auth jobs)
-# - requirement-grok-setup.md        (setup: xAI channel + artifact; run: start grok without auto-update; MUST NOT exec install.sh)
+# - requirement-grok-setup.md        (setup: xAI channel + artifact; update-grok: refresh peer grok; run: start grok without auto-update; MUST NOT exec install.sh)
 # - requirement-domain-grok-cli.md   (domain surface four pillars)
 # Plus CIAO Protection Zones and "DO NOT MODIFY" rules.
 #
@@ -42,7 +42,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.28"
+# VERSION: hard-assign VERSION="1.8.30"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -56,10 +56,10 @@ APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
 : "${APP_DESC:=Alternative online installer for xAI grok}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
+: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.28"
-: "${VERSION:=1.8.28}"
+VERSION="1.8.30"
+: "${VERSION:=1.8.30}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -71,6 +71,7 @@ APP_VERSION="${VERSION}"
 : "${JSON:=0}"
 : "${FORCE:=0}"
 : "${FORCE_REINSTALL:=0}"
+: "${GC_SETUP_AS_UPDATE:=0}"
 : "${DEBUG:=0}"
 : "${UTIL_INT_TIMER_MAP:=}"
 : "${UTIL_INT_TIMER_LAST_ELAPSED:=0}"
@@ -2575,6 +2576,10 @@ gc_resolve_grok_peer() {
         printf '%s' "${_vendor_bin}"
         return 0
     fi
+    if [ -x "${_vendor_bin}.exe" ]; then
+        printf '%s' "${_vendor_bin}.exe"
+        return 0
+    fi
     # sudo env_reset leaves USER_BIN at /root/.local/bin; still find this login's grok.
     _inv_bin="$(gc_invoking_home)/.local/bin/${GROK_PEER_NAME}"
     if [ -x "${_inv_bin}" ]; then
@@ -2632,6 +2637,42 @@ gc_run_grok() {
     fi
     exec "${_peer}" --no-auto-update "$@"
     out_die "Could not start grok at ${_peer}. Next: ${APP_NAME} setup"
+}
+
+# =============================================================================
+# gc_update_grok() - Type 0: refresh peer grok from xAI (not grok-cli)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Fetch the current xAI channel pointer and grok artifact into GROK_HOME
+# (same place path as setup --force). Termux grok auto-update is
+# unsupported; this verb is the operator update path. Missing grok is
+# not an update — Next setup. Does not exec grok's updater.
+# self-update remains grok-cli only.
+#
+# ALIGNMENT:
+# - requirement-grok-setup.md
+# - requirement-shell-cli-interface.md
+# - requirement-domain-grok-cli.md
+# - requirement-operator-readable-error.md
+#
+# Lessons Learned (CIAO Reflection):
+# 2026-09-10: no named update command for peer grok; Termux grok
+# auto-update hangs. INC-20260910-002.
+#
+# Last updated: 2026-09-10
+# =============================================================================
+gc_update_grok() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    _peer=$(gc_resolve_grok_peer)
+    if [ -z "${_peer}" ] || [ ! -x "${_peer}" ]; then
+        out_die "grok is not installed, so ${APP_NAME} cannot update it. Next: ${APP_NAME} setup"
+    fi
+    FORCE=1
+    GC_SETUP_AS_UPDATE=1
+    export FORCE GC_SETUP_AS_UPDATE
+    gc_setup
 }
 
 # =============================================================================
@@ -2713,11 +2754,12 @@ gc_setup_path_has_dir() {
 #
 # GENERAL PURPOSE:
 # Same OS/arch map as the studied xAI installer (Darwin→macos, Linux→linux;
-# x86_64/amd64, aarch64/arm64; macOS Rosetta → aarch64). Empty + return 1
-# when unsupported. Windows is out of scope for this POSIX ship unit.
+# MINGW/MSYS/CYGWIN → windows; x86_64/amd64, aarch64/arm64; macOS Rosetta
+# → aarch64). Empty + return 1 when unsupported. Native Windows cmd /
+# PowerShell stay out of this POSIX ship unit (use install.ps1).
 #
 # ALIGNMENT: requirement-grok-setup.md
-# Last updated: 2026-09-02
+# Last updated: 2026-09-10
 # =============================================================================
 gc_setup_detect_platform() {
     _sys=$(uname -s 2>/dev/null) || _sys=""
@@ -2725,6 +2767,7 @@ gc_setup_detect_platform() {
     case "${_sys}" in
         Darwin) _os="macos" ;;
         Linux)  _os="linux" ;;
+        MINGW*|MSYS*|CYGWIN*) _os="windows" ;;
         *)
             printf ''
             return 1
@@ -2960,9 +3003,21 @@ gc_setup_fetch_artifact() {
     : "${GROK_VENDOR_BASE_URL:=https://x.ai/cli}"
     : "${GROK_VENDOR_FALLBACK_URL:=https://storage.googleapis.com/grok-build-public-artifacts/cli}"
     for _gfa_base in "${GROK_VENDOR_BASE_URL}" "${GROK_VENDOR_FALLBACK_URL}"; do
-        if gc_setup_fetch_binary_from "${_gfa_base}/grok-${_gfa_version}-${_gfa_platform}" "${_gfa_dest}"; then
-            return 0
-        fi
+        case "${_gfa_platform}" in
+            windows-*)
+                if gc_setup_fetch_binary_from "${_gfa_base}/grok-${_gfa_version}-${_gfa_platform}.exe" "${_gfa_dest}"; then
+                    return 0
+                fi
+                if gc_setup_fetch_binary_from "${_gfa_base}/grok-${_gfa_version}-${_gfa_platform}" "${_gfa_dest}"; then
+                    return 0
+                fi
+                ;;
+            *)
+                if gc_setup_fetch_binary_from "${_gfa_base}/grok-${_gfa_version}-${_gfa_platform}" "${_gfa_dest}"; then
+                    return 0
+                fi
+                ;;
+        esac
     done
     return 1
 }
@@ -2986,6 +3041,42 @@ gc_setup_place_links() {
     fi
     ln -sf "${_gpl_link}" "${_gpl_bin_dir}/grok" || return 1
     ln -sf "${_gpl_link}" "${_gpl_bin_dir}/agent" || return 1
+    return 0
+}
+
+# =============================================================================
+# gc_setup_place_windows_exe() - downloads .exe + copy grok.exe / agent.exe
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Git Bash / MSYS / Cygwin use the windows-* PE (studied install.sh).
+# Symlinks need Developer Mode; copy like install.sh / install.ps1.
+# If grok.exe is locked, rename aside then copy; rollback on fail.
+#
+# ALIGNMENT: requirement-grok-setup.md
+# Last updated: 2026-09-10
+# =============================================================================
+gc_setup_place_windows_exe() {
+    _gpw_src="${1:-}"
+    _gpw_download_dir="${2:-}"
+    _gpw_bin_dir="${3:-}"
+    _gpw_platform="${4:-}"
+    _gpw_final="${_gpw_download_dir}/grok-${_gpw_platform}.exe"
+    mkdir -p "${_gpw_download_dir}" "${_gpw_bin_dir}" || return 1
+    mv -f "${_gpw_src}" "${_gpw_final}" || return 1
+    chmod 0755 "${_gpw_final}" || return 1
+    for _gpw_name in grok.exe agent.exe; do
+        _gpw_dest="${_gpw_bin_dir}/${_gpw_name}"
+        rm -f "${_gpw_dest}.old" 2>/dev/null || true
+        if ! cp -f "${_gpw_final}" "${_gpw_dest}" 2>/dev/null; then
+            mv -f "${_gpw_dest}" "${_gpw_dest}.old" 2>/dev/null || true
+            if ! cp -f "${_gpw_final}" "${_gpw_dest}" 2>/dev/null; then
+                mv -f "${_gpw_dest}.old" "${_gpw_dest}" 2>/dev/null || true
+                return 1
+            fi
+        fi
+        chmod 0755 "${_gpw_dest}" 2>/dev/null || true
+    done
     return 0
 }
 
@@ -3795,18 +3886,21 @@ gc_setup_maybe_bashrc() {
 # onto aarch64 Termux is not a skip. grok on disk is success even when
 # this session's PATH is stale. A stale Android proot wrapper is
 # rewritten on that skip (no network) so grok -p can exit.
+# GC_SETUP_AS_UPDATE=1 (update-grok): always fetch (FORCE); JSON type
+# update-grok; success says updated. MUST NOT exec grok auto-update.
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
 # - requirement-shell-cli-interface.md
 # - requirement-operator-readable-error.md
 #
-# Last updated: 2026-09-07
+# Last updated: 2026-09-10
 # =============================================================================
 gc_setup() {
     : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${FORCE:=0}"
+    : "${GC_SETUP_AS_UPDATE:=0}"
     : "${GROK_VENDOR_BASE_URL:=https://x.ai/cli}"
     : "${GROK_VENDOR_FALLBACK_URL:=https://storage.googleapis.com/grok-build-public-artifacts/cli}"
     : "${GROK_CHANNEL:=stable}"
@@ -3862,10 +3956,13 @@ gc_setup() {
         _platform=$(gc_setup_detect_platform) || _platform=""
     fi
     if [ -z "${_platform}" ]; then
-        out_die "Unsupported OS or architecture ($(uname -s)/$(uname -m)). Next: use linux or macos on x86_64 or aarch64, then ${APP_NAME} setup."
+        out_die "Unsupported OS or architecture ($(uname -s)/$(uname -m)). Next: use linux, macos, or Git Bash/MSYS/Cygwin on x86_64 or aarch64, then ${APP_NAME} setup. Native Windows PowerShell uses irm https://x.ai/cli/install.ps1 | iex."
     fi
     _want_arch="${_platform#*-}"
 
+    if [ "${GC_SETUP_AS_UPDATE}" -eq 1 ]; then
+        out_info "Starting the update of grok from xAI (${GROK_CHANNEL}). This does not use grok auto-update."
+    fi
     if [ -n "${GROK_SETUP_VERSION:-}" ]; then
         if ! gc_setup_version_ok "${GROK_SETUP_VERSION}"; then
             out_die "Invalid GROK_SETUP_VERSION (${GROK_SETUP_VERSION}). Next: use X.Y.Z, then ${APP_NAME} setup."
@@ -3917,7 +4014,13 @@ gc_setup() {
         rm -f "${_tmp}"
         out_die "Could not chmod the downloaded grok under ${_download_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
     fi
-    _got_elf=$(gc_setup_elf_arch "${_tmp}") || _got_elf=""
+    _got_elf=""
+    case "${_platform}" in
+        windows-*) ;;
+        *)
+            _got_elf=$(gc_setup_elf_arch "${_tmp}") || _got_elf=""
+            ;;
+    esac
     if [ -n "${_got_elf}" ] && [ -n "${_want_arch}" ] && [ "${_got_elf}" != "${_want_arch}" ]; then
         rm -f "${_tmp}"
         out_die "The downloaded grok is the wrong architecture (${_got_elf} ELF, this host needs ${_want_arch} / ${_platform}). This did not install ${APP_NAME}. Next: run ${APP_NAME} setup --force on this device (do not scp grok from an x86_64 host onto aarch64 Termux), then ${APP_NAME} setup."
@@ -3957,23 +4060,35 @@ gc_setup() {
             out_die "${_smoke_msg}. This did not install ${APP_NAME}. Next: check the download, then ${APP_NAME} setup."
         fi
     fi
-    if [ "${GC_SETUP_SMOKE_METHOD}" = "optout" ] || [ "${GC_SETUP_SMOKE_METHOD}" = "proot" ]; then
-        if ! gc_setup_place_android_wrapper "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}" "${GC_SETUP_SMOKE_METHOD}"; then
-            rm -f "${_tmp}"
-            out_die "Could not place grok under ${_bin_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
-        fi
-    else
-        if ! gc_setup_place_links "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}"; then
-            rm -f "${_tmp}"
-            out_die "Could not place grok under ${_bin_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
-        fi
-    fi
-    gc_setup_path_symlink "${_bin_dir}"
-    gc_setup_maybe_bashrc "${_bin_dir}"
-    _placed_vendor="${_download_dir}/grok-${_platform}"
-    if [ -f "${_placed_vendor}" ]; then
-        gc_setup_maybe_android_dns "${_placed_vendor}" "${_bin_dir}" "${_home_grok}"
-    fi
+    case "${_platform}" in
+        windows-*)
+            if ! gc_setup_place_windows_exe "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}"; then
+                rm -f "${_tmp}"
+                out_die "Could not place grok.exe under ${_bin_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
+            fi
+            gc_setup_maybe_bashrc "${_bin_dir}"
+            out_info "To use grok from cmd.exe or PowerShell, add %USERPROFILE%\\.grok\\bin to your User PATH (Git Bash already uses ~/.grok/bin after a new terminal)."
+            ;;
+        *)
+            if [ "${GC_SETUP_SMOKE_METHOD}" = "optout" ] || [ "${GC_SETUP_SMOKE_METHOD}" = "proot" ]; then
+                if ! gc_setup_place_android_wrapper "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}" "${GC_SETUP_SMOKE_METHOD}"; then
+                    rm -f "${_tmp}"
+                    out_die "Could not place grok under ${_bin_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
+                fi
+            else
+                if ! gc_setup_place_links "${_tmp}" "${_download_dir}" "${_bin_dir}" "${_platform}"; then
+                    rm -f "${_tmp}"
+                    out_die "Could not place grok under ${_bin_dir}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
+                fi
+            fi
+            gc_setup_path_symlink "${_bin_dir}"
+            gc_setup_maybe_bashrc "${_bin_dir}"
+            _placed_vendor="${_download_dir}/grok-${_platform}"
+            if [ -f "${_placed_vendor}" ]; then
+                gc_setup_maybe_android_dns "${_placed_vendor}" "${_bin_dir}" "${_home_grok}"
+            fi
+            ;;
+    esac
     if ! gc_setup_host_is_android; then
         if ! gc_setup_host_resolv_ok; then
             out_info "This host has no usable /etc/resolv.conf, so grok may fail DNS (common on Termux). Next: export XAI_API_KEY, or grok login from a host with working DNS."
@@ -3984,20 +4099,36 @@ gc_setup() {
     if [ -z "${_peer}" ]; then
         out_die "The download finished but grok was not found under ${_bin_dir} or ${USER_BIN}. Next: check disk under ${_home_grok}, then ${APP_NAME} setup."
     fi
-    out_success "grok is installed at ${_peer}."
+    if [ "${GC_SETUP_AS_UPDATE}" -eq 1 ]; then
+        out_success "grok is updated at ${_peer}."
+    else
+        out_success "grok is installed at ${_peer}."
+    fi
     gc_setup_print_next "${_peer}"
     if [ "${JSON}" -eq 1 ]; then
         _on_path="false"
         gc_peer_on_current_path && _on_path="true"
-        out_json "setup" "grok is installed at ${_peer}." \
-            "app" "${APP_NAME}" \
-            "status" "installed" \
-            "peer" "${GROK_PEER_NAME}" \
-            "peer_path" "${_peer}" \
-            "on_path" "${_on_path}" \
-            "vendor_base" "${GROK_VENDOR_BASE_URL}" \
-            "version" "${_version}" \
-            "platform" "${_platform}"
+        if [ "${GC_SETUP_AS_UPDATE}" -eq 1 ]; then
+            out_json "update-grok" "grok is updated at ${_peer}." \
+                "app" "${APP_NAME}" \
+                "status" "updated" \
+                "peer" "${GROK_PEER_NAME}" \
+                "peer_path" "${_peer}" \
+                "on_path" "${_on_path}" \
+                "vendor_base" "${GROK_VENDOR_BASE_URL}" \
+                "version" "${_version}" \
+                "platform" "${_platform}"
+        else
+            out_json "setup" "grok is installed at ${_peer}." \
+                "app" "${APP_NAME}" \
+                "status" "installed" \
+                "peer" "${GROK_PEER_NAME}" \
+                "peer_path" "${_peer}" \
+                "on_path" "${_on_path}" \
+                "vendor_base" "${GROK_VENDOR_BASE_URL}" \
+                "version" "${_version}" \
+                "platform" "${_platform}"
+        fi
     fi
     return 0
 }
@@ -7660,7 +7791,7 @@ app_default() {
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
-    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
+    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
@@ -7687,7 +7818,7 @@ app_help() {
     out_plain "  where-is-me          Show running and install paths"
     out_plain "  version              Show local version"
     out_plain "  version-check        Compare local vs remote VERSION on SCRIPT_URL"
-    out_plain "  self-update          Re-download grok-cli from SCRIPT_URL"
+    out_plain "  self-update          Re-download grok-cli from SCRIPT_URL (not grok)"
     out_plain "  about                Show diagnostics (incl. sudoers trust tier)"
     out_plain "  help                 Show this help"
     out_plain "  menu                 Show the numbered list of live commands (TTY; help off-TTY)"
@@ -7699,6 +7830,7 @@ app_help() {
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
     out_plain "  setup                Install grok from x.ai (channel + artifact; skip if grok already runs here)"
+    out_plain "  update-grok          Update grok from x.ai (not grok-cli; avoids grok auto-update)"
     out_plain "  run [GROK-ARGS]      Start grok without auto-update (avoids Termux hang)"
     out_plain "  check-session        Confirm grok is logged in (runs grok -p hello first)"
     out_plain "  backup               Push ~/.grok/auth.* to ${GROK_CLI_ROOT}/"
@@ -7830,6 +7962,7 @@ app_main() {
     : "${DEBUG:=0}"
     : "${FORCE:=0}"
     : "${FORCE_REINSTALL:=0}"
+    : "${GC_SETUP_AS_UPDATE:=0}"
     : "${FORCE_GLOBAL:=0}"
     : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
     : "${SUBMIT_PURPOSE:=}"
@@ -7880,7 +8013,7 @@ app_main() {
                 SUBMIT_ACTION_EXPLICIT=1
                 export SUBMIT_ACTION SUBMIT_ACTION_EXPLICIT
                 ;;
-            version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|check-session|backup|sync-auth|sync-auth-from-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
+            version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|update-grok|check-session|backup|sync-auth|sync-auth-from-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
                 COMMAND="$1"
                 _saw_command=1
                 ;;
@@ -7942,6 +8075,7 @@ app_main() {
         self-update)  inst_self_update ;;
         self-uninstall) inst_self_uninstall ;;
         setup)        gc_setup ;;
+        update-grok)  gc_update_grok ;;
         run)          gc_run_grok "$@" ;;
         check-session) gc_check_session ;;
         backup)       gc_backup ;;

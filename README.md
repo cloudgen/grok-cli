@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.28-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.30-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -16,7 +16,7 @@ This program is a better alternative **there** because it is written for that ho
 | Official `install.sh` | grok-cli |
 |-----------------------|----------|
 | One-liner assumes macOS / Linux / Windows | POSIX `/bin/sh` (does **not** need bash); Termux `PREFIX` / `pkg` as this login |
-| Places whatever the script assumes | `setup` fetches the matching `linux-aarch64` / `linux-x86_64` (or Darwin) artifact and **smokes `--version` on this host** |
+| Places whatever the script assumes | `setup` fetches the matching `linux-*`, Darwin, or (Git Bash/MSYS/Cygwin) `windows-*.exe` artifact and **smokes `--version` on this host** |
 | No check that an x86_64 copy runs on a phone | Wrong ELF is **not** “already installed”; `--force` replaces it |
 | Android `ET_EXEC` refusal looks like a truncated file | Retries `TERMUX_EXEC_OPTOUT`, may `pkg install -y proot` (no sudo), wraps grok **without editing vendor bytes** |
 | musl grok reads `/etc/resolv.conf` with no nameserver | Binds `~/.grok/resolv.conf` over `/etc/resolv.conf` via PRoot |
@@ -31,10 +31,11 @@ It is **not** a second grok program and **not** official x.ai Termux support. Af
 
 ## Features
 
-- **Install grok without x.ai’s `install.sh`**: type `grok-cli setup`. It detects this computer, downloads the matching grok program from xAI, checks that `--version` runs from `~/.grok/downloads` (not `/tmp` or the cache folder — some phones refuse to run files from there), and places `~/.grok/bin/grok`. Skip if grok already **runs on this host**. An x86_64 file copied onto an aarch64 phone is replaced. On Termux, if the phone will not run the vendor file, setup may install `proot` with `pkg` (this login, no sudo) and place a wrapper — it still does **not** edit the vendor file. `--force` downloads again. POSIX `/bin/sh` (does **not** need bash).
+- **Install grok without x.ai’s `install.sh`**: type `grok-cli setup`. It detects this computer, downloads the matching grok program from xAI, checks that `--version` runs from `~/.grok/downloads` (not `/tmp` or the cache folder — some phones refuse to run files from there), and places `~/.grok/bin/grok` (Git Bash: `grok.exe`). Skip if grok already **runs on this host**. An x86_64 file copied onto an aarch64 phone is replaced. On Termux, if the phone will not run the vendor file, setup may install `proot` with `pkg` (this login, no sudo) and place a wrapper — it still does **not** edit the vendor file. On Git Bash / MSYS / Cygwin it fetches the **windows** `.exe` (copy, not symlink). `--force` downloads again. POSIX `/bin/sh` (does **not** need bash).
 - **Termux-aware place**: uses `${PREFIX}/bin` when `PREFIX` is set. A missing `/etc/resolv.conf` is a note, not an install failure, when `--version` succeeded. If grok still will not run: `pkg install proot`, then `grok-cli setup --force`. From **1.8.22** the PRoot wrapper stops leftover `runsvdir` from freezing `grok -p` (see **Platform Compatibility**).
 - **Install this program**: paste the curl one-liner; later `version-check`, `self-update`, `self-uninstall`
 - **Install from a checkout**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
+- **Update grok without grok auto-update**: type `grok-cli update-grok`. Fetches the latest xAI grok into `~/.grok` (Termux grok updater is unsupported). This is **not** `self-update` (that refreshes grok-cli). Missing grok → `grok-cli setup`.
 - **Start grok without auto-update**: type `grok-cli run` (or `grok-cli run -p hello`). On Termux this avoids the hang until Ctrl-Z. Missing grok → `grok-cli setup`.
 - **Prove grok is logged in**: on Termux/PRoot, `check-session` reads local `~/.grok/auth.json` cookies (live `grok -p hello` is skipped — it usually times out). On other hosts it still asks grok a one-line question (`grok -p hello`). Missing grok → `grok-cli setup`, then `grok login`.
 - **Optional shared login on one Linux host**: `backup` copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644` (elevated probe uses **this** login’s grok home, not root’s); `sync-auth` copies that store into this login’s `~/.grok` with **no sudo** (skipped if grok is already logged in — prints `No sync-auth for logged-in environment.`); `sync-auth-from-remote` uses `scp` (same skip) and remembers the last remote; `add-crontab` adds this login’s timers after **this** login’s backup grant exists
@@ -177,6 +178,7 @@ grok-cli version-check
 grok-cli self-update
 
 grok-cli setup                 # install grok from x.ai (not grok-cli; not install.sh)
+grok-cli update-grok           # update grok from x.ai (not grok-cli; avoids grok auto-update)
 grok-cli run                   # start grok without auto-update (Termux)
 grok-cli run -p hello
 grok-cli check-session
@@ -214,6 +216,7 @@ grok-cli self-uninstall --force
 ```sh
 # Place xAI grok (skip if already installed)
 grok-cli setup
+grok-cli update-grok           # latest grok from x.ai (not grok auto-update)
 # open a new terminal if grok is not on this session PATH yet
 grok-cli run                   # Termux: start grok without auto-update
 # or: grok login
@@ -238,10 +241,54 @@ grok-cli add-crontab
 |----------|--------|
 | Linux, `/bin/sh` (dash/bash) | Supported |
 | Termux / Android userspace | Supported for **this installer** (`setup` smokes under `~/.grok/downloads`, honors `$PREFIX/bin`, does not require bash). Vendor `linux-aarch64` grok is often `ET_EXEC`; setup retries `TERMUX_EXEC_OPTOUT`, may `pkg install -y proot`, and may place a wrapper without patching the file. Missing `/etc/resolv.conf` is not an install failure — use `XAI_API_KEY` or a host with working DNS if login fails. **Not** official x.ai Termux support. Why `grok -p` can hang until Ctrl-Z: **Why grok under PRoot does not return to the shell** below. |
+| Git Bash / MSYS / Cygwin | Supported: `setup` maps `uname` to `windows-*`, fetches `grok-…-windows-….exe`, copies `~/.grok/bin/grok.exe` (no Developer Mode symlink). cmd.exe / PowerShell still need User PATH `%USERPROFILE%\.grok\bin`. |
 | `python3` (optional) | Used for leftover `auth.json` shape helper when present (session gate is `grok -p hello`) |
 | `sudo` + narrow sudoers | Required only for non-root `backup` into `/var/grok-cli` |
 | macOS | `setup` follows xAI’s Darwin/arch detect; GNU `date -d` / `stat -c` assumptions may differ for other verbs |
-| Windows | Out of scope (fail closed in `setup`) |
+| Windows PowerShell / cmd.exe | Official grok: `irm https://x.ai/cli/install.ps1 \| iex`. grok-cli `setup` is POSIX `sh` and does **not** replace that one-liner. |
+
+### How xAI grok is set up by host
+
+Studied from `https://x.ai/cli/install.sh` and `https://x.ai/cli/install.ps1`. grok-cli **does not run** those scripts; `setup` / `update-grok` replay the channel + artifact steps in POSIX `/bin/sh`.
+
+**One-liners**
+
+| Host | Official xAI | grok-cli |
+|------|----------------|----------|
+| Linux | `curl -fsSL https://x.ai/cli/install.sh \| bash` | `grok-cli setup` (same `linux-*` artifact; does **not** run `install.sh`) |
+| macOS | same `install.sh` | `grok-cli setup` (`macos-*`; Rosetta → aarch64) |
+| Windows PowerShell | `irm https://x.ai/cli/install.ps1 \| iex` | Not this POSIX `setup` |
+| Git Bash / MSYS / Cygwin | `install.sh` maps to **windows** and installs `.exe` | `grok-cli setup` (same `windows-*` `.exe`; copy `grok.exe`) |
+| WSL | `install.sh` → **linux** binary | `grok-cli setup` as Linux |
+| Termux | **Not intended** | `grok-cli setup` fetches **`linux-aarch64`**, smokes on the phone, often a **PRoot wrapper** |
+
+**Detect OS / arch / artifact**
+
+| Step | Linux `install.sh` | Termux grok-cli | PowerShell `install.ps1` | Git Bash grok-cli |
+|------|--------------------|-----------------|--------------------------|-------------------|
+| OS | `uname -s` Linux → `linux` | still Linux → **`linux`** | forced **Windows** | `MINGW*`/`MSYS*`/`CYGWIN*` → **`windows`** |
+| Arch | `uname -m` → `x86_64` / `aarch64` | same; refuse x86_64 file on an aarch64 phone | `PROCESSOR_ARCHITECTURE` | `uname -m` |
+| Artifact | `grok-{ver}-linux-{arch}` (`.zst` / `.gz` / raw) | same **linux** file | `grok-{ver}-windows-{arch}.exe` then without `.exe` | same **windows** `.exe` then uncompressed |
+| On disk | no `.exe`; `chmod +x` | same + optional POSIX **wrapper** | `grok.exe` / `agent.exe` **copy** | `grok.exe` / `agent.exe` **copy** |
+
+**Fetch / place / smoke**
+
+| Step | Linux `install.sh` | Termux grok-cli | PowerShell `install.ps1` | Git Bash grok-cli |
+|------|--------------------|-----------------|--------------------------|-------------------|
+| Transport | `curl` or `wget` | `curl`; HTTP status on fail | `Invoke-WebRequest` / `HttpWebRequest`; **TLS 1.2** | `curl` |
+| Channel | `https://x.ai/cli/{stable\|alpha\|enterprise}`; GCS fallback | same | same | same |
+| Place | `~/.grok/downloads` + `~/.grok/bin` **symlink** | same; wrapper if ET_EXEC | `%USERPROFILE%\.grok\` **copy** `.exe` | `~/.grok/` **copy** `.exe` |
+| Smoke `--version` | yes, before replace | yes, under `downloads` (not `/tmp`); Android retries + PRoot | **no** | **yes**, before replace |
+| Termux extras | none | DNS bind; `--no-auto-update` on `-p`; PRoot reaper | none | none (not Android) |
+
+**PATH**
+
+| Step | Linux `install.sh` | Termux grok-cli | PowerShell `install.ps1` | Git Bash grok-cli |
+|------|--------------------|-----------------|--------------------------|-------------------|
+| PATH now | symlink into `~/.local/bin` or `/usr/local/bin` if already on PATH | same + `${PREFIX}/bin` candidate | **User** `Path` + this session | **no** USER_BIN symlink (like official `install.sh` on windows) |
+| PATH later | `# >>> grok installer >>>` in bash/zsh/fish rc | bash `~/.bashrc` vendor block | User PATH (cmd + PowerShell) | bash `~/.bashrc` vendor block; INFO for cmd/PowerShell User PATH |
+
+Then `grok login` or `XAI_API_KEY`. On Termux prefer `grok-cli run` and `grok-cli update-grok` instead of grok’s own updater.
 
 ### Why grok under PRoot does not return to the shell
 
@@ -323,4 +370,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-09 — version **1.8.28**: menu login status and not-available lines are independent `[INFO]`. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-10 — version **1.8.30**: Git Bash/MSYS/Cygwin `setup` fetches `windows-*` grok.exe; README host comparison tables. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

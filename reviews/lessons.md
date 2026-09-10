@@ -4,10 +4,13 @@ Durable failure modes. **Always re-check on product review.**
 
 | ID | Mode | Prevention | Status |
 |----|------|------------|--------|
+| L-MAP-01 | After H1, `AGENTS.md` claims specialized incident bodies / foreign `/home/<login>/` while `docs/README.md` still says genesis 0 REQs | Rebind dest maps from dest disk (`SK-DEST-SSOT-MAP-REBIND`); count `incident-*.md` / `requirement-*.md` before trusting live inventory; **INC-20260910-001** | open watch |
+| L-EXPOSE-01 | Root `AGENTS.md` pastes incident ID + lesson tables (even when gitignored) | Thin pointer to `docs/incidents/` only; `avoid-expose-agents`; do not track incidents to “fix” links; **INC-20260910-001** | open watch |
 | L-TYPE-N-01 | TTY empty argv becomes install-ensure (menu stolen) | TTY → `app_default`; off-TTY Type O only; TP-CLI-07 PTY | open watch |
 | L-ARGV-01 | Off-TTY empty argv draws or hangs the numbered menu | Off-TTY empty argv is Type O ensure; `menu` off-TTY is help; TP-CLI-07/13 | open watch |
 | L-ARGV-02 | Overlay flags-only (`--debug`) treated as help because empty argv was `$# -eq 0` | Empty argv = no command token after flag parse; TP-CLI-29 | open watch |
 | L-ONLINE-01 | Drop channel / dual-mode matrix while advertising `curl\|sh` | `requirement-shell-online-install` matrix; TP-ONL-* · TP-CLI-04/10 | open watch |
+| L-GROK-UPD-01 | No grok-cli command to update peer grok; Termux grok auto-update is unsupported; `self-update` is grok-cli-only; `setup` skip is not “latest grok” | Named Type 0 `update-grok` via xAI channel+artifact; never grok’s updater; TP-VCLI-33..35; **INC-20260910-002** | closed 2026-09-10 |
 | L-PATH-01 | Termux `curl\|sh` already-installed skip leaves `~/.local/bin` off PATH; `path_add_bashrc` no-ops if `.bashrc` missing; Termux default PATH has no `USER_BIN` | Already-installed user-bin ensure still `path_add_shell`; create `.bashrc` on Termux; **INC-20260909-001** | open watch |
 | L-UNIN-01 | Non-interactive uninstall succeeds without force | TP-LC-05 confirm fail-closed | open watch |
 | L-INST-MODE-01 | Install leaves `0711`/`0700` (chmod +x after mktemp) so non-owners cannot run shell ship unit | absolute `chmod 0755` + heal on reinstall; TP-LC-09/10; local-self-management §2.3.1 | open watch |

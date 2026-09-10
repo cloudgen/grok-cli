@@ -4,9 +4,9 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 
 **Ship unit:** `src/grok-cli`  
 **Dispatcher:** `app_main`  
-**Scan date:** 2026-09-07  
-**Mode:** incremental (`self-update`)  
-**Copied:** prior live · **Re-checked:** `self-update` (`inst_self_update`)  
+**Scan date:** 2026-09-10  
+**Mode:** incremental (`update-grok`)  
+**Copied:** prior live · **Re-checked:** `update-grok` (`gc_update_grok`)  
 **Inventory:** dispatcher `case "${COMMAND}"` — not `app_help` for routing; help one-liners copied into **human-readable**
 
 ## Live commands
@@ -26,6 +26,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | self-update | `inst_self_update` | you (Type 0) | 2026-09-07 | `self-update: Re-download grok-cli from SCRIPT_URL (start line names local and remote VERSION)` |
 | self-uninstall | `inst_self_uninstall` | you (Type 0) | 2026-09-02 | `self-uninstall: Same remove as uninstall (channel name)` |
 | setup | `gc_setup` | you (Type 0) | 2026-09-04 | `setup: Install grok from x.ai (channel + artifact; skip if grok already runs here)` |
+| update-grok | `gc_update_grok` | you (Type 0) | 2026-09-10 | `update-grok: Update grok from x.ai (not grok-cli; avoids grok auto-update)` |
 | run | `gc_run_grok` | you (Type 0) | 2026-09-07 | `run: Start grok without auto-update` |
 | print-sudoers | `gc_print_sudoers` | you (Type 0) | 2026-08-14 | `print-sudoers: Emit sudoers draft` |
 | print-sudoers-install-script | `gc_print_sudoers_install_script` | you (Type 0) | 2026-08-09 | `print-sudoers-install-script: Write admin install script` |
@@ -47,5 +48,5 @@ A TTY main menu **MUST** print daily-work **human-readable** lines as a **number
 
 ---
 
-**Last Updated:** 2026-09-07 (`run` live; this-login-only main **N = 3** / **2**)  
+**Last Updated:** 2026-09-10 (`update-grok` live; this-login-only main **N = 3** / **2**)  
 **Alignment:** term `cli-routed-verb-table` · **`SK-CLI-ROUTED-VERB-TABLE`** · **`SK-CLI-DEFAULT-INTERACTION`**
