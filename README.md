@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.30-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.31-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -18,6 +18,7 @@ This program is a better alternative **there** because it is written for that ho
 | One-liner assumes macOS / Linux / Windows | POSIX `/bin/sh` (does **not** need bash); Termux `PREFIX` / `pkg` as this login |
 | Places whatever the script assumes | `setup` fetches the matching `linux-*`, Darwin, or (Git Bash/MSYS/Cygwin) `windows-*.exe` artifact and **smokes `--version` on this host** |
 | No check that an x86_64 copy runs on a phone | Wrong ELF is **not** “already installed”; `--force` replaces it |
+| Silent skip when grok is already on disk | On a real terminal, **keep** / **reinstall** / **Exit**; scripts and `--json` skip |
 | Android `ET_EXEC` refusal looks like a truncated file | Retries `TERMUX_EXEC_OPTOUT`, may `pkg install -y proot` (no sudo), wraps grok **without editing vendor bytes** |
 | musl grok reads `/etc/resolv.conf` with no nameserver | Binds `~/.grok/resolv.conf` over `/etc/resolv.conf` via PRoot |
 | `grok -p` hangs: leftover Termux `runsvdir` keep PRoot in `do_wait` | From **1.8.22**: bind a no-op over `start-services.sh` so login-shell env capture does not spawn those daemons; reaper as safety net so `-p` returns |
@@ -31,7 +32,7 @@ It is **not** a second grok program and **not** official x.ai Termux support. Af
 
 ## Features
 
-- **Install grok without x.ai’s `install.sh`**: type `grok-cli setup`. It detects this computer, downloads the matching grok program from xAI, checks that `--version` runs from `~/.grok/downloads` (not `/tmp` or the cache folder — some phones refuse to run files from there), and places `~/.grok/bin/grok` (Git Bash: `grok.exe`). Skip if grok already **runs on this host**. An x86_64 file copied onto an aarch64 phone is replaced. On Termux, if the phone will not run the vendor file, setup may install `proot` with `pkg` (this login, no sudo) and place a wrapper — it still does **not** edit the vendor file. On Git Bash / MSYS / Cygwin it fetches the **windows** `.exe` (copy, not symlink). `--force` downloads again. POSIX `/bin/sh` (does **not** need bash).
+- **Install grok without x.ai’s `install.sh`**: type `grok-cli setup`. It detects this computer, downloads the matching grok program from xAI, checks that `--version` runs from `~/.grok/downloads` (not `/tmp` or the cache folder — some phones refuse to run files from there), and places `~/.grok/bin/grok` (Git Bash: `grok.exe`). If grok already **runs on this host**, a real terminal offers **keep** / **reinstall** / **Exit** (pick **2** to remove and install again). Scripts and `--json` skip. An x86_64 file copied onto an aarch64 phone is replaced. On Termux, if the phone will not run the vendor file, setup may install `proot` with `pkg` (this login, no sudo) and place a wrapper — it still does **not** edit the vendor file. On Git Bash / MSYS / Cygwin it fetches the **windows** `.exe` (copy, not symlink). `--force` downloads again without the list. POSIX `/bin/sh` (does **not** need bash).
 - **Termux-aware place**: uses `${PREFIX}/bin` when `PREFIX` is set. A missing `/etc/resolv.conf` is a note, not an install failure, when `--version` succeeded. If grok still will not run: `pkg install proot`, then `grok-cli setup --force`. From **1.8.22** the PRoot wrapper stops leftover `runsvdir` from freezing `grok -p` (see **Platform Compatibility**).
 - **Install this program**: paste the curl one-liner; later `version-check`, `self-update`, `self-uninstall`
 - **Install from a checkout**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
@@ -58,6 +59,18 @@ grok-cli setup
 ```
 
 Then open a **new terminal** if this session cannot find `grok`, and run `grok login`.
+
+If grok already **runs** on this host, a real terminal offers keep / reinstall / Exit (pick **2** to install again). Scripts and `--json` skip. `--force` skips the list.
+
+```text
+$ grok-cli setup
+[INFO] **grok-cli**(*1.8.31*) — setup
+[INFO] grok is already installed at ~/.grok/bin/grok.
+1. keep: Leave the existing grok
+2. reinstall: Remove existing grok and install again
+9. Exit
+Choice [1]:
+```
 
 On **Termux (aarch64)** run `grok-cli setup` **on the phone**. `scp` of `~/.grok/bin/grok` from an x86_64 host copies `linux-x86_64` and Termux will reject it (`EM_X86_64` instead of `EM_AARCH64`). `setup` fetches `linux-aarch64` from x.ai; `--force` replaces a copied x86_64 file. If `--version` fails with `unexpected e_type: 2`, setup tries `pkg install -y proot` on Termux and wraps grok. If that still cannot run: `pkg install proot`, then `grok-cli setup --force`.
 
@@ -167,6 +180,7 @@ Choose a number, or type the command name. `9` exits. The line under the title i
 | `curl -fsSL … \| sh` or `grok-cli` in a script (no args) | Install-ensure: places `~/.local/bin/grok-cli` or reports already installed. **Not** help. **Not** the menu. |
 | `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help. `--json` with no command is empty argv **special case**: JSON help even at a prompt |
 | `grok-cli menu` in a script | Help (the list is TTY-only) |
+| `grok-cli setup` at a real terminal | If grok already runs: numbered **keep** / **reinstall** / **Exit**. Pick **2** to remove existing grok and install again. Scripts / `--json` skip. `--force` fetches without the list. |
 
 ```sh
 grok-cli                 # numbered list on a real terminal; install-ensure in a script / pipe
@@ -177,7 +191,7 @@ grok-cli --json about
 grok-cli version-check
 grok-cli self-update
 
-grok-cli setup                 # install grok from x.ai (not grok-cli; not install.sh)
+grok-cli setup                 # install grok from x.ai (TTY: keep or reinstall if already there)
 grok-cli update-grok           # update grok from x.ai (not grok-cli; avoids grok auto-update)
 grok-cli run                   # start grok without auto-update (Termux)
 grok-cli run -p hello
@@ -214,8 +228,9 @@ grok-cli self-uninstall --force
 ## Examples
 
 ```sh
-# Place xAI grok (skip if already installed)
+# Place xAI grok (TTY: keep / reinstall / Exit if already there)
 grok-cli setup
+grok-cli setup --force     # reinstall without the list
 grok-cli update-grok           # latest grok from x.ai (not grok auto-update)
 # open a new terminal if grok is not on this session PATH yet
 grok-cli run                   # Termux: start grok without auto-update
@@ -370,4 +385,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-10 — version **1.8.30**: Git Bash/MSYS/Cygwin `setup` fetches `windows-*` grok.exe; README host comparison tables. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-12 — version **1.8.31**: TTY `setup` offers keep / reinstall / Exit when grok already runs. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

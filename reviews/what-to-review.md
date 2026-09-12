@@ -4,8 +4,8 @@
 **Class:** software-development · domain SSOT present · **dual-mode** install (channel `curl\|sh` primary; checkout `install` secondary).  
 **Always load first:** `reviews/lessons.md`
 
-**Last plan update:** 2026-09-10 (`update-grok`)  
-**Ship unit VERSION:** 1.8.30  
+**Last plan update:** 2026-09-12 (TTY `setup` reinstall)  
+**Ship unit VERSION:** 1.8.31  
 **Suite baseline:** `reviews/test-plan.md`
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + domain grok-cli + grok-auth-backup + three-layer |
-| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.30**) |
+| P2 | Confirm ship unit `src/grok-cli` | `APP_NAME` / `VERSION` hard-assign (**1.8.31**) |
 | P3 | Load `reviews/lessons.md` and re-check every open L-* | Mandatory (esp. **L-MAP-01** · **L-EXPOSE-01** · **L-SUDOERS-01/02** · **L-SUDOERS-06** · **L-OUTPUT-01** · **L-AUTH-01** · **L-PROMPT-CAPTURE-01**) |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP; **must include TP-GROK-CLI-22e** and **TP-24*/25*** when generate/submit is in scope |
 | P5 | Confirm install **channel** | `SCRIPT_URL` default github raw `src/grok-cli`; companion `.sha256`; dual-mode matrix |
@@ -32,6 +32,7 @@
 | P16 | **Human-readable law** | Every Active REQ has §1.1 Human-facing; grant samples use `id -un`; no frozen login (TP-CLI-18) |
 | P17 | **Command line for normal user only** | Related shell REQs print that exact heading; Termux/Git Bash/Windows cmd stay this-login; main menu hides backup/sync-auth/sudoers, lists **`run` first**, and prints the not-available line (TP-CLI-19); logged-in session hides sync-auth / sync-auth-from-remote and **appends** the logged-in not-available line (TP-CLI-20) |
 | P18 | **`run` without auto-update** | Dispatcher `gc_run_grok`; inject `--no-auto-update`; `--json` fail-closed Next `run`; missing grok Next `setup`; dual mention grok-setup + CLI-interface + domain; TP-GROK-CLI-46 · TP-CLI-04 |
+| P18b | **TTY `setup` reinstall** | Already-installed TTY list keep / reinstall / Exit; `--json` skip; `--force` skips list; no `$()` of `prompt_ask`; no wipe of `auth.*`; TP-VCLI-37..39 |
 | P19 | **Dest maps vs disk** | `AGENTS.md` + `docs/README.md` live inventory = this dest class/REQ/incident **file** count; no `/home/<login>/`; no phantom `incident-*.md`; **L-MAP-01** · **L-EXPOSE-01** · **INC-20260910-001** |
 
 ---

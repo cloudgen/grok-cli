@@ -42,7 +42,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.30"
+# VERSION: hard-assign VERSION="1.8.31"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -58,8 +58,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.30"
-: "${VERSION:=1.8.30}"
+VERSION="1.8.31"
+: "${VERSION:=1.8.31}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -3871,6 +3871,66 @@ gc_setup_maybe_bashrc() {
 }
 
 # =============================================================================
+# gc_setup_already_installed_menu() - TTY keep / reinstall / Exit for setup
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# When grok already runs on this host and setup is interactive, print a
+# numbered list: keep the existing grok, remove it and install again, or
+# Exit. Choice is current-shell prompt_ask (PROMPT_ASK_VALUE). Does not
+# fetch. Does not wipe GROK_HOME or auth.*. Caller applies the choice
+# via GC_SETUP_ALREADY_CHOICE (keep | reinstall | cancel).
+#
+# ALIGNMENT:
+# - requirement-grok-setup.md
+# - requirement-shell-interactive-vs-noninteractive.md
+# - requirement-shell-cli-interface.md
+#
+# Last updated: 2026-09-12
+# =============================================================================
+gc_setup_already_installed_menu() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+    : "${TTY:=0}"
+    : "${PROMPT_ASK_VALUE:=}"
+    _gsaim_peer="${1:-}"
+    GC_SETUP_ALREADY_CHOICE="keep"
+
+    if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || [ "${TTY}" -ne 1 ]; then
+        return 0
+    fi
+
+    out_info "$(util_app_ident) — setup"
+    if [ -n "${_gsaim_peer}" ]; then
+        out_info "grok is already installed at ${_gsaim_peer}."
+    fi
+    out_menu_choice "1" "keep" "Leave the existing grok"
+    out_menu_choice "2" "reinstall" "Remove existing grok and install again"
+    out_menu_choice "9" "Exit"
+    # MUST NOT wrap prompt_ask in command substitution (T1-PROMPT-CAPTURE).
+    prompt_ask "Choice" "1"
+    _gsaim_pick="${PROMPT_ASK_VALUE}"
+    case "${_gsaim_pick}" in
+        2|reinstall|Reinstall)
+            GC_SETUP_ALREADY_CHOICE="reinstall"
+            ;;
+        9|exit|quit|Exit|QUIT)
+            GC_SETUP_ALREADY_CHOICE="cancel"
+            ;;
+        1|keep|Keep|"")
+            GC_SETUP_ALREADY_CHOICE="keep"
+            ;;
+        *)
+            out_info "Not a setup choice. Keeping the existing grok."
+            GC_SETUP_ALREADY_CHOICE="keep"
+            ;;
+    esac
+    unset _gsaim_peer _gsaim_pick
+    return 0
+}
+
+# =============================================================================
 # gc_setup() - Type 0: place peer grok via studied xAI channel + artifact
 # =============================================================================
 #
@@ -3882,23 +3942,26 @@ gc_setup_maybe_bashrc() {
 # TERMUX_EXEC_OPTOUT, Termux pkg install -y proot when missing, or
 # proot, and place a wrapper — do not byte-patch.
 # MUST NOT download or exec install.sh. MUST NOT require bash. Skip if
-# grok already runs on this host unless --force. An x86_64 file copied
-# onto aarch64 Termux is not a skip. grok on disk is success even when
-# this session's PATH is stale. A stale Android proot wrapper is
-# rewritten on that skip (no network) so grok -p can exit.
+# grok already runs on this host unless --force or a TTY reinstall pick.
+# An x86_64 file copied onto aarch64 Termux is not a skip. grok on disk
+# is success even when this session's PATH is stale. A stale Android
+# proot wrapper is rewritten on keep (no network) so grok -p can exit.
 # GC_SETUP_AS_UPDATE=1 (update-grok): always fetch (FORCE); JSON type
 # update-grok; success says updated. MUST NOT exec grok auto-update.
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
 # - requirement-shell-cli-interface.md
+# - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-operator-readable-error.md
 #
-# Last updated: 2026-09-10
+# Last updated: 2026-09-12
 # =============================================================================
 gc_setup() {
     : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
+    : "${QUIET:=0}"
+    : "${TTY:=0}"
     : "${FORCE:=0}"
     : "${GC_SETUP_AS_UPDATE:=0}"
     : "${GROK_VENDOR_BASE_URL:=https://x.ai/cli}"
@@ -3915,21 +3978,42 @@ gc_setup() {
     fi
     if [ -n "${_peer}" ] && [ "${FORCE}" -ne 1 ]; then
         if gc_setup_peer_usable "${_peer}" "${_host_arch}"; then
-            gc_setup_heal_android_wrapper "${_peer}"
-            out_success "grok is already installed at ${_peer}."
-            gc_setup_print_next "${_peer}"
-            if [ "${JSON}" -eq 1 ]; then
-                _on_path="false"
-                gc_peer_on_current_path && _on_path="true"
-                out_json "setup" "grok is already installed at ${_peer}." \
-                    "app" "${APP_NAME}" \
-                    "status" "already_installed" \
-                    "peer" "${GROK_PEER_NAME}" \
-                    "peer_path" "${_peer}" \
-                    "on_path" "${_on_path}" \
-                    "vendor_base" "${GROK_VENDOR_BASE_URL}"
+            if [ "${GC_SETUP_AS_UPDATE}" -ne 1 ] && [ "${JSON}" -ne 1 ] && [ "${QUIET}" -ne 1 ] && [ "${TTY}" -eq 1 ]; then
+                gc_setup_already_installed_menu "${_peer}"
+                case "${GC_SETUP_ALREADY_CHOICE}" in
+                    reinstall)
+                        FORCE=1
+                        export FORCE
+                        out_info "Removing existing grok and installing again. The current file stays until the new download passes --version."
+                        ;;
+                    cancel)
+                        out_info "Setup cancelled."
+                        return 0
+                        ;;
+                    *)
+                        gc_setup_heal_android_wrapper "${_peer}"
+                        out_success "grok is already installed at ${_peer}."
+                        gc_setup_print_next "${_peer}"
+                        return 0
+                        ;;
+                esac
+            else
+                gc_setup_heal_android_wrapper "${_peer}"
+                out_success "grok is already installed at ${_peer}."
+                gc_setup_print_next "${_peer}"
+                if [ "${JSON}" -eq 1 ]; then
+                    _on_path="false"
+                    gc_peer_on_current_path && _on_path="true"
+                    out_json "setup" "grok is already installed at ${_peer}." \
+                        "app" "${APP_NAME}" \
+                        "status" "already_installed" \
+                        "peer" "${GROK_PEER_NAME}" \
+                        "peer_path" "${_peer}" \
+                        "on_path" "${_on_path}" \
+                        "vendor_base" "${GROK_VENDOR_BASE_URL}"
+                fi
+                return 0
             fi
-            return 0
         fi
         if [ -n "${GC_SETUP_PEER_UNUSABLE:-}" ]; then
             out_info "Existing grok at ${_peer} cannot run on this host (${GC_SETUP_PEER_UNUSABLE}). Fetching a matching grok."
@@ -7829,7 +7913,7 @@ app_help() {
     out_plain "                       (does not write this login's real ~/.bashrc)"
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
-    out_plain "  setup                Install grok from x.ai (channel + artifact; skip if grok already runs here)"
+    out_plain "  setup                Install grok from x.ai (channel + artifact; TTY offers reinstall if grok already runs)"
     out_plain "  update-grok          Update grok from x.ai (not grok-cli; avoids grok auto-update)"
     out_plain "  run [GROK-ARGS]      Start grok without auto-update (avoids Termux hang)"
     out_plain "  check-session        Confirm grok is logged in (runs grok -p hello first)"

@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.31] - 2026-09-12
+
+### Added
+
+- **TTY `setup` reinstall list:** when grok already runs on this host, `grok-cli setup` at a real terminal shows **keep** / **reinstall** / **Exit** instead of a silent skip. Pick **2** fetches a new grok (same as `--force`); the old file stays until `--version` succeeds; `auth.*` is not deleted. `--json` / pipes still skip. `--force` still skips the list. Law: `requirement-grok-setup` **2.14.0** · `requirement-shell-cli-interface` **2.11.0** · `requirement-domain-grok-cli` **1.8.0** · `requirement-shell-interactive-vs-noninteractive` **1.0.5**. Suite **TP-VCLI-37** · **TP-VCLI-38** · **TP-VCLI-39**.
+
 ## [1.8.30] - 2026-09-10
 
 ### Added

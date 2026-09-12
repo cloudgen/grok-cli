@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-grok-cli.md  
-**Status**: Active (Version 1.7.0)  
+**Status**: Active (Version 1.8.0)  
 **Area**: domain  
 **Key**: `requirement-domain-grok-cli`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -49,7 +49,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 
 | Command | Operands / flags | Handler prefix | Behavior summary | Behavior SSOT |
 |---------|------------------|----------------|------------------|---------------|
-| `setup` | `--force` | `gc_*` | Fetch xAI channel + artifact and place peer `grok`; **MUST NOT** exec `install.sh`; skip if grok already runs on this host; Android ET_EXEC may place an exec wrapper | **`requirement-grok-setup`** |
+| `setup` | `--force`; TTY keep / reinstall / Exit when grok already runs | `gc_*` | Fetch xAI channel + artifact and place peer `grok`; **MUST NOT** exec `install.sh`; skip if grok already runs off-TTY / `--json`; on a TTY offer reinstall; Android ET_EXEC may place an exec wrapper | **`requirement-grok-setup`** |
 | `update-grok` | — | `gc_*` | Refresh peer grok from xAI channel + artifact (same as `setup --force`); missing grok Next `setup`; **MUST NOT** exec grok auto-update | **`requirement-grok-setup`** |
 | `run` | remaining grok argv | `gc_*` | Start peer grok with `--no-auto-update` (unless already passed); missing grok Next `setup`; `--json` does not exec | **`requirement-grok-setup`** |
 | `check-session` | none | `gc_*` | Confirm grok is logged in (`grok -p hello` first; if `proot` on PATH use the reaper, else simple `-p`) | **`requirement-grok-auth-backup`** (procedure) · **`requirement-shell-termux-coding`** (PRoot writing) |
@@ -127,7 +127,7 @@ sudoer-{{YYYYMMDD}}-grok-cli-{{username}}-{{action}}-{{n}}.json
 
 | Help row | Text intent |
 |----------|-------------|
-| `setup` | Install grok from x.ai (channel + artifact; skip if grok already runs here) |
+| `setup` | Install grok from x.ai (channel + artifact; TTY offers reinstall if grok already runs) |
 | `update-grok` | Update grok from x.ai (not grok-cli; avoids grok auto-update) |
 | `run` | Start grok without auto-update (avoids Termux hang) |
 | `check-session` | Confirm grok is logged in (`grok -p hello` first; PRoot reaper when `proot` is on PATH) |
@@ -291,6 +291,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active (1.5.0) | `run` starts peer grok without auto-update (dual mention `requirement-grok-setup` 2.8.0) |
 | 2026-09-07 | Active (1.6.0) | `check-session` / menu probe: `proot` on PATH → reaper; else simple `grok -p hello` (dual mention Termux writing + auth-backup) |
 | 2026-09-10 | Active (1.7.0) | `update-grok` (dual mention `requirement-grok-setup` 2.12.0; **INC-20260910-002**) |
+| 2026-09-12 | Active (1.8.0) | TTY `setup` keep / reinstall / Exit (dual mention `requirement-grok-setup` 2.14.0) |
 
 ---
 
@@ -302,6 +303,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-CLI-04**, **TP-CLI-06** | `tests/test_cli.sh` | have |
 | **TP-VCLI-01**–**09**, **11**–**25** | `tests/test_grok_setup.sh` | have |
 | **TP-VCLI-33**–**35** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-37**–**39** | `tests/test_grok_setup.sh` | have |
 | **TP-GROK-CLI-01**, **01b**, **02**, **11**, **14**, **15**, **15b**, **19**–**25** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-26**–**29** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-30**–**38** | `tests/test_domain_grok_cli.sh` | have |
@@ -311,6 +313,6 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-10 (1.7.0 — `update-grok`; INC-20260910-002)  
+**Last Updated**: 2026-09-12 (1.8.0 — TTY `setup` reinstall list)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

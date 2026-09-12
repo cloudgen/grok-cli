@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.30  
-**Last plan update:** 2026-09-07  
-**Last suite run:** PASS=816 FAIL=0 SKIP=0 (2026-09-10; 1.8.30 Git Bash `windows-*`)
+**Product VERSION:** 1.8.31  
+**Last plan update:** 2026-09-12  
+**Last suite run:** PASS=830 FAIL=0 SKIP=0 (2026-09-12; 1.8.31 TTY `setup` reinstall)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -209,3 +209,6 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-VCLI-34 | `update-grok` with no grok fail-closes; Next `setup` | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |
 | TP-VCLI-35 | already-installed grok is fetched again (channel+artifact; not grok auto-update); JSON `update-grok`/`updated` | test_grok_setup | requirement-grok-setup · INC-20260910-002 | **have** |
 | TP-VCLI-36 | Git Bash/MINGW: `windows-*` `.exe` fetch; `bin/grok.exe` copy; no USER_BIN symlink | test_grok_setup | requirement-grok-setup | **have** |
+| TP-VCLI-37 | TTY `setup` when grok already runs: pick keep / `1` is already_installed, no curl | test_grok_setup | requirement-grok-setup · interactive | **have** |
+| TP-VCLI-38 | TTY `setup` pick reinstall / `2` fetches channel+artifact; `auth.json` kept | test_grok_setup | requirement-grok-setup · interactive | **have** |
+| TP-VCLI-39 | TTY `setup` pick Exit / `9` is cancelled, no curl | test_grok_setup | requirement-grok-setup · interactive | **have** |

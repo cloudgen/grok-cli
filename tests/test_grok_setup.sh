@@ -1072,4 +1072,90 @@ EOS
     fi
     ci_cleanup_env
     unset CURL_LOG
+
+    # TP-VCLI-37 TTY already-installed pick keep: menu, no curl
+    if command -v python3 >/dev/null 2>&1; then
+        ci_isolated_env
+        ci_write_fake_curl "${CI_HOME}/fakecurl"
+        _tb=$(ci_toolbin)
+        CURL_LOG="${CI_HOME}/curl.log"
+        export CURL_LOG
+        printf '%s\n' '#!/bin/sh' 'echo grok-stub' > "${CI_USER_BIN}/grok"
+        chmod +x "${CI_USER_BIN}/grok"
+        _out=$(
+            HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_USER_BIN}:${CI_HOME}/fakecurl:${_tb}" \
+                CURL_LOG="${CURL_LOG}" PTY_IN="1" \
+                ci_pty_capture "${SCRIPT}" setup
+        )
+        assert_contains "TP-VCLI-37 TTY header setup" "${_out}" " — setup"
+        assert_contains "TP-VCLI-37 TTY already installed" "${_out}" "already installed"
+        assert_contains "TP-VCLI-37 TTY keep row" "${_out}" "1. keep: "
+        assert_contains "TP-VCLI-37 TTY reinstall row" "${_out}" "2. reinstall: "
+        assert_contains "TP-VCLI-37 TTY Exit 9" "${_out}" "9. Exit"
+        assert_contains "TP-VCLI-37 pick keep OK" "${_out}" "already installed"
+        if [ -f "${CURL_LOG}" ]; then
+            t_fail "TP-VCLI-37 curl was invoked on keep"
+        else
+            t_pass "TP-VCLI-37 no curl on keep"
+        fi
+        ci_cleanup_env
+        unset CURL_LOG
+
+        # TP-VCLI-38 TTY pick reinstall: fetch; auth.json kept
+        ci_isolated_env
+        ci_write_fake_curl "${CI_HOME}/fakecurl"
+        _tb=$(ci_toolbin)
+        CURL_LOG="${CI_HOME}/curl.log"
+        export CURL_LOG
+        printf '%s\n' '#!/bin/sh' 'echo grok-stub' > "${CI_USER_BIN}/grok"
+        chmod +x "${CI_USER_BIN}/grok"
+        mkdir -p "${CI_HOME}/.grok"
+        printf '%s\n' '{"keep":"me"}' > "${CI_HOME}/.grok/auth.json"
+        _out=$(
+            HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_USER_BIN}:${CI_HOME}/fakecurl:${_tb}" \
+                CURL_LOG="${CURL_LOG}" PTY_IN="2" PTY_TIMEOUT="12" \
+                ci_pty_capture "${SCRIPT}" setup
+        )
+        assert_contains "TP-VCLI-38 reinstall INFO" "${_out}" "Removing existing grok"
+        if [ -f "${CURL_LOG}" ] && grep -q '/stable' "${CURL_LOG}" && grep -q 'grok-' "${CURL_LOG}"; then
+            t_pass "TP-VCLI-38 curl hit channel pointer and artifact"
+        else
+            t_fail "TP-VCLI-38 curl log missing channel/artifact URL"
+        fi
+        if [ -f "${CURL_LOG}" ] && grep -q 'install.sh' "${CURL_LOG}"; then
+            t_fail "TP-VCLI-38 curl must not fetch install.sh"
+        else
+            t_pass "TP-VCLI-38 curl did not fetch install.sh"
+        fi
+        assert_file_exists "TP-VCLI-38 auth.json kept" "${CI_HOME}/.grok/auth.json"
+        assert_contains "TP-VCLI-38 auth.json body kept" "$(cat "${CI_HOME}/.grok/auth.json")" '"keep":"me"'
+        ci_cleanup_env
+        unset CURL_LOG
+
+        # TP-VCLI-39 TTY pick Exit: cancelled, no curl
+        ci_isolated_env
+        ci_write_fake_curl "${CI_HOME}/fakecurl"
+        _tb=$(ci_toolbin)
+        CURL_LOG="${CI_HOME}/curl.log"
+        export CURL_LOG
+        printf '%s\n' '#!/bin/sh' 'echo grok-stub' > "${CI_USER_BIN}/grok"
+        chmod +x "${CI_USER_BIN}/grok"
+        _out=$(
+            HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_USER_BIN}:${CI_HOME}/fakecurl:${_tb}" \
+                CURL_LOG="${CURL_LOG}" PTY_IN="9" \
+                ci_pty_capture "${SCRIPT}" setup
+        )
+        assert_contains "TP-VCLI-39 cancelled" "${_out}" "Setup cancelled"
+        if [ -f "${CURL_LOG}" ]; then
+            t_fail "TP-VCLI-39 curl was invoked on Exit"
+        else
+            t_pass "TP-VCLI-39 no curl on Exit"
+        fi
+        ci_cleanup_env
+        unset CURL_LOG
+    else
+        t_skip "TP-VCLI-37 TTY keep (no python3 for PTY)"
+        t_skip "TP-VCLI-38 TTY reinstall (no python3 for PTY)"
+        t_skip "TP-VCLI-39 TTY Exit (no python3 for PTY)"
+    fi
 }
