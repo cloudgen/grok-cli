@@ -578,6 +578,75 @@ AUTH
         t_skip "TP-CLI-22 Termux reprint cache (no python3 for PTY)"
     fi
 
+    # TP-CLI-30: invalid choice at any menu layer retries that layer
+    # (out_error + reprint; MUST NOT out_die / unknown argv). Portable
+    # proof mold names this TP-CLI-19; this product already assigned
+    # TP-CLI-19 to this-login-only host menu.
+    if command -v python3 >/dev/null 2>&1; then
+        ci_isolated_env
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            PTY_IN="6
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-30 main unused 6 is ERROR" "$_out" "[ERROR]"
+        assert_contains "TP-CLI-30 main unused 6 names pick" "$_out" "Not a menu choice '6'"
+        assert_not_contains "TP-CLI-30 main unused 6 not unknown argv" "$_out" "Unknown command"
+        _nchoice=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c 'Choice:' || true)
+        assert_eq "TP-CLI-30 main unused 6 reprints Choice" "2" "${_nchoice}"
+        _nbackup=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c '1. backup:' || true)
+        assert_eq "TP-CLI-30 main unused 6 reprints main list" "2" "${_nbackup}"
+        assert_contains "TP-CLI-30 main unused 6 still Exit 9" "$_out" "9. Exit"
+
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            PTY_IN="nope
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-30 main unknown name is ERROR" "$_out" "[ERROR]"
+        assert_contains "TP-CLI-30 main unknown name names pick" "$_out" "Not a menu choice 'nope'"
+        _nchoice=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c 'Choice:' || true)
+        assert_eq "TP-CLI-30 main unknown name reprints Choice" "2" "${_nchoice}"
+
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            PTY_IN="5
+6
+8
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-30 submenu unused 6 is ERROR" "$_out" "[ERROR]"
+        assert_contains "TP-CLI-30 submenu unused 6 names pick" "$_out" "Not a menu choice '6'"
+        assert_not_contains "TP-CLI-30 submenu unused 6 not unknown argv" "$_out" "Unknown command"
+        _ngen=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c '1. generate-sudoer-request:' || true)
+        assert_eq "TP-CLI-30 submenu unused 6 reprints sudoers list" "2" "${_ngen}"
+        _nback=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c '8. Back' || true)
+        assert_eq "TP-CLI-30 submenu unused 6 still Back" "2" "${_nback}"
+
+        mkdir -p "${CI_HOME}/.grok"
+        cat > "${CI_HOME}/.grok/auth.json" <<'AUTH'
+{
+  "https://auth.x.ai::test-client": {
+    "key": "test-access-token",
+    "auth_mode": "oidc",
+    "refresh_token": "test-refresh-token",
+    "expires_at": "2099-01-01T00:00:00Z"
+  }
+}
+AUTH
+        ci_fake_grok_ok
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
+            PTY_IN="3
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-30 Termux logged-in unused 3 is ERROR" "$_out" "[ERROR]"
+        assert_contains "TP-CLI-30 Termux logged-in unused 3 names pick" "$_out" "Not a menu choice '3'"
+        assert_not_contains "TP-CLI-30 Termux logged-in unused 3 does not open sudoers" "$_out" \
+            "1. generate-sudoer-request:"
+        _nchoice=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c 'Choice:' || true)
+        assert_eq "TP-CLI-30 Termux logged-in unused 3 reprints Choice" "2" "${_nchoice}"
+        ci_cleanup_env
+    else
+        t_skip "TP-CLI-30 main unused 6 (no python3 for PTY)"
+        t_skip "TP-CLI-30 main unknown name (no python3 for PTY)"
+        t_skip "TP-CLI-30 sudoers submenu unused 6 (no python3 for PTY)"
+        t_skip "TP-CLI-30 Termux logged-in unused 3 (no python3 for PTY)"
+    fi
+
     # TP-CLI-23: ship unit always bounds the probe (timeout -k + watchdog).
     _src=$(cat "${SCRIPT}")
     assert_contains "TP-CLI-23 bounded helper" "${_src}" "gc_grok_prompt_run_bounded"

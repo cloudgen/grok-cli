@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.32] - 2026-09-13
+
+### Fixed
+
+- **Wrong pick on the numbered menu (or the sudoers list) no longer looks like a dead end:** unused numbers and unknown names print `[ERROR]`, show **that same list** again, and wait for another pick. They do not quit and they are not treated as an unknown CLI command. Law: `requirement-shell-cli-default-interaction` **2.15.0**. Suite **TP-CLI-30**.
+
 ## [1.8.31] - 2026-09-12
 
 ### Added

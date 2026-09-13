@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.31-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.32-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -64,7 +64,7 @@ If grok already **runs** on this host, a real terminal offers keep / reinstall /
 
 ```text
 $ grok-cli setup
-[INFO] **grok-cli**(*1.8.31*) — setup
+[INFO] **grok-cli**(*1.8.32*) — setup
 [INFO] grok is already installed at ~/.grok/bin/grok.
 1. keep: Leave the existing grok
 2. reinstall: Remove existing grok and install again
@@ -385,4 +385,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-12 — version **1.8.31**: TTY `setup` offers keep / reinstall / Exit when grok already runs. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-13 — version **1.8.32**: a wrong number on the start list or the sudoers list reprints that same list. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

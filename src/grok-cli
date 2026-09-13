@@ -58,8 +58,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.31"
-: "${VERSION:=1.8.31}"
+VERSION="1.8.32"
+: "${VERSION:=1.8.32}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -7738,12 +7738,13 @@ app_default_run_sudoers_pick() {
 #
 # GENERAL PURPOSE:
 # Show the grant/draft list. Back returns 1 (main list). Exit or a run
-# returns 0 (leave menu). Never hangs off-TTY (caller is TTY-only).
+# returns 0 (leave menu). An invalid pick out_error + reprints this
+# layer (MUST NOT out_die). Never hangs off-TTY (caller is TTY-only).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-08-23
+# Last updated: 2026-09-13
 # =============================================================================
 app_default_sudoers_loop() {
     : "${APP_NAME:=grok-cli}"
@@ -7774,7 +7775,7 @@ app_default_sudoers_loop() {
         if app_default_run_sudoers_pick "${_pick}"; then
             return 0
         fi
-        out_warn "Not a menu choice. Type 1-5, 8 back, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+        out_error "Not a menu choice '${_pick}'. Type 1-5, 8 back, 9 to leave, or a listed command name."
     done
 }
 
@@ -7785,6 +7786,7 @@ app_default_sudoers_loop() {
 # GENERAL PURPOSE:
 # Command menu / main / TTY empty argv. On a real terminal: ignore --json on
 # menu/main, show the numbered list, run one pick (or open the sudoers submenu).
+# An invalid pick out_error + reprints this layer (MUST NOT out_die).
 # Off-TTY: help (JSON help when --json). Never hang.
 #
 # ALIGNMENT:
@@ -7792,7 +7794,7 @@ app_default_sudoers_loop() {
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-shell-cli-zero-arguments.md
 #
-# Last updated: 2026-09-07
+# Last updated: 2026-09-13
 # =============================================================================
 app_default() {
     : "${TTY:=0}"
@@ -7860,9 +7862,9 @@ app_default() {
         export JSON QUIET
         _menu_n=$(gc_menu_main_count)
         if [ "${_menu_n}" -eq 1 ]; then
-            out_warn "Not a menu choice. Type 1, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+            out_error "Not a menu choice '${_pick}'. Type 1, 9 to leave, or a listed command name."
         else
-            out_warn "Not a menu choice. Type 1-${_menu_n}, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+            out_error "Not a menu choice '${_pick}'. Type 1-${_menu_n}, 9 to leave, or a listed command name."
         fi
     done
 }

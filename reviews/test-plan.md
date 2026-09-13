@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.31  
-**Last plan update:** 2026-09-12  
-**Last suite run:** PASS=830 FAIL=0 SKIP=0 (2026-09-12; 1.8.31 TTY `setup` reinstall)
+**Product VERSION:** 1.8.32  
+**Last plan update:** 2026-09-13  
+**Last suite run:** PASS=848 FAIL=0 SKIP=0 (2026-09-13; 1.8.32 invalid-choice retry)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -19,7 +19,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Active REQ samples do not freeze a session login | have | TP-CLI-18 |
 | version / help / about human + JSON | have | TP-CLI-02..06 |
 | Empty argv: TTY menu; off-TTY Type O ensure (not help); overlay `--debug` follows 0-argv | have | TP-CLI-07 · TP-CLI-29 · TP-ONL-01 |
-| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 |
+| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help) | have | TP-CLI-13 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-30 |
 | `--debug` menu elapsed of each paint step (internal-timer) | have | TP-CLI-25 · TP-CLI-26 · TP-CLI-27 · TP-CLI-28 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Cache folder + persistence storage | have | TP-CLI-12 |
@@ -73,6 +73,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-26 | `menu` without `--debug` has no menu-step elapsed lines | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-27 | `--json --debug version` stdout stays JSON (no `[DEBUG]`) | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-interface · requirement-shell-output-requirements | **have** |
 | TP-CLI-28 | Ship unit has `util_int_timer_*`; AC-6 double-start fail-closed; invalid stage names rejected; help lists `--debug`; help has no timer `start` verb | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-interface | **have** |
+| TP-CLI-30 | Invalid TTY menu choice at any layer retries that layer (`out_error` + reprint; unused listed-gap integer and unknown name; sudoers submenu stays on that list; not unknown argv). Portable proof mold names this **TP-CLI-19**; this product already assigned **TP-CLI-19** to this-login-only host menu | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
 
 ### TP-LC (local lifecycle)
 

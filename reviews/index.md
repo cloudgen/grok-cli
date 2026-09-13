@@ -2,6 +2,8 @@
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-09-13 | `reports/2026-09-13-menu-invalid-choice-coverage.md` | Invalid pick retries every main-menu layer; REQ 2.15.0 · molds · TP-CLI-30 · CL | **Pass (findings closed)** | PASS=848 FAIL=0 SKIP=0 |
+| 2026-09-13 | `reports/2026-09-13-checklist-cli-default-interaction-invalid-choice.md` | Filled `CL-CLI-DEFAULT-INTERACTION` for invalid-choice retry at every menu layer | **Pass** | 1.8.32 |
 | 2026-09-06 | `reports/2026-09-06-human-readability-coverage.md` | README + REQ human-readable law; coverage vs checklists/tests; TP-CLI-18 | **Pass (findings closed)** | PASS=479 FAIL=0 SKIP=0 |
 | 2026-09-05 | `reports/2026-09-05-session-probe-requirement-review.md` | Live `grok -p hello` session gate; Termux coverage; dual mention | **Pass** | PASS=478 FAIL=0 SKIP=0 |
 | 2026-09-03 | `reports/2026-09-03-checklist-cli-default-interaction-menu-style.md` | Filled `CL-CLI-DEFAULT-INTERACTION` for default CLI main menu style (SGR 3+37 / `out_menu_choice`) | **Pass** | 1.8.1 |
