@@ -34,7 +34,7 @@
 # - requirement-shell-internal-volatile-timer.md  (named volatile stages; --debug menu elapsed)
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
 # - requirement-grok-crontab.md      (add-crontab: per-login backup/sync-auth jobs)
-# - requirement-grok-setup.md        (setup: xAI channel + artifact; update-grok: refresh peer grok; run: start grok without auto-update; MUST NOT exec install.sh)
+# - requirement-grok-setup.md        (setup: xAI channel + artifact; update-grok: refresh peer grok; reinstall: force place peer grok; run: start grok without auto-update; MUST NOT exec install.sh)
 # - requirement-domain-grok-cli.md   (domain surface four pillars)
 # Plus CIAO Protection Zones and "DO NOT MODIFY" rules.
 #
@@ -42,7 +42,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.31"
+# VERSION: hard-assign VERSION="1.8.33"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -56,10 +56,10 @@ APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
 : "${APP_DESC:=Alternative online installer for xAI grok}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
+: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.32"
-: "${VERSION:=1.8.32}"
+VERSION="1.8.33"
+: "${VERSION:=1.8.33}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -72,6 +72,7 @@ APP_VERSION="${VERSION}"
 : "${FORCE:=0}"
 : "${FORCE_REINSTALL:=0}"
 : "${GC_SETUP_AS_UPDATE:=0}"
+: "${GC_SETUP_AS_REINSTALL:=0}"
 : "${DEBUG:=0}"
 : "${UTIL_INT_TIMER_MAP:=}"
 : "${UTIL_INT_TIMER_LAST_ELAPSED:=0}"
@@ -2676,6 +2677,41 @@ gc_update_grok() {
 }
 
 # =============================================================================
+# gc_reinstall() - Type 0: remove existing grok and install again
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Force-fetch the current xAI channel pointer and grok artifact into
+# GROK_HOME (same place path as setup --force / TTY setup pick
+# reinstall). Named verb so operators can reinstall grok from the
+# numbered list or as grok-cli reinstall without knowing --force.
+# Missing grok is still a fetch (install). Does not wipe GROK_HOME
+# or auth.*. Does not exec grok's updater. self-update remains
+# grok-cli only.
+#
+# ALIGNMENT:
+# - requirement-grok-setup.md
+# - requirement-shell-cli-interface.md
+# - requirement-domain-grok-cli.md
+# - requirement-shell-cli-default-interaction.md
+# - requirement-operator-readable-error.md
+#
+# Last updated: 2026-09-14
+# =============================================================================
+gc_reinstall() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    _peer=$(gc_resolve_grok_peer)
+    if [ -n "${_peer}" ] && [ -x "${_peer}" ]; then
+        out_info "Removing existing grok and installing again. The current file stays until the new download passes --version."
+    fi
+    FORCE=1
+    GC_SETUP_AS_REINSTALL=1
+    export FORCE GC_SETUP_AS_REINSTALL
+    gc_setup
+}
+
+# =============================================================================
 # gc_peer_on_current_path() - 0 if this shell can command -v grok
 # =============================================================================
 #
@@ -3948,6 +3984,8 @@ gc_setup_already_installed_menu() {
 # proot wrapper is rewritten on keep (no network) so grok -p can exit.
 # GC_SETUP_AS_UPDATE=1 (update-grok): always fetch (FORCE); JSON type
 # update-grok; success says updated. MUST NOT exec grok auto-update.
+# GC_SETUP_AS_REINSTALL=1 (reinstall): always fetch (FORCE); JSON type
+# reinstall; success says reinstalled. MUST NOT wipe auth.* / GROK_HOME.
 #
 # ALIGNMENT:
 # - requirement-grok-setup.md
@@ -3964,6 +4002,7 @@ gc_setup() {
     : "${TTY:=0}"
     : "${FORCE:=0}"
     : "${GC_SETUP_AS_UPDATE:=0}"
+    : "${GC_SETUP_AS_REINSTALL:=0}"
     : "${GROK_VENDOR_BASE_URL:=https://x.ai/cli}"
     : "${GROK_VENDOR_FALLBACK_URL:=https://storage.googleapis.com/grok-build-public-artifacts/cli}"
     : "${GROK_CHANNEL:=stable}"
@@ -4046,6 +4085,8 @@ gc_setup() {
 
     if [ "${GC_SETUP_AS_UPDATE}" -eq 1 ]; then
         out_info "Starting the update of grok from xAI (${GROK_CHANNEL}). This does not use grok auto-update."
+    elif [ "${GC_SETUP_AS_REINSTALL}" -eq 1 ]; then
+        out_info "Starting the reinstall of grok from xAI (${GROK_CHANNEL}). This does not use grok auto-update."
     fi
     if [ -n "${GROK_SETUP_VERSION:-}" ]; then
         if ! gc_setup_version_ok "${GROK_SETUP_VERSION}"; then
@@ -4185,6 +4226,8 @@ gc_setup() {
     fi
     if [ "${GC_SETUP_AS_UPDATE}" -eq 1 ]; then
         out_success "grok is updated at ${_peer}."
+    elif [ "${GC_SETUP_AS_REINSTALL}" -eq 1 ]; then
+        out_success "grok is reinstalled at ${_peer}."
     else
         out_success "grok is installed at ${_peer}."
     fi
@@ -4196,6 +4239,16 @@ gc_setup() {
             out_json "update-grok" "grok is updated at ${_peer}." \
                 "app" "${APP_NAME}" \
                 "status" "updated" \
+                "peer" "${GROK_PEER_NAME}" \
+                "peer_path" "${_peer}" \
+                "on_path" "${_on_path}" \
+                "vendor_base" "${GROK_VENDOR_BASE_URL}" \
+                "version" "${_version}" \
+                "platform" "${_platform}"
+        elif [ "${GC_SETUP_AS_REINSTALL}" -eq 1 ]; then
+            out_json "reinstall" "grok is reinstalled at ${_peer}." \
+                "app" "${APP_NAME}" \
+                "status" "reinstalled" \
                 "peer" "${GROK_PEER_NAME}" \
                 "peer_path" "${_peer}" \
                 "on_path" "${_on_path}" \
@@ -7404,17 +7457,20 @@ gc_host_normal_user_only_label() {
 # Class B: print the listed main-menu tokens for this host and session.
 # Consumes GC_SESSION_STATUS_CACHE (valid = logged in). Hide backup /
 # sync-auth / sudoers on this-login-only hosts. Those hosts list run
-# first (start grok without auto-update). Hide sync-auth and
-# sync-auth-from-remote when the session is valid.
+# first (start grok without auto-update), then reinstall. Hide
+# sync-auth and sync-auth-from-remote when the session is valid.
+# Multi-user lists reinstall after add-crontab and before sudoers.
+# setup / update-grok stay off this list.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-07
+# Last updated: 2026-09-14
 # =============================================================================
 gc_menu_main_tokens() {
     if gc_host_is_normal_user_only; then
         printf '%s\n' "run"
+        printf '%s\n' "reinstall"
     fi
     if ! gc_host_is_normal_user_only; then
         printf '%s\n' "backup"
@@ -7427,6 +7483,7 @@ gc_menu_main_tokens() {
     fi
     printf '%s\n' "add-crontab"
     if ! gc_host_is_normal_user_only; then
+        printf '%s\n' "reinstall"
         printf '%s\n' "sudoers"
     fi
 }
@@ -7438,6 +7495,7 @@ gc_menu_row_explain() {
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
     case "${1-}" in
         run) printf '%s' "Start grok without auto-update" ;;
+        reinstall) printf '%s' "Remove existing grok and install again" ;;
         backup) printf '%s' "Push ~/.grok/auth.* to ${GROK_CLI_ROOT}" ;;
         sync-auth) printf '%s' "Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok" ;;
         sync-auth-from-remote) printf '%s' "Copy a remote host's auth.* into ~/.grok" ;;
@@ -7674,6 +7732,9 @@ EOF
         run)
             gc_run_grok
             ;;
+        reinstall)
+            gc_reinstall
+            ;;
         backup)
             gc_backup
             ;;
@@ -7877,7 +7938,7 @@ app_default() {
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
-    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
+    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
@@ -7917,6 +7978,7 @@ app_help() {
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
     out_plain "  setup                Install grok from x.ai (channel + artifact; TTY offers reinstall if grok already runs)"
     out_plain "  update-grok          Update grok from x.ai (not grok-cli; avoids grok auto-update)"
+    out_plain "  reinstall            Remove existing grok and install again (keeps auth.*; not grok-cli)"
     out_plain "  run [GROK-ARGS]      Start grok without auto-update (avoids Termux hang)"
     out_plain "  check-session        Confirm grok is logged in (runs grok -p hello first)"
     out_plain "  backup               Push ~/.grok/auth.* to ${GROK_CLI_ROOT}/"
@@ -7997,6 +8059,7 @@ app_help() {
     out_plain "  curl -fsSL https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli | sh"
     out_plain "  ${APP_NAME} install"
     out_plain "  ${APP_NAME} setup                 # install grok from x.ai channel + artifact (not ${APP_NAME})"
+    out_plain "  ${APP_NAME} reinstall             # remove existing grok and install again (keeps auth.*)"
     out_plain "  ${APP_NAME} run                   # start grok without auto-update (Termux)"
     out_plain "  ${APP_NAME} run -p hello          # one-shot prompt, still no auto-update"
     out_plain "  sudo ${APP_NAME} install          # global (production sudoers trust)"
@@ -8049,6 +8112,7 @@ app_main() {
     : "${FORCE:=0}"
     : "${FORCE_REINSTALL:=0}"
     : "${GC_SETUP_AS_UPDATE:=0}"
+    : "${GC_SETUP_AS_REINSTALL:=0}"
     : "${FORCE_GLOBAL:=0}"
     : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
     : "${SUBMIT_PURPOSE:=}"
@@ -8099,7 +8163,7 @@ app_main() {
                 SUBMIT_ACTION_EXPLICIT=1
                 export SUBMIT_ACTION SUBMIT_ACTION_EXPLICIT
                 ;;
-            version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|update-grok|check-session|backup|sync-auth|sync-auth-from-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
+            version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|update-grok|reinstall|check-session|backup|sync-auth|sync-auth-from-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
                 COMMAND="$1"
                 _saw_command=1
                 ;;
@@ -8162,6 +8226,7 @@ app_main() {
         self-uninstall) inst_self_uninstall ;;
         setup)        gc_setup ;;
         update-grok)  gc_update_grok ;;
+        reinstall)    gc_reinstall ;;
         run)          gc_run_grok "$@" ;;
         check-session) gc_check_session ;;
         backup)       gc_backup ;;

@@ -33,6 +33,7 @@
 | P17 | **Command line for normal user only** | Related shell REQs print that exact heading; Termux/Git Bash/Windows cmd stay this-login; main menu hides backup/sync-auth/sudoers, lists **`run` first**, and prints the not-available line (TP-CLI-19); logged-in session hides sync-auth / sync-auth-from-remote and **appends** the logged-in not-available line (TP-CLI-20) |
 | P18 | **`run` without auto-update** | Dispatcher `gc_run_grok`; inject `--no-auto-update`; `--json` fail-closed Next `run`; missing grok Next `setup`; dual mention grok-setup + CLI-interface + domain; TP-GROK-CLI-46 · TP-CLI-04 |
 | P18b | **TTY `setup` reinstall** | Already-installed TTY list keep / reinstall / Exit; `--json` skip; `--force` skips list; no `$()` of `prompt_ask`; no wipe of `auth.*`; TP-VCLI-37..39 |
+| P18c | **`reinstall` verb + menu** | Routed Type 0; listed on the TTY main menu; missing grok still fetches; `auth.*` kept; JSON `reinstall`/`reinstalled`; `setup` stays off the list; TP-VCLI-40..42 · TP-CLI-31 |
 | P18c | **Invalid menu-choice retry** | Unused number / unknown name on the start list **and** the sudoers list: `[ERROR]`, reprint **this** layer, re-prompt; MUST NOT `out_die` / unknown argv; TP-CLI-30 |
 | P19 | **Dest maps vs disk** | `AGENTS.md` + `docs/README.md` live inventory = this dest class/REQ/incident **file** count; no `/home/<login>/`; no phantom `incident-*.md`; **L-MAP-01** · **L-EXPOSE-01** · **INC-20260910-001** |
 

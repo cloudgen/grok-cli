@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.33] - 2026-09-14
+
+### Added
+
+- **`reinstall`:** remove existing grok and install again from xAI (same place path as `setup --force`). Keeps `auth.*`. Does **not** update grok-cli (`self-update` stays that). Missing grok still fetches. JSON `type=reinstall` `status=reinstalled`. On the numbered start list: **5** on a multi-user host when logged out (before **sudoers**); **2** on Termux / Git Bash / Windows cmd (after **`run`**). `setup` and `update-grok` stay off that list. Law: `requirement-grok-setup` **2.15.0** · `requirement-shell-cli-interface` **2.12.0** · `requirement-domain-grok-cli` **1.9.0** · `requirement-shell-cli-default-interaction` **2.16.0**. Suite **TP-VCLI-40** · **TP-VCLI-41** · **TP-VCLI-42** · **TP-CLI-31**.
+
 ## [1.8.32] - 2026-09-13
 
 ### Fixed

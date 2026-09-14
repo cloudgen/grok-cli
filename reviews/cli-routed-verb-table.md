@@ -4,9 +4,9 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 
 **Ship unit:** `src/grok-cli`  
 **Dispatcher:** `app_main`  
-**Scan date:** 2026-09-12  
-**Mode:** incremental (`setup` TTY reinstall list)  
-**Copied:** prior live · **Re-checked:** `setup` (`gc_setup`)  
+**Scan date:** 2026-09-14  
+**Mode:** incremental (`reinstall` verb + main-menu row)  
+**Copied:** prior live · **Re-checked:** `setup` (`gc_setup`) · `reinstall` (`gc_reinstall`) · `app_default` menu tokens  
 **Inventory:** dispatcher `case "${COMMAND}"` — not `app_help` for routing; help one-liners copied into **human-readable**
 
 ## Live commands
@@ -27,6 +27,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | self-uninstall | `inst_self_uninstall` | you (Type 0) | 2026-09-02 | `self-uninstall: Same remove as uninstall (channel name)` |
 | setup | `gc_setup` | you (Type 0) | 2026-09-12 | `setup: Install grok from x.ai (channel + artifact; TTY offers reinstall if grok already runs)` |
 | update-grok | `gc_update_grok` | you (Type 0) | 2026-09-10 | `update-grok: Update grok from x.ai (not grok-cli; avoids grok auto-update)` |
+| reinstall | `gc_reinstall` | you (Type 0) | 2026-09-14 | `reinstall: Remove existing grok and install again` |
 | run | `gc_run_grok` | you (Type 0) | 2026-09-07 | `run: Start grok without auto-update` |
 | print-sudoers | `gc_print_sudoers` | you (Type 0) | 2026-08-14 | `print-sudoers: Emit sudoers draft` |
 | print-sudoers-install-script | `gc_print_sudoers_install_script` | you (Type 0) | 2026-08-09 | `print-sudoers-install-script: Write admin install script` |
@@ -38,7 +39,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | version | `app_version` | you (Type 0) | missing | `version: Show local version` |
 | where-is-me | `app_where_is_me` | you (Type 0) | 2026-08-03 | `where-is-me: Show running and install paths` |
 
-A TTY main menu **MUST** print daily-work **human-readable** lines as a **numbered list**, with related grant/draft verbs behind family row **`sudoers`** (submenu; **Back 8**, **Exit 9**). Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** `help`, `menu`/`main`, `check-session` (status is under the title), install/setup, self-managed (`install`, `uninstall`, `self-update`, `self-uninstall`, `where-is-me`), diagnostics (`version`, `about`, `version-check`), and test-purpose. **`sudoers` is not a live dispatcher token.** Main **N = 5** (multi-user, logged out); **N = 3** when logged in (hide `sync-auth` / `sync-auth-from-remote`); **N = 3** / **2** on this-login-only (`run` first); submenu **K = 5**; **Exit 9**. Internal `ensure` is not a help verb.
+A TTY main menu **MUST** print daily-work **human-readable** lines as a **numbered list**, with related grant/draft verbs behind family row **`sudoers`** (submenu; **Back 8**, **Exit 9**). Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** `help`, `menu`/`main`, `check-session` (status is under the title), install/setup (`setup`, `update-grok`), self-managed (`install`, `uninstall`, `self-update`, `self-uninstall`, `where-is-me`), diagnostics (`version`, `about`, `version-check`), and test-purpose. **`reinstall` is listed.** **`sudoers` is not a live dispatcher token.** Main **N = 6** (multi-user, logged out); **N = 4** when logged in (hide `sync-auth` / `sync-auth-from-remote`); **N = 4** / **3** on this-login-only (`run` first, then `reinstall`); submenu **K = 5**; **Exit 9**. Internal `ensure` is not a help verb.
 
 ## Not yet wired
 
@@ -48,5 +49,5 @@ A TTY main menu **MUST** print daily-work **human-readable** lines as a **number
 
 ---
 
-**Last Updated:** 2026-09-12 (`setup` TTY keep / reinstall / Exit; this-login-only main **N = 3** / **2**)  
+**Last Updated:** 2026-09-14 (`reinstall` verb + main-menu row; this-login-only main **N = 4** / **3**)  
 **Alignment:** term `cli-routed-verb-table` · **`SK-CLI-ROUTED-VERB-TABLE`** · **`SK-CLI-DEFAULT-INTERACTION`**

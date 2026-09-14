@@ -269,6 +269,7 @@ run_test_grok_setup() {
     assert_contains "TP-VCLI-02 help names x.ai" "${_out}" "x.ai"
     assert_contains "TP-VCLI-02 help lists self-update" "${_out}" "self-update"
     assert_contains "TP-VCLI-02 help lists update-grok" "${_out}" "update-grok"
+    assert_contains "TP-VCLI-02 help lists reinstall" "${_out}" "reinstall"
     assert_contains "TP-VCLI-02 help names SCRIPT_URL" "${_out}" "SCRIPT_URL"
     assert_not_contains "TP-VCLI-02 help no install.sh" "${_out}" "install.sh"
     ci_cleanup_env
@@ -1158,4 +1159,85 @@ EOS
         t_skip "TP-VCLI-38 TTY reinstall (no python3 for PTY)"
         t_skip "TP-VCLI-39 TTY Exit (no python3 for PTY)"
     fi
+
+    # TP-VCLI-40 reinstall is routed; help is not grok-cli self-update
+    ci_isolated_env
+    _tb=$(ci_toolbin)
+    _err=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_USER_BIN}:${_tb}" \
+            sh "${SCRIPT}" reinstall 2>&1 >/dev/null
+    ) || true
+    assert_not_contains "TP-VCLI-40 reinstall is routed" "${_err}" "Unknown command"
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" help 2>/dev/null)
+    assert_contains "TP-VCLI-40 help lists reinstall" "${_out}" "reinstall"
+    assert_contains "TP-VCLI-40 help keeps auth" "${_out}" "keeps auth"
+    assert_contains "TP-VCLI-40 help says not grok-cli" "${_out}" "not grok-cli"
+    ci_cleanup_env
+
+    # TP-VCLI-41 missing grok still fetches (install path; unlike update-grok)
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    CURL_LOG="${CI_HOME}/curl.log"
+    export CURL_LOG
+    _out=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+            CURL_LOG="${CURL_LOG}" \
+            sh "${SCRIPT}" --json reinstall 2>/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-41 missing grok reinstall exit 0" 0 "${_ec}"
+    assert_contains "TP-VCLI-41 JSON type reinstall" "${_out}" '"type":"reinstall"'
+    assert_contains "TP-VCLI-41 JSON status reinstalled" "${_out}" '"status":"reinstalled"'
+    if [ -f "${CURL_LOG}" ] && grep -q '/stable' "${CURL_LOG}" && grep -q 'grok-' "${CURL_LOG}"; then
+        t_pass "TP-VCLI-41 curl hit channel pointer and artifact"
+    else
+        t_fail "TP-VCLI-41 curl log missing channel/artifact URL"
+    fi
+    if [ -f "${CURL_LOG}" ] && grep -q 'install.sh' "${CURL_LOG}"; then
+        t_fail "TP-VCLI-41 curl must not fetch install.sh"
+    else
+        t_pass "TP-VCLI-41 curl did not fetch install.sh"
+    fi
+    ci_cleanup_env
+    unset CURL_LOG
+
+    # TP-VCLI-42 already-installed grok is fetched again; auth.json kept
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    CURL_LOG="${CI_HOME}/curl.log"
+    export CURL_LOG
+    printf '%s\n' '#!/bin/sh' 'echo grok-stub' > "${CI_USER_BIN}/grok"
+    chmod +x "${CI_USER_BIN}/grok"
+    mkdir -p "${CI_HOME}/.grok"
+    printf '%s\n' '{"keep":"me"}' > "${CI_HOME}/.grok/auth.json"
+    _out=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_USER_BIN}:${CI_HOME}/fakecurl:${_tb}" \
+            CURL_LOG="${CURL_LOG}" \
+            sh "${SCRIPT}" --json reinstall 2>/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-VCLI-42 reinstall exit 0" 0 "${_ec}"
+    assert_contains "TP-VCLI-42 JSON type reinstall" "${_out}" '"type":"reinstall"'
+    assert_contains "TP-VCLI-42 JSON status reinstalled" "${_out}" '"status":"reinstalled"'
+    if [ -f "${CURL_LOG}" ] && grep -q '/stable' "${CURL_LOG}" && grep -q 'grok-' "${CURL_LOG}"; then
+        t_pass "TP-VCLI-42 curl hit channel pointer and artifact"
+    else
+        t_fail "TP-VCLI-42 curl log missing channel/artifact URL"
+    fi
+    if [ -f "${CURL_LOG}" ] && grep -q 'install.sh' "${CURL_LOG}"; then
+        t_fail "TP-VCLI-42 curl must not fetch install.sh"
+    else
+        t_pass "TP-VCLI-42 curl did not fetch install.sh"
+    fi
+    if [ -f "${CURL_LOG}" ] && grep -qi 'auto-update' "${CURL_LOG}"; then
+        t_fail "TP-VCLI-42 must not invoke grok auto-update"
+    else
+        t_pass "TP-VCLI-42 did not invoke grok auto-update"
+    fi
+    assert_file_exists "TP-VCLI-42 auth.json kept" "${CI_HOME}/.grok/auth.json"
+    assert_contains "TP-VCLI-42 auth.json body kept" "$(cat "${CI_HOME}/.grok/auth.json")" '"keep":"me"'
+    ci_cleanup_env
+    unset CURL_LOG
 }

@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-grok-setup.md  
-**Status**: Active (Version 2.14.0)  
+**Status**: Active (Version 2.15.0)  
 **Area**: domain  
 **Key**: `requirement-grok-setup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **operations Single Source of Truth** for grok-cli **`setup`**, **`update-grok`**, and **`run`**: Type 0 commands that **install** the peer xAI Grok Build CLI (`grok`) by performing the **same procedure** xAI’s published installer uses (platform detect, channel pointer, artifact fetch, place under `~/.grok`, PATH), **without downloading or executing** `https://x.ai/cli/install.sh`, **refresh** that peer from the same channel (Termux grok auto-update is unsupported), and **start** that peer with auto-update off so Termux/PRoot is not left hanging.
+This requirement is the **operations Single Source of Truth** for grok-cli **`setup`**, **`update-grok`**, **`reinstall`**, and **`run`**: Type 0 commands that **install** the peer xAI Grok Build CLI (`grok`) by performing the **same procedure** xAI’s published installer uses (platform detect, channel pointer, artifact fetch, place under `~/.grok`, PATH), **without downloading or executing** `https://x.ai/cli/install.sh`, **refresh** that peer from the same channel (Termux grok auto-update is unsupported), **reinstall** that peer from the numbered list or as a named verb, and **start** that peer with auto-update off so Termux/PRoot is not left hanging.
 
 Operators can then `grok-cli run` (or `grok login` / set `XAI_API_KEY`) and use `grok-cli check-session` / `backup`. A PATH line written to `~/.bashrc` does **not** apply to the current session; that is not an install failure.
 
@@ -16,23 +16,23 @@ This does **not** install grok-cli itself (checkout `install` and channel `curl|
 
 ### 1.1 Human-facing
 
-**In one sentence:** you type `grok-cli setup` so this login downloads the matching `grok` program from xAI under `~/.grok`, `grok-cli update-grok` when grok is already there and you want the latest, then `grok-cli run` so grok starts without auto-update.
+**In one sentence:** you type `grok-cli setup` so this login downloads the matching `grok` program from xAI under `~/.grok`, `grok-cli update-grok` when grok is already there and you want the latest, `grok-cli reinstall` (or pick **reinstall** on the start list) to remove the existing grok and install again, then `grok-cli run` so grok starts without auto-update.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
-| You / this login | Run setup without sudo; update grok from xAI; start grok without auto-update | `grok-cli setup` · `grok-cli update-grok` · `grok-cli run` |
+| You / this login | Run setup without sudo; update grok from xAI; reinstall grok; start grok without auto-update | `grok-cli setup` · `grok-cli update-grok` · `grok-cli reinstall` · `grok-cli run` |
 | The other role | xAI publishes the `grok` **binary** and a version pointer; grok-cli does not ship grok | `https://x.ai/cli/stable` then `https://x.ai/cli/grok-{{version}}-{{os}}-{{arch}}` |
 | Not this file | grok-cli’s own copy-to-bin; sudo backup; session parse; executing xAI’s `install.sh` | `grok-cli install` · `grok-cli backup` |
 
 | Includes | Excludes |
 |----------|----------|
-| Detect OS/arch; fetch channel version; fetch artifact; smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder); place `~/.grok/downloads` + `~/.grok/bin`; skip if `grok` already **runs on this host** (off-TTY / `--json` / `--quiet`); on a TTY, numbered keep / reinstall / Exit when grok already runs; refuse wrong ELF; Android ET_EXEC retry (TERMUX_EXEC_OPTOUT / Termux `pkg install -y proot` / `proot` wrapper with `--kill-on-exit` and `grok -p` SIGKILL); `--force`; **`update-grok`** (same fetch as `--force` when grok is already installed; missing grok Next `setup`); rewrite a stale Android wrapper on skip (no network); **`run`** starts grok with `--no-auto-update` | Downloading or running `install.sh`; installing grok-cli; treating `self-update` as a grok update; grok’s own auto-update on Termux; empty-argv install-ensure; sudo; `pkg`/`apt` on non-Android; hanging `pkg` prompts; byte-patching the vendor binary (DNS string or ELF `e_type`); smoking a file that lives only in cache/`/tmp`/`/dev/shm`; treating an x86_64 scp as installed on aarch64; leaving `grok -p` hung so the operator must Ctrl-Z; starting grok under `--json`; putting `setup` on the TTY main menu; wiping `{{GROK_HOME}}` / `auth.*` on reinstall |
+| Detect OS/arch; fetch channel version; fetch artifact; smoke `--version` from `~/.grok/downloads` (not `/tmp` or the cache folder); place `~/.grok/downloads` + `~/.grok/bin`; skip if `grok` already **runs on this host** (off-TTY / `--json` / `--quiet`); on a TTY, numbered keep / reinstall / Exit when grok already runs; refuse wrong ELF; Android ET_EXEC retry (TERMUX_EXEC_OPTOUT / Termux `pkg install -y proot` / `proot` wrapper with `--kill-on-exit` and `grok -p` SIGKILL); `--force`; **`update-grok`** (same fetch as `--force` when grok is already installed; missing grok Next `setup`); **`reinstall`** (same fetch as `--force`; listed on the TTY main menu; missing grok still fetches); rewrite a stale Android wrapper on skip (no network); **`run`** starts grok with `--no-auto-update` | Downloading or running `install.sh`; installing grok-cli; treating `self-update` as a grok update; grok’s own auto-update on Termux; empty-argv install-ensure; sudo; `pkg`/`apt` on non-Android; hanging `pkg` prompts; byte-patching the vendor binary (DNS string or ELF `e_type`); smoking a file that lives only in cache/`/tmp`/`/dev/shm`; treating an x86_64 scp as installed on aarch64; leaving `grok -p` hung so the operator must Ctrl-Z; starting grok under `--json`; putting `setup` on the TTY main menu; wiping `{{GROK_HOME}}` / `auth.*` on reinstall |
 | Fail closed if curl/uname/download/smoke fails | Hitting the public network from Core tests |
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
-| `./src/grok-cli` | ship unit | live `setup` / `update-grok` / `run` |
-| `grok-cli help` | command | listed `setup`, `update-grok`, and `run` rows |
+| `./src/grok-cli` | ship unit | live `setup` / `update-grok` / `reinstall` / `run` |
+| `grok-cli help` | command | listed `setup`, `update-grok`, `reinstall`, and `run` rows |
 | `grok` | peer CLI after setup | `grok-cli run` · `grok login` |
 
 | You do… | What it means | What you type |
@@ -42,6 +42,7 @@ This does **not** install grok-cli itself (checkout `install` and channel `curl|
 | grok already there at a prompt | numbered **keep** / **reinstall** / **Exit** | `grok-cli setup` then `1` or `2` |
 | Replace grok without a prompt | fetch again | `grok-cli setup --force` |
 | Latest grok | fetch channel + artifact (not grok auto-update; not grok-cli `self-update`) | `grok-cli update-grok` |
+| Replace grok from the start list | same fetch as `--force`; keeps `auth.*` | `grok-cli` then the listed **reinstall** number, or `grok-cli reinstall` |
 | Start grok | grok starts with auto-update off (Termux does not hang) | `grok-cli run` |
 | One-shot prompt | same, plus grok `-p hello` | `grok-cli run -p hello` |
 | Sign in after | session files appear under `~/.grok` | `grok login` then `grok-cli check-session` |
@@ -59,7 +60,8 @@ Jargon: this is ordinary-user work, not a root host bootstrap and not grok-cli�
 3. **MUST** appear in `help` with one-line purpose.  
 4. **MUST NOT** appear on the TTY numbered main menu (install/setup excluded).  
 5. Dual mention: this file **and** `requirement-shell-cli-interface`. Domain catalog: `requirement-domain-grok-cli`.  
-5a. **MUST** route **`update-grok`** from `app_main` (Type 0). **MUST** appear in `help` with one-line purpose that is **not** grok-cli `self-update`. **MUST NOT** appear on the TTY numbered main menu. **MUST** use the same channel+artifact place path as `setup --force`. **MUST NOT** exec grok’s auto-update. Missing grok **MUST** fail closed with Next `{{APP_NAME}} setup`. JSON type **MUST** be `update-grok` with `status=updated` on success. Dual mention: this file **and** `requirement-shell-cli-interface` · `requirement-domain-grok-cli`. Incident **INC-20260910-002**.
+5a. **MUST** route **`update-grok`** from `app_main` (Type 0). **MUST** appear in `help` with one-line purpose that is **not** grok-cli `self-update`. **MUST NOT** appear on the TTY numbered main menu. **MUST** use the same channel+artifact place path as `setup --force`. **MUST NOT** exec grok’s auto-update. Missing grok **MUST** fail closed with Next `{{APP_NAME}} setup`. JSON type **MUST** be `update-grok` with `status=updated` on success. Dual mention: this file **and** `requirement-shell-cli-interface` · `requirement-domain-grok-cli`. Incident **INC-20260910-002**.  
+5b. **MUST** route **`reinstall`** from `app_main` (Type 0). **MUST** appear in `help` with one-line purpose that is **not** grok-cli `self-update`. **MUST** appear on the TTY numbered main menu (`requirement-shell-cli-default-interaction`). **MUST** use the same channel+artifact place path as `setup --force`. **MUST NOT** prompt the already-installed keep / reinstall / Exit list (the operator already chose reinstall). Missing grok **MUST** still fetch (install). **MUST NOT** delete `auth.*`. **MUST NOT** wipe `{{GROK_HOME}}`. **MUST NOT** exec grok’s auto-update. JSON type **MUST** be `reinstall` with `status=reinstalled` on success. Dual mention: this file **and** `requirement-shell-cli-interface` · `requirement-domain-grok-cli` · `requirement-shell-cli-default-interaction`.
 
 ### 2.2 Peer probe
 
@@ -162,6 +164,8 @@ grok-cli setup --force
 grok-cli setup --json
 grok-cli update-grok
 grok-cli update-grok --json
+grok-cli reinstall
+grok-cli reinstall --json
 grok-cli run
 grok-cli run -p hello
 ```
@@ -171,8 +175,8 @@ grok-cli run -p hello
 | Item | Value |
 |------|--------|
 | Product | `grok-cli` |
-| Verb | `setup` (place) · `update-grok` (refresh peer grok) · `run` (start without auto-update) |
-| Handler | `gc_setup` · `gc_setup_already_installed_menu` · `gc_update_grok` · `gc_run_grok` |
+| Verb | `setup` (place) · `update-grok` (refresh peer grok) · `reinstall` (force place peer grok) · `run` (start without auto-update) |
+| Handler | `gc_setup` · `gc_setup_already_installed_menu` · `gc_update_grok` · `gc_reinstall` · `gc_run_grok` |
 | Interactive already-installed | TTY `setup` only; `GC_SETUP_ALREADY_CHOICE` = `keep` \| `reinstall` \| `cancel`; default pick **1** |
 | Peer | `grok` (xAI Grok Build CLI) |
 | Base URL | `https://x.ai/cli` (`GROK_VENDOR_BASE_URL`) |
@@ -185,7 +189,7 @@ grok-cli run -p hello
 | Overrides | `GROK_VENDOR_BASE_URL`, `GROK_VENDOR_FALLBACK_URL`, `GROK_CHANNEL`, `GROK_SETUP_VERSION`, `GROK_BIN`, `GROK_BIN_DIR`, `GROK_HOME`, `GROK_SETUP_RESOLV_FILE` (resolv probe; default `/etc/resolv.conf`) |
 | Privilege | Type 0 |
 | grok-cli install class | **not this file** — dual-mode owned by `requirement-shell-online-install` |
-| Menu | setup and `update-grok` excluded; this-login-only lists `run` first (`requirement-shell-cli-default-interaction`) |
+| Menu | `setup` and `update-grok` excluded; **`reinstall` listed** (this-login-only: after `run`; multi-user: after `add-crontab`, before `sudoers`). This-login-only lists `run` first (`requirement-shell-cli-default-interaction`) |
 | `install.sh` | **forbidden** as a fetch/exec target |
 | Egress | version pointer + artifact (+ compressed suffixes) on the two bases above; **not** `/install.sh`. Termux `pkg install -y proot` (packages.termux.org / mirror) **only** on Android when rule 18d applies. Core tests fake `pkg` |
 
@@ -265,6 +269,9 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 34. Delete `auth.*` or wipe `{{GROK_HOME}}` on reinstall.  
 35. Capture the setup choice with `$()` / backticks of a `read` helper.  
 36. Put `setup` on the TTY main menu.  
+37. Drop `reinstall` from routing, help, or the TTY numbered main menu, or treat it as grok-cli `self-update` / grok auto-update.  
+38. Prompt the already-installed keep / reinstall / Exit list when the command token is `reinstall`.  
+39. Delete `auth.*` or wipe `{{GROK_HOME}}` on `reinstall`.  
 
 **Violating this rule is a critical setup / install-class regression.**
 
@@ -274,13 +281,13 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | `setup`, `update-grok`, and `run` are routed and listed in help |
+| AC-1 | `setup`, `update-grok`, `reinstall`, and `run` are routed and listed in help |
 | AC-2 | Already-present `grok` off-TTY / `--json` is exit 0 with no curl |
 | AC-2b | TTY already-present `grok` shows keep / reinstall / Exit (not a silent skip) |
 | AC-3 | `--force` fetches the channel pointer and/or artifact (not `install.sh`) |
 | AC-4 | Curl/uname/download/smoke failures are operator-readable and non-zero |
 | AC-5 | Successful fake fetch places `grok` under `~/.grok/bin`, not grok-cli |
-| AC-6 | TTY menu has no setup row |
+| AC-6 | TTY menu has no setup row; TTY menu **does** list `reinstall` |
 | AC-7 | `setup` does not install grok-cli and does not own grok-cli’s `SCRIPT_URL` |
 | AC-8 | Vendor dir install with stale session PATH is exit 0, not `[ERROR]` |
 | AC-9 | Curl log **MUST NOT** contain `install.sh` |
@@ -309,6 +316,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-32 | TTY `setup` when grok already runs: pick **keep** / `1` is `already_installed` with no curl (TP-VCLI-37) |
 | AC-33 | TTY `setup` when grok already runs: pick **reinstall** / `2` fetches channel+artifact like `--force`; smoke fail keeps the old grok; `auth.*` is not deleted (TP-VCLI-38) |
 | AC-34 | TTY `setup` when grok already runs: pick **Exit** / `9` is cancelled, no curl (TP-VCLI-39) |
+| AC-35 | `reinstall` is Type 0, routed, listed in help and on the TTY main menu; missing grok still fetches; already-installed grok fetches channel+artifact; JSON `type=reinstall` `status=reinstalled`; `auth.*` kept (TP-VCLI-40..42 · TP-CLI-31) |
 
 ---
 
@@ -317,10 +325,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | Artifact | Role |
 |----------|------|
 | `docs/requirements/index.md` | Registry SSOT |
-| `docs/requirements/requirement-shell-cli-interface.md` | Dual mention of `setup`, `update-grok`, and `run` / dispatch |
+| `docs/requirements/requirement-shell-cli-interface.md` | Dual mention of `setup`, `update-grok`, `reinstall`, and `run` / dispatch |
 | `docs/requirements/requirement-domain-grok-cli.md` | Domain catalog |
 | `docs/requirements/requirement-grok-auth-backup.md` | Session after `grok login` |
-| `docs/requirements/requirement-shell-cli-default-interaction.md` | Menu excludes setup; this-login-only lists `run` first |
+| `docs/requirements/requirement-shell-cli-default-interaction.md` | Menu excludes `setup` / `update-grok`; lists `reinstall`; this-login-only lists `run` first |
 | `docs/requirements/requirement-shell-termux-coding.md` | Termux host writing (detect/`pkg`/`noexec`) |
 | `docs/requirements/requirement-project-folder.md` | Termux path classes (`PREFIX`, `~/.grok`) |
 | `./src/grok-cli` | Implementation |
@@ -349,6 +357,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-10 | Active (2.12.0) | Verb `update-grok`: refresh peer grok from xAI channel+artifact (not grok auto-update; not grok-cli `self-update`); **INC-20260910-002** |
 | 2026-09-10 | Active (2.13.0) | Git Bash / MSYS / Cygwin: `windows-*` PE, `.exe` fetch, copy `grok.exe` / `agent.exe` |
 | 2026-09-12 | Active (2.14.0) | TTY `setup` when grok already runs: numbered keep / reinstall / Exit (off-TTY / `--json` still skip) |
+| 2026-09-14 | Active (2.15.0) | Verb `reinstall`: force place peer grok; listed on the TTY main menu; missing grok still fetches; `auth.*` kept |
 
 ---
 
@@ -360,13 +369,15 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-VCLI-33**–**35** | `tests/test_grok_setup.sh` | have |
 | **TP-VCLI-36** | `tests/test_grok_setup.sh` | have |
 | **TP-VCLI-37**–**39** | `tests/test_grok_setup.sh` | have |
+| **TP-VCLI-40**–**42** | `tests/test_grok_setup.sh` | have — `reinstall` |
 | **TP-GROK-CLI-46** | `tests/test_domain_grok_cli.sh` | have — `run` injects `--no-auto-update` |
-| **TP-CLI-04** (help lists setup, update-grok, and run) | `tests/test_cli.sh` | have |
+| **TP-CLI-04** (help lists setup, update-grok, reinstall, and run) | `tests/test_cli.sh` | have |
 | **TP-CLI-13** (menu excludes setup) | `tests/test_cli.sh` | have |
+| **TP-CLI-31** (menu lists `reinstall`) | `tests/test_cli.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-12 (2.14.0 — TTY already-installed keep / reinstall / Exit)  
+**Last Updated**: 2026-09-14 (2.15.0 — `reinstall` verb + TTY main-menu row)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
