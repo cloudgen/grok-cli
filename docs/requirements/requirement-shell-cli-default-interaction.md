@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 2.18.0)  
+**Status**: Active (Version 2.19.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -282,6 +282,6 @@ Future agents **MUST NOT**:
 
 ---
 
-**Last Updated**: 2026-09-22 (2.18.0 — `sync-auth-to-remote` is on the main list only when logged in)  
+**Last Updated**: 2026-09-22 (2.19.0 — top list is **1** grok-auth, **8** sudoers, **9** self-management, **0** Exit; auth rows are **11–16**)  
 **Owner**: product  
 **Alignment**: `requirement-shell-cli-zero-arguments` · `requirement-shell-cli-interface` · `requirement-shell-interactive-vs-noninteractive` · `requirement-shell-output-requirements` · `requirement-shell-internal-volatile-timer` (`--debug` elapsed) · `requirement-grok-auth-backup` (session probe) · `requirement-domain-grok-cli` (no `restore`) · CIAO / CIAO-Lite

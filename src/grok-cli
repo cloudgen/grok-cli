@@ -60,8 +60,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.36"
-: "${VERSION:=1.8.36}"
+VERSION="1.8.37"
+: "${VERSION:=1.8.37}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -7770,46 +7770,71 @@ gc_host_normal_user_only_label() {
 }
 
 # =============================================================================
-# gc_menu_main_tokens() - Visible main-menu tokens (one per line, board order)
+# gc_menu_main_rows() - Top list as "NUMBER TOKEN" lines (fixed numbers)
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Class B: print the listed main-menu tokens for this host and session.
-# Consumes GC_SESSION_STATUS_CACHE (valid = logged in). Hide backup /
-# sync-auth / sudoers on this-login-only hosts. Those hosts list run
-# first (start grok without auto-update), then reinstall. Hide
-# sync-auth and sync-auth-from-remote when the session is valid.
-# sync-auth-to-remote is listed only when the session is valid.
-# Multi-user lists reinstall after add-crontab and before sudoers.
-# setup / update-grok stay off this list.
+# Top layer is 1 grok-auth, 8 sudoers (multi-user), 9 self-management.
+# This-login-only hosts add 2 run and omit 8 sudoers. Exit is 0, not a row
+# here. Auth commands live under 1 (numbers 11-16).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
 # Last updated: 2026-09-22
 # =============================================================================
-gc_menu_main_tokens() {
+gc_menu_main_rows() {
+    printf '%s\n' "1 grok-auth"
     if gc_host_is_normal_user_only; then
-        printf '%s\n' "run"
-        printf '%s\n' "reinstall"
+        printf '%s\n' "2 run"
+    else
+        printf '%s\n' "8 sudoers"
     fi
+    printf '%s\n' "9 self-management"
+}
+
+# gc_menu_auth_rows() - grok-auth submenu "NUMBER TOKEN" (fixed 11-16)
+# =============================================================================
+#
+# Hide backup on this-login-only. Hide sync-auth-from-remote when logged in.
+# Hide sync-auth-to-remote when not logged in. Numbers do not slide.
+# =============================================================================
+gc_menu_auth_rows() {
     if ! gc_host_is_normal_user_only; then
-        printf '%s\n' "backup"
-        if [ "${GC_SESSION_STATUS_CACHE-}" != "valid" ]; then
-            printf '%s\n' "sync-auth"
-        fi
+        printf '%s\n' "11 backup"
     fi
     if [ "${GC_SESSION_STATUS_CACHE-}" != "valid" ]; then
-        printf '%s\n' "sync-auth-from-remote"
+        printf '%s\n' "12 sync-auth-from-remote"
     fi
     if [ "${GC_SESSION_STATUS_CACHE-}" = "valid" ]; then
-        printf '%s\n' "sync-auth-to-remote"
+        printf '%s\n' "13 sync-auth-to-remote"
     fi
-    printf '%s\n' "add-crontab"
-    if ! gc_host_is_normal_user_only; then
-        printf '%s\n' "reinstall"
-        printf '%s\n' "sudoers"
-    fi
+    printf '%s\n' "14 add-crontab"
+    printf '%s\n' "15 setup"
+    printf '%s\n' "16 reinstall"
+}
+
+# gc_menu_self_rows() - self-management submenu "NUMBER TOKEN" (91-94)
+# =============================================================================
+gc_menu_self_rows() {
+    printf '%s\n' "91 version-check"
+    printf '%s\n' "92 self-update"
+    printf '%s\n' "93 self-uninstall"
+    printf '%s\n' "94 where-is-me"
+}
+
+# gc_menu_row_match() - Print the token when pick is its number or name
+# =============================================================================
+gc_menu_row_match() {
+    _m_pick="${1-}"
+    while read -r _m_num _m_tok; do
+        [ -n "${_m_num}" ] || continue
+        if [ "${_m_pick}" = "${_m_num}" ] || [ "${_m_pick}" = "${_m_tok}" ]; then
+            printf '%s' "${_m_tok}"
+            return 0
+        fi
+    done
+    return 1
 }
 
 # =============================================================================
@@ -7820,48 +7845,33 @@ gc_menu_row_explain() {
     case "${1-}" in
         run) printf '%s' "Start grok without auto-update" ;;
         reinstall) printf '%s' "Remove existing grok and install again" ;;
+        setup) printf '%s' "Install grok from x.ai" ;;
+        grok-auth) printf '%s' "Backup, sync, crontab, setup, and reinstall" ;;
         backup) printf '%s' "Push ~/.grok/auth.* to ${GROK_CLI_ROOT}" ;;
         sync-auth) printf '%s' "Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok" ;;
         sync-auth-from-remote) printf '%s' "Copy a remote host's auth.* into ~/.grok" ;;
         sync-auth-to-remote) printf '%s' "Copy ~/.grok/auth.* onto a remote host" ;;
         add-crontab) printf '%s' "Add backup and sync-auth jobs to this login's crontab" ;;
         sudoers) printf '%s' "Grant and drafts" ;;
+        self-management) printf '%s' "Check, update, or remove grok-cli" ;;
+        version-check) printf '%s' "Compare local version with the channel" ;;
+        self-update) printf '%s' "Re-download grok-cli from the channel" ;;
+        self-uninstall) printf '%s' "Remove grok-cli" ;;
+        where-is-me) printf '%s' "Show running and install paths" ;;
         *) printf '%s' "" ;;
     esac
 }
 
 # =============================================================================
-# gc_menu_main_count() - Class B: number of listed main-menu command rows
+# gc_menu_pick_is_family() - 0 when the top-list pick is that family token
 # =============================================================================
-gc_menu_main_count() {
-    _c=0
-    while IFS= read -r _tok; do
-        [ -n "${_tok}" ] || continue
-        _c=$((_c + 1))
-    done <<EOF
-$(gc_menu_main_tokens)
-EOF
-    printf '%s' "${_c}"
-}
-
-# =============================================================================
-# gc_menu_pick_is_sudoers() - 0 when pick is the listed sudoers family
-# =============================================================================
-gc_menu_pick_is_sudoers() {
-    _want="${1-}"
-    _n=0
-    while IFS= read -r _tok; do
-        [ -n "${_tok}" ] || continue
-        _n=$((_n + 1))
-        if [ "${_tok}" = "sudoers" ]; then
-            if [ "${_want}" = "sudoers" ] || [ "${_want}" = "${_n}" ]; then
-                return 0
-            fi
-            return 1
-        fi
-    done <<EOF
-$(gc_menu_main_tokens)
-EOF
+gc_menu_pick_is_family() {
+    _fam="${1-}"
+    _want="${2-}"
+    _hit=$(gc_menu_main_rows | gc_menu_row_match "${_want}" || true)
+    if [ "${_hit}" = "${_fam}" ]; then
+        return 0
+    fi
     return 1
 }
 
@@ -7935,15 +7945,13 @@ app_default_print_menu() {
     util_int_timer_debug_end "logged-in"
 
     util_int_timer_debug_begin "rows"
-    _n=0
-    while IFS= read -r _tok; do
-        [ -n "${_tok}" ] || continue
-        _n=$((_n + 1))
+    while read -r _n _tok; do
+        [ -n "${_n}" ] || continue
         out_menu_choice "${_n}" "${_tok}" "$(gc_menu_row_explain "${_tok}")"
     done <<EOF
-$(gc_menu_main_tokens)
+$(gc_menu_main_rows)
 EOF
-    out_menu_choice "9" "Exit"
+    out_menu_choice "0" "Exit"
     util_int_timer_debug_end "rows"
 
     util_int_timer_debug_end "paint"
@@ -7980,7 +7988,7 @@ app_default_print_sudoers_menu() {
     out_menu_choice "4" "print-sudoers-install-script" "Write admin install script"
     out_menu_choice "5" "remove-project-sudoers" "Remove sudoers draft only"
     out_menu_choice "8" "Back"
-    out_menu_choice "9" "Exit"
+    out_menu_choice "0" "Exit"
     util_int_timer_debug_end "sudoers.rows"
 
     util_int_timer_debug_end "sudoers.paint"
@@ -8003,83 +8011,156 @@ app_default_print_sudoers_menu() {
 # =============================================================================
 app_default_run_pick() {
     _pick="${1:-}"
-    : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     case "${_pick}" in
-        check-session)
-            gc_check_session
-            return 0
-            ;;
-        9|99|exit|quit|Exit|QUIT)
+        0|99|exit|quit|Exit|QUIT)
             return 0
             ;;
     esac
 
-    if ! gc_host_is_normal_user_only; then
-        case "${_pick}" in
-            generate-sudoer-request)
-                gc_generate_sudoer_request
-                return 0
-                ;;
-            submit-sudoer-request)
-                gc_submit_sudoer_request
-                return 0
-                ;;
-            print-sudoers)
-                gc_print_sudoers
-                return 0
-                ;;
-            print-sudoers-install-script)
-                gc_print_sudoers_install_script
-                return 0
-                ;;
-            remove-project-sudoers)
-                gc_remove_project_sudoers
-                return 0
-                ;;
-        esac
-    fi
-
-    _run=""
-    _n=0
-    while IFS= read -r _tok; do
-        [ -n "${_tok}" ] || continue
-        _n=$((_n + 1))
-        if [ "${_pick}" = "${_n}" ] || [ "${_pick}" = "${_tok}" ]; then
-            _run="${_tok}"
-            break
-        fi
-    done <<EOF
-$(gc_menu_main_tokens)
-EOF
-
+    _run=$(gc_menu_main_rows | gc_menu_row_match "${_pick}" || true)
     case "${_run}" in
         run)
             gc_run_grok
-            ;;
-        reinstall)
-            gc_reinstall
-            ;;
-        backup)
-            gc_backup
-            ;;
-        sync-auth)
-            gc_sync_auth
-            ;;
-        sync-auth-from-remote)
-            gc_sync_auth_from_remote
-            ;;
-        sync-auth-to-remote)
-            gc_sync_auth_to_remote
-            ;;
-        add-crontab)
-            gc_add_crontab
             ;;
         *)
             return 1
             ;;
     esac
     return 0
+}
+
+# =============================================================================
+# app_default_print_auth_menu() / app_default_run_auth_pick()
+# =============================================================================
+app_default_print_auth_menu() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+
+    out_info "$(util_app_ident) — grok-auth"
+    if gc_host_is_normal_user_only; then
+        out_info "backup, sync-auth and sudoers features are not available in $(gc_host_normal_user_only_label)."
+    fi
+    if [ "${GC_SESSION_STATUS_CACHE-}" = "valid" ]; then
+        out_info "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+    fi
+    while read -r _n _tok; do
+        [ -n "${_n}" ] || continue
+        out_menu_choice "${_n}" "${_tok}" "$(gc_menu_row_explain "${_tok}")"
+    done <<EOF
+$(gc_menu_auth_rows)
+EOF
+    out_menu_choice "10" "Back"
+    out_menu_choice "0" "Exit"
+}
+
+app_default_run_auth_pick() {
+    _pick="${1:-}"
+    _run=$(gc_menu_auth_rows | gc_menu_row_match "${_pick}" || true)
+    case "${_run}" in
+        backup) gc_backup ;;
+        sync-auth-from-remote) gc_sync_auth_from_remote ;;
+        sync-auth-to-remote) gc_sync_auth_to_remote ;;
+        add-crontab) gc_add_crontab ;;
+        setup) gc_setup ;;
+        reinstall) gc_reinstall ;;
+        *) return 1 ;;
+    esac
+    return 0
+}
+
+app_default_auth_loop() {
+    : "${_menu_json:=0}"
+    : "${_menu_quiet:=0}"
+    while true; do
+        JSON=0
+        QUIET=0
+        export JSON QUIET
+        app_default_print_auth_menu
+        out_msg_n "Choice: "
+        _pick=""
+        if ! read -r _pick; then
+            return 0
+        fi
+        case "${_pick}" in
+            10|back|Back)
+                return 1
+                ;;
+            0|99|exit|quit|Exit|QUIT)
+                return 0
+                ;;
+        esac
+        JSON="${_menu_json}"
+        QUIET="${_menu_quiet}"
+        export JSON QUIET
+        if app_default_run_auth_pick "${_pick}"; then
+            return 0
+        fi
+        out_error "Not a menu choice '${_pick}'. Type 11-16, 10 back, 0 to leave, or a listed command name."
+    done
+}
+
+# =============================================================================
+# app_default_print_self_menu() / self-management submenu
+# =============================================================================
+app_default_print_self_menu() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+    out_info "$(util_app_ident) — self-management"
+    while read -r _n _tok; do
+        [ -n "${_n}" ] || continue
+        out_menu_choice "${_n}" "${_tok}" "$(gc_menu_row_explain "${_tok}")"
+    done <<EOF
+$(gc_menu_self_rows)
+EOF
+    out_menu_choice "10" "Back"
+    out_menu_choice "0" "Exit"
+}
+
+app_default_run_self_pick() {
+    _pick="${1:-}"
+    _run=$(gc_menu_self_rows | gc_menu_row_match "${_pick}" || true)
+    case "${_run}" in
+        version-check) ver_check ;;
+        self-update) inst_self_update ;;
+        self-uninstall) inst_self_uninstall ;;
+        where-is-me) app_where_is_me ;;
+        *) return 1 ;;
+    esac
+    return 0
+}
+
+app_default_self_loop() {
+    : "${_menu_json:=0}"
+    : "${_menu_quiet:=0}"
+    while true; do
+        JSON=0
+        QUIET=0
+        export JSON QUIET
+        app_default_print_self_menu
+        out_msg_n "Choice: "
+        _pick=""
+        if ! read -r _pick; then
+            return 0
+        fi
+        case "${_pick}" in
+            10|back|Back)
+                return 1
+                ;;
+            0|99|exit|quit|Exit|QUIT)
+                return 0
+                ;;
+        esac
+        JSON="${_menu_json}"
+        QUIET="${_menu_quiet}"
+        export JSON QUIET
+        if app_default_run_self_pick "${_pick}"; then
+            return 0
+        fi
+        out_error "Not a menu choice '${_pick}'. Type 91-94, 10 back, 0 to leave, or a listed command name."
+    done
 }
 
 # =============================================================================
@@ -8154,7 +8235,7 @@ app_default_sudoers_loop() {
             8|back|Back)
                 return 1
                 ;;
-            9|99|exit|quit|Exit|QUIT)
+            0|99|exit|quit|Exit|QUIT)
                 return 0
                 ;;
         esac
@@ -8164,7 +8245,7 @@ app_default_sudoers_loop() {
         if app_default_run_sudoers_pick "${_pick}"; then
             return 0
         fi
-        out_error "Not a menu choice '${_pick}'. Type 1-5, 8 back, 9 to leave, or a listed command name."
+        out_error "Not a menu choice '${_pick}'. Type 1-5, 8 back, 0 to leave, or a listed command name."
     done
 }
 
@@ -8218,18 +8299,48 @@ app_default() {
             return 0
         fi
         case "${_pick}" in
-            9|99|exit|quit|Exit|QUIT)
+            0|99|exit|quit|Exit|QUIT)
                 JSON="${_menu_json}"
                 QUIET="${_menu_quiet}"
                 export JSON QUIET
                 return 0
                 ;;
         esac
-        if gc_menu_pick_is_sudoers "${_pick}"; then
+        if gc_menu_pick_is_family "grok-auth" "${_pick}"; then
+            JSON="${_menu_json}"
+            QUIET="${_menu_quiet}"
+            export JSON QUIET
+            if app_default_auth_loop; then
+                JSON="${_menu_json}"
+                QUIET="${_menu_quiet}"
+                export JSON QUIET
+                return 0
+            fi
+            JSON=0
+            QUIET=0
+            export JSON QUIET
+            continue
+        fi
+        if gc_menu_pick_is_family "sudoers" "${_pick}"; then
             JSON="${_menu_json}"
             QUIET="${_menu_quiet}"
             export JSON QUIET
             if app_default_sudoers_loop; then
+                JSON="${_menu_json}"
+                QUIET="${_menu_quiet}"
+                export JSON QUIET
+                return 0
+            fi
+            JSON=0
+            QUIET=0
+            export JSON QUIET
+            continue
+        fi
+        if gc_menu_pick_is_family "self-management" "${_pick}"; then
+            JSON="${_menu_json}"
+            QUIET="${_menu_quiet}"
+            export JSON QUIET
+            if app_default_self_loop; then
                 JSON="${_menu_json}"
                 QUIET="${_menu_quiet}"
                 export JSON QUIET
@@ -8249,11 +8360,10 @@ app_default() {
         JSON=0
         QUIET=0
         export JSON QUIET
-        _menu_n=$(gc_menu_main_count)
-        if [ "${_menu_n}" -eq 1 ]; then
-            out_error "Not a menu choice '${_pick}'. Type 1, 9 to leave, or a listed command name."
+        if gc_host_is_normal_user_only; then
+            out_error "Not a menu choice '${_pick}'. Type 1, 2, 9, or 0 to leave, or a listed command name."
         else
-            out_error "Not a menu choice '${_pick}'. Type 1-${_menu_n}, 9 to leave, or a listed command name."
+            out_error "Not a menu choice '${_pick}'. Type 1, 8, 9, or 0 to leave, or a listed command name."
         fi
     done
 }

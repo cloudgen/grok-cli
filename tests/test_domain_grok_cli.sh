@@ -730,7 +730,8 @@ FAKESCP
             HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-menu-remote" \
             GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
             GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
-            PTY_IN="3
+            PTY_IN="1
+12
 192.0.2.10
 " python3 - "${SCRIPT}" menu <<'PY'
 import os, pty, select, signal, sys, time
@@ -808,7 +809,8 @@ PY
             HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-pref-tty" \
             GROK_CLI_SCP="${_fake_scp}" GROK_CLI_REMOTE_FIXTURE="${CI_HOME}/remote-store" \
             GROK_CLI_SCP_LOG="${_scp_log}" GROK_CLI_REMOTE_ROOT="/var/grok-cli" \
-            PTY_IN="3
+            PTY_IN="1
+12
 
 " python3 - "${SCRIPT}" menu <<'PY'
 import os, pty, select, signal, sys, time
@@ -882,7 +884,7 @@ PY
     assert_contains "TP-GROK-CLI-42 json reason" "${_j}" '"reason":"logged-in"'
     if command -v python3 >/dev/null 2>&1; then
         _pty_out=$(HOME="${CI_HOME}" GROK_HOME="${_keep}" GROK_BIN="${GROK_BIN}" \
-            GROK_CLI_ROOT="${_store}" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+            GROK_CLI_ROOT="${_store}" PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-GROK-CLI-42 menu logged in" "${_pty_out}" "logged in"
         assert_contains "TP-GROK-CLI-42 menu hides sync-auth" "${_pty_out}" \
             "sync-auth and sync-auth-from-remote features are not available for logged-in environment."

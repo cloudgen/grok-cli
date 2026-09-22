@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-22 (1.8.36 Alpine ash PATH on `.profile`)  
-**Product VERSION:** 1.8.36
+**Updated:** 2026-09-22 (1.8.37 main menu families 1 / 8 / 9)  
+**Product VERSION:** 1.8.37
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |

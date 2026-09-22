@@ -122,27 +122,27 @@ run_test_cli() {
     assert_eq "TP-CLI-07 empty argv off-TTY exit 0" 0 "$_ec"
     assert_contains "TP-CLI-07 empty argv off-TTY already installed" "$_out" "already installed"
     assert_not_contains "TP-CLI-07 empty argv off-TTY not help dump" "$_out" "Usage:"
-    assert_not_contains "TP-CLI-07 empty argv off-TTY not numbered list" "$_out" "9. Exit"
+    assert_not_contains "TP-CLI-07 empty argv off-TTY not numbered list" "$_out" "0. Exit"
     ci_cleanup_env
 
     _out=$(sh "${SCRIPT}" --json 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-07 --json no command exit 0" 0 "$_ec"
     assert_contains "TP-CLI-07 --json no command is JSON help" "$_out" '"type":"success"'
-    assert_not_contains "TP-CLI-07 --json no command not numbered list" "$_out" "9. Exit"
+    assert_not_contains "TP-CLI-07 --json no command not numbered list" "$_out" "0. Exit"
 
     if command -v python3 >/dev/null 2>&1; then
         ci_isolated_env
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}")
-        assert_contains "TP-CLI-07 TTY empty argv is numbered list" "$_out" "9. Exit"
-        assert_contains "TP-CLI-07 TTY empty argv backup first" "$_out" "1. backup:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="0" ci_pty_capture "${SCRIPT}")
+        assert_contains "TP-CLI-07 TTY empty argv is numbered list" "$_out" "0. Exit"
+        assert_contains "TP-CLI-07 TTY empty argv grok-auth first" "$_out" "1. grok-auth:"
         assert_not_contains "TP-CLI-07 TTY empty argv no check-session row" "$_out" "check-session:"
         assert_contains "TP-CLI-07 TTY empty argv header app" "$_out" "${APP_NAME}"
         assert_contains "TP-CLI-07 TTY empty argv header version" "$_out" "${PRODUCT_VERSION}"
         assert_not_contains "TP-CLI-07 TTY empty argv not help dump" "$_out" "Usage:"
-        _jout=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" --json)
+        _jout=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="0" ci_pty_capture "${SCRIPT}" --json)
         assert_contains "TP-CLI-07 TTY --json no command is JSON help" "$_jout" '"type":"success"'
-        assert_not_contains "TP-CLI-07 TTY --json no command not numbered list" "$_jout" "9. Exit"
+        assert_not_contains "TP-CLI-07 TTY --json no command not numbered list" "$_jout" "0. Exit"
         assert_not_contains "TP-CLI-07 TTY --json no command not menu dispatch" "$_jout" "command=menu"
         unset _jout
         ci_cleanup_env
@@ -159,7 +159,7 @@ run_test_cli() {
     assert_eq "TP-CLI-29 --debug no command off-TTY exit 0" 0 "$_ec"
     assert_contains "TP-CLI-29 --debug no command off-TTY ensure" "$_out" "already installed"
     assert_not_contains "TP-CLI-29 --debug no command off-TTY not help dump" "$_out" "Usage:"
-    assert_not_contains "TP-CLI-29 --debug no command off-TTY not numbered list" "$_out" "9. Exit"
+    assert_not_contains "TP-CLI-29 --debug no command off-TTY not numbered list" "$_out" "0. Exit"
     _err=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" --debug 2>&1 >/dev/null)
     assert_contains "TP-CLI-29 --debug no command off-TTY debug tag" "$_err" "[DEBUG]"
     assert_contains "TP-CLI-29 --debug no command off-TTY dispatch ensure" "$_err" "command=ensure"
@@ -167,19 +167,19 @@ run_test_cli() {
     _ec=$?
     assert_eq "TP-CLI-29 --quiet no command off-TTY exit 0" 0 "$_ec"
     assert_not_contains "TP-CLI-29 --quiet no command off-TTY not help dump" "$_out" "Usage:"
-    assert_not_contains "TP-CLI-29 --quiet no command off-TTY not numbered list" "$_out" "9. Exit"
+    assert_not_contains "TP-CLI-29 --quiet no command off-TTY not numbered list" "$_out" "0. Exit"
     _out=$(sh "${SCRIPT}" --json --debug 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-29 --json --debug no command exit 0" 0 "$_ec"
     assert_contains "TP-CLI-29 --json --debug no command is JSON help" "$_out" '"type":"success"'
-    assert_not_contains "TP-CLI-29 --json --debug no command not numbered list" "$_out" "9. Exit"
+    assert_not_contains "TP-CLI-29 --json --debug no command not numbered list" "$_out" "0. Exit"
     ci_cleanup_env
 
     if command -v python3 >/dev/null 2>&1; then
         ci_isolated_env
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" --debug)
-        assert_contains "TP-CLI-29 TTY --debug no command is numbered list" "$_out" "9. Exit"
-        assert_contains "TP-CLI-29 TTY --debug no command backup first" "$_out" "1. backup:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="0" ci_pty_capture "${SCRIPT}" --debug)
+        assert_contains "TP-CLI-29 TTY --debug no command is numbered list" "$_out" "0. Exit"
+        assert_contains "TP-CLI-29 TTY --debug no command grok-auth first" "$_out" "1. grok-auth:"
         assert_contains "TP-CLI-29 TTY --debug no command dispatch menu" "$_out" "command=menu"
         assert_contains "TP-CLI-29 TTY --debug no command paint start" "$_out" "menu step paint: start"
         assert_not_contains "TP-CLI-29 TTY --debug no command not help dump" "$_out" "Usage:"
@@ -263,7 +263,7 @@ run_test_cli() {
     _ec=$?
     assert_eq "TP-CLI-13 menu off-TTY exit 0" 0 "$_ec"
     assert_contains "TP-CLI-13 menu off-TTY is help" "$_out" "Usage:"
-    assert_not_contains "TP-CLI-13 menu off-TTY not the numbered list" "$_out" "9. Exit"
+    assert_not_contains "TP-CLI-13 menu off-TTY not the numbered list" "$_out" "0. Exit"
 
     _out=$(sh "${SCRIPT}" main 2>/dev/null)
     _ec=$?
@@ -274,12 +274,12 @@ run_test_cli() {
     _ec=$?
     assert_eq "TP-CLI-13 menu --json off-TTY exit 0" 0 "$_ec"
     assert_contains "TP-CLI-13 menu --json off-TTY JSON help" "$_out" '"type":"success"'
-    assert_not_contains "TP-CLI-13 menu --json off-TTY not numbered list" "$_out" "9. Exit"
+    assert_not_contains "TP-CLI-13 menu --json off-TTY not numbered list" "$_out" "0. Exit"
 
     ci_isolated_env
     HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" install >/dev/null 2>&1
     _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" 2>/dev/null)
-    assert_not_contains "TP-CLI-13 empty argv off-TTY not numbered list" "$_out" "9. Exit"
+    assert_not_contains "TP-CLI-13 empty argv off-TTY not numbered list" "$_out" "0. Exit"
     assert_not_contains "TP-CLI-13 empty argv off-TTY not help" "$_out" "Usage:"
     assert_contains "TP-CLI-13 empty argv off-TTY is ensure" "$_out" "already installed"
     ci_cleanup_env
@@ -293,15 +293,11 @@ run_test_cli() {
         ci_isolated_env
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="99" ci_pty_capture "${SCRIPT}" menu)
         assert_not_contains "TP-CLI-13 TTY menu no check-session row" "$_out" "check-session:"
-        assert_contains "TP-CLI-13 TTY menu backup first" "$_out" "1. backup:"
-        assert_contains "TP-CLI-13 TTY menu sync-auth second" "$_out" "2. sync-auth:"
-        assert_contains "TP-CLI-13 TTY menu sync-auth-from-remote third" "$_out" "3. sync-auth-from-remote:"
-        assert_not_contains "TP-CLI-13 TTY menu hides sync-auth-to-remote when logged out" "$_out" \
-            "sync-auth-to-remote:"
-        assert_contains "TP-CLI-13 TTY menu add-crontab fourth" "$_out" "4. add-crontab:"
-        assert_contains "TP-CLI-13 TTY menu reinstall fifth" "$_out" "5. reinstall:"
-        assert_contains "TP-CLI-13 TTY menu family sudoers" "$_out" "6. sudoers:"
-        assert_contains "TP-CLI-13 TTY menu Exit 9" "$_out" "9. Exit"
+        assert_contains "TP-CLI-13 TTY menu grok-auth first" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-13 TTY menu sudoers is 8" "$_out" "8. sudoers:"
+        assert_contains "TP-CLI-13 TTY menu self-management is 9" "$_out" "9. self-management:"
+        assert_not_contains "TP-CLI-13 TTY top hides auth rows" "$_out" "11. backup:"
+        assert_contains "TP-CLI-13 TTY menu Exit 0" "$_out" "0. Exit"
         assert_contains "TP-CLI-13 TTY menu header app" "$_out" "${APP_NAME}"
         assert_contains "TP-CLI-13 TTY menu header version" "$_out" "${PRODUCT_VERSION}"
         assert_contains "TP-CLI-13 TTY menu session line" "$_out" "logged out"
@@ -310,17 +306,26 @@ run_test_cli() {
         assert_not_contains "TP-CLI-13 TTY menu no help verb row" "$_out" "help: Show this help"
         assert_not_contains "TP-CLI-13 TTY main hides generate row" "$_out" "1. generate-sudoer-request:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="99" ci_pty_capture "${SCRIPT}" --json menu)
-        assert_contains "TP-CLI-13 TTY menu --json still numbered list" "$_out" "9. Exit"
+        assert_contains "TP-CLI-13 TTY menu --json still numbered list" "$_out" "0. Exit"
         assert_not_contains "TP-CLI-13 TTY menu --json ignores JSON help" "$_out" '"type":"success"'
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="1
+0" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-13 auth backup is 11" "$_out" "11. backup:"
+        assert_contains "TP-CLI-13 auth from-remote is 12" "$_out" "12. sync-auth-from-remote:"
+        assert_not_contains "TP-CLI-13 auth hides to-remote when logged out" "$_out" \
+            "13. sync-auth-to-remote:"
+        assert_contains "TP-CLI-13 auth add-crontab is 14" "$_out" "14. add-crontab:"
+        assert_contains "TP-CLI-13 auth setup is 15" "$_out" "15. setup:"
+        assert_contains "TP-CLI-13 auth reinstall is 16" "$_out" "16. reinstall:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="12
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-13 TTY pick 12 not a menu choice" "$_out" "Not a menu choice"
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="6
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="8
 8
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-13 TTY submenu generate row" "$_out" "1. generate-sudoer-request:"
         assert_contains "TP-CLI-13 TTY submenu Back 8" "$_out" "8. Back"
-        assert_contains "TP-CLI-13 TTY submenu Exit 9" "$_out" "9. Exit"
+        assert_contains "TP-CLI-13 TTY submenu Exit 9" "$_out" "0. Exit"
         _err=$(sh "${SCRIPT}" sudoers 2>&1 >/dev/null)
         assert_eq "TP-CLI-13 sudoers not a live command" 1 "$?"
         assert_contains "TP-CLI-13 sudoers unknown" "$_err" "Unknown command"
@@ -335,13 +340,14 @@ run_test_cli() {
     # TP-CLI-17: default CLI main menu style (header nametag; explain SGR 3+37)
     if command -v python3 >/dev/null 2>&1; then
         ci_isolated_env
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" APP_VERSION="9.9.9" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" APP_VERSION="9.9.9" PTY_IN="1
+0" ci_pty_capture "${SCRIPT}" menu)
         _bold=$(printf '\033[1m%s\033[0m' "${APP_NAME}")
         _italic=$(printf '\033[3m%s\033[0m' "${PRODUCT_VERSION}")
         _ident=$(printf '\033[1m%s\033[0m(\033[3m%s\033[0m)' "${APP_NAME}" "${PRODUCT_VERSION}")
         _gray_italic=$(printf '\033[3;37m')
         _sgr90=$(printf '\033[90;3m')
-        _backup_desc=$(printf '1. backup: \033[3;37mPush ~/.grok/auth.* to /var/grok-cli\033[0m')
+        _backup_desc=$(printf '11. backup: \033[3;37mPush ~/.grok/auth.* to /var/grok-cli\033[0m')
         assert_contains "TP-CLI-17 TTY header bold APP_NAME" "$_out" "${_bold}"
         assert_contains "TP-CLI-17 TTY header italic APP_VERSION" "$_out" "${_italic}"
         assert_contains "TP-CLI-17 TTY header nametag APP_NAME(APP_VERSION)" "$_out" "${_ident}"
@@ -352,7 +358,7 @@ run_test_cli() {
         _sess=$(printf '%s\n' "$_out" | tr -d '\r' | grep 'logged out' | head -n1)
         assert_contains "TP-CLI-17 TTY logged out is INFO" "${_sess}" "[INFO]"
         assert_not_contains "TP-CLI-17 TTY no check-session row" "$_out" "check-session:"
-        assert_contains "TP-CLI-17 TTY number and short-descript unstyled" "$_out" "1. backup: "
+        assert_contains "TP-CLI-17 TTY number and short-descript unstyled" "$_out" "11. backup: "
         assert_contains "TP-CLI-17 TTY desc is italic + light gray (SGR 3+37)" "$_out" "${_gray_italic}"
         assert_contains "TP-CLI-17 TTY backup explain is gray italic" "$_out" "${_backup_desc}"
         assert_not_contains "TP-CLI-17 TTY not SGR 90 house look" "$_out" "${_sgr90}"
@@ -371,7 +377,7 @@ run_test_cli() {
 AUTH
         ci_fake_grok_ok
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
-            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+            PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-17 TTY logged in when session valid" "$_out" "logged in"
         assert_not_contains "TP-CLI-17 TTY logged-in not logged out" "$_out" "logged out"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
@@ -392,60 +398,59 @@ AUTH
         ci_isolated_env
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
-            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+            PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-19 Termux not-available line" "$_out" \
             "backup, sync-auth and sudoers features are not available in termux."
         _sess=$(printf '%s\n' "$_out" | tr -d '\r' | grep 'logged out' | head -n1)
         assert_contains "TP-CLI-19 Termux logged out is INFO" "${_sess}" "[INFO]"
         _na=$(printf '%s\n' "$_out" | tr -d '\r' | grep 'features are not available in termux' | head -n1)
         assert_contains "TP-CLI-19 Termux not-available is INFO" "${_na}" "[INFO]"
-        assert_not_contains "TP-CLI-19 Termux no backup row" "$_out" "1. backup:"
-        assert_not_contains "TP-CLI-19 Termux no sync-auth row" "$_out" "sync-auth:"
+        assert_not_contains "TP-CLI-19 Termux no backup row" "$_out" "11. backup:"
         assert_not_contains "TP-CLI-19 Termux no sudoers row" "$_out" "sudoers:"
-        assert_contains "TP-CLI-19 Termux row 1 is run" "$_out" "1. run:"
-        assert_contains "TP-CLI-19 Termux row 2 is reinstall" "$_out" "2. reinstall:"
-        assert_contains "TP-CLI-19 Termux row 3 is sync-auth-from-remote" "$_out" \
-            "3. sync-auth-from-remote:"
-        assert_not_contains "TP-CLI-19 Termux hides sync-auth-to-remote when logged out" "$_out" \
-            "sync-auth-to-remote:"
-        assert_contains "TP-CLI-19 Termux row 4 is add-crontab" "$_out" "4. add-crontab:"
-        assert_contains "TP-CLI-19 Termux Exit 9" "$_out" "9. Exit"
+        assert_contains "TP-CLI-19 Termux row 1 is grok-auth" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-19 Termux row 2 is run" "$_out" "2. run:"
+        assert_contains "TP-CLI-19 Termux row 9 is self-management" "$_out" "9. self-management:"
+        assert_contains "TP-CLI-19 Termux Exit 0" "$_out" "0. Exit"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
+            PTY_IN="1
+0" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-19 Termux auth from-remote is 12" "$_out" \
+            "12. sync-auth-from-remote:"
+        assert_not_contains "TP-CLI-19 Termux auth hides backup" "$_out" "11. backup:"
+        assert_not_contains "TP-CLI-19 Termux auth hides to-remote when logged out" "$_out" \
+            "13. sync-auth-to-remote:"
+        assert_contains "TP-CLI-19 Termux auth add-crontab is 14" "$_out" "14. add-crontab:"
+        assert_contains "TP-CLI-19 Termux auth reinstall is 16" "$_out" "16. reinstall:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
             PTY_IN="5
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-19 Termux pick 5 is not a menu choice" "$_out" "Not a menu choice"
         assert_not_contains "TP-CLI-19 Termux pick 5 does not open sudoers" "$_out" \
             "1. generate-sudoer-request:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
-            MSYSTEM="MINGW64" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+            MSYSTEM="MINGW64" PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-19 Git Bash not-available line" "$_out" \
             "backup, sync-auth and sudoers features are not available in gitbash."
-        assert_not_contains "TP-CLI-19 Git Bash no backup row" "$_out" "1. backup:"
-        assert_contains "TP-CLI-19 Git Bash row 1 is run" "$_out" "1. run:"
-        assert_contains "TP-CLI-19 Git Bash row 2 is reinstall" "$_out" "2. reinstall:"
-        assert_contains "TP-CLI-19 Git Bash row 3 is sync-auth-from-remote" "$_out" \
-            "3. sync-auth-from-remote:"
-        assert_not_contains "TP-CLI-19 Git Bash hides sync-auth-to-remote when logged out" "$_out" \
-            "sync-auth-to-remote:"
-        assert_contains "TP-CLI-19 Git Bash row 4 is add-crontab" "$_out" "4. add-crontab:"
+        assert_not_contains "TP-CLI-19 Git Bash no backup row" "$_out" "11. backup:"
+        assert_contains "TP-CLI-19 Git Bash row 1 is grok-auth" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-19 Git Bash row 2 is run" "$_out" "2. run:"
+        assert_contains "TP-CLI-19 Git Bash row 9 is self-management" "$_out" "9. self-management:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
-            OS="Windows_NT" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+            OS="Windows_NT" PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-19 Windows cmd not-available line" "$_out" \
             "backup, sync-auth and sudoers features are not available in windows-cmd."
-        assert_not_contains "TP-CLI-19 Windows cmd no backup row" "$_out" "1. backup:"
-        assert_contains "TP-CLI-19 Windows cmd row 1 is run" "$_out" "1. run:"
-        assert_contains "TP-CLI-19 Windows cmd row 2 is reinstall" "$_out" "2. reinstall:"
-        assert_contains "TP-CLI-19 Windows cmd row 3 is sync-auth-from-remote" "$_out" \
-            "3. sync-auth-from-remote:"
-        assert_not_contains "TP-CLI-19 Windows cmd hides sync-auth-to-remote when logged out" "$_out" \
-            "sync-auth-to-remote:"
-        assert_contains "TP-CLI-19 Windows cmd row 4 is add-crontab" "$_out" "4. add-crontab:"
+        assert_not_contains "TP-CLI-19 Windows cmd no backup row" "$_out" "11. backup:"
+        assert_contains "TP-CLI-19 Windows cmd row 1 is grok-auth" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-19 Windows cmd row 2 is run" "$_out" "2. run:"
+        assert_contains "TP-CLI-19 Windows cmd row 9 is self-management" "$_out" "9. self-management:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
-            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+            PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
         assert_not_contains "TP-CLI-19 multi-user has no not-available line" "$_out" \
             "features are not available in"
-        assert_contains "TP-CLI-19 multi-user still lists backup" "$_out" "1. backup:"
+        assert_contains "TP-CLI-19 multi-user still lists grok-auth" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-19 multi-user sudoers is 8" "$_out" "8. sudoers:"
         ci_cleanup_env
     else
         t_skip "TP-CLI-19 Termux menu (no python3 for PTY)"
@@ -471,43 +476,40 @@ AUTH
 AUTH
         ci_fake_grok_ok
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
-            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+            PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-20 multi-user logged in" "$_out" "logged in"
         assert_contains "TP-CLI-20 multi-user logged-in not-available" "$_out" \
             "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
         assert_not_contains "TP-CLI-20 multi-user no host not-available" "$_out" \
             "features are not available in"
-        assert_contains "TP-CLI-20 multi-user backup is 1" "$_out" "1. backup:"
-        assert_contains "TP-CLI-20 multi-user sync-auth-to-remote is 2" "$_out" \
-            "2. sync-auth-to-remote:"
-        assert_contains "TP-CLI-20 multi-user add-crontab is 3" "$_out" "3. add-crontab:"
-        assert_contains "TP-CLI-20 multi-user reinstall is 4" "$_out" "4. reinstall:"
-        assert_contains "TP-CLI-20 multi-user sudoers is 5" "$_out" "5. sudoers:"
+        assert_contains "TP-CLI-20 multi-user grok-auth is 1" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-20 multi-user sudoers is 8" "$_out" "8. sudoers:"
+        assert_contains "TP-CLI-20 multi-user self-management is 9" "$_out" "9. self-management:"
         assert_not_contains "TP-CLI-20 multi-user no sync-auth row" "$_out" "sync-auth:"
         assert_not_contains "TP-CLI-20 multi-user no from-remote row" "$_out" \
             "sync-auth-from-remote:"
-        assert_contains "TP-CLI-20 multi-user Exit 9" "$_out" "9. Exit"
+        assert_contains "TP-CLI-20 multi-user Exit 9" "$_out" "0. Exit"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             PTY_IN="6
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-20 pick 6 is not a menu choice" "$_out" "Not a menu choice"
         assert_not_contains "TP-CLI-20 pick 6 does not open sudoers" "$_out" \
             "1. generate-sudoer-request:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
-            PTY_IN="5
-9" ci_pty_capture "${SCRIPT}" menu)
+            PTY_IN="8
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-20 listed sudoers number opens submenu" "$_out" \
             "1. generate-sudoer-request:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             PTY_IN="sync-auth
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-20 typed sync-auth is not a menu choice" "$_out" \
             "Not a menu choice"
         assert_not_contains "TP-CLI-20 typed sync-auth does not run skip" "$_out" \
             "No sync-auth for logged-in environment."
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
-            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+            PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-20 Termux host not-available kept" "$_out" \
             "backup, sync-auth and sudoers features are not available in termux."
         assert_contains "TP-CLI-20 Termux logged-in not-available appended" "$_out" \
@@ -521,31 +523,25 @@ AUTH
             "backup, sync-auth and sudoers features are not available in termux."
         assert_contains "TP-CLI-20 Termux logged-in line after host line" "${_after}" \
             "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
-        assert_contains "TP-CLI-20 Termux run is 1" "$_out" "1. run:"
-        assert_contains "TP-CLI-20 Termux reinstall is 2" "$_out" "2. reinstall:"
-        assert_contains "TP-CLI-20 Termux sync-auth-to-remote is 3" "$_out" \
-            "3. sync-auth-to-remote:"
-        assert_contains "TP-CLI-20 Termux add-crontab is 4" "$_out" "4. add-crontab:"
+        assert_contains "TP-CLI-20 Termux grok-auth is 1" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-20 Termux run is 2" "$_out" "2. run:"
+        assert_contains "TP-CLI-20 Termux self-management is 9" "$_out" "9. self-management:"
         assert_not_contains "TP-CLI-20 Termux no from-remote row" "$_out" \
             "sync-auth-from-remote:"
-        assert_not_contains "TP-CLI-20 Termux no backup row" "$_out" "1. backup:"
+        assert_not_contains "TP-CLI-20 Termux no backup row" "$_out" "11. backup:"
         assert_not_contains "TP-CLI-20 Termux no sudoers row" "$_out" "sudoers:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
-            MSYSTEM="MINGW64" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-20 Git Bash run is 1" "$_out" "1. run:"
-        assert_contains "TP-CLI-20 Git Bash reinstall is 2" "$_out" "2. reinstall:"
-        assert_contains "TP-CLI-20 Git Bash sync-auth-to-remote is 3" "$_out" \
-            "3. sync-auth-to-remote:"
-        assert_contains "TP-CLI-20 Git Bash add-crontab is 4" "$_out" "4. add-crontab:"
+            MSYSTEM="MINGW64" PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 Git Bash grok-auth is 1" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-20 Git Bash run is 2" "$_out" "2. run:"
+        assert_contains "TP-CLI-20 Git Bash self-management is 9" "$_out" "9. self-management:"
         assert_not_contains "TP-CLI-20 Git Bash no from-remote row" "$_out" \
             "sync-auth-from-remote:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
-            OS="Windows_NT" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-20 Windows cmd run is 1" "$_out" "1. run:"
-        assert_contains "TP-CLI-20 Windows cmd reinstall is 2" "$_out" "2. reinstall:"
-        assert_contains "TP-CLI-20 Windows cmd sync-auth-to-remote is 3" "$_out" \
-            "3. sync-auth-to-remote:"
-        assert_contains "TP-CLI-20 Windows cmd add-crontab is 4" "$_out" "4. add-crontab:"
+            OS="Windows_NT" PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 Windows cmd grok-auth is 1" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-20 Windows cmd run is 2" "$_out" "2. run:"
+        assert_contains "TP-CLI-20 Windows cmd self-management is 9" "$_out" "9. self-management:"
         ci_cleanup_env
     else
         t_skip "TP-CLI-20 multi-user logged-in menu (no python3 for PTY)"
@@ -557,19 +553,23 @@ AUTH
     # TP-CLI-31: numbered list includes reinstall; setup / update-grok stay off.
     if command -v python3 >/dev/null 2>&1; then
         ci_isolated_env
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" \
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="0" \
             ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-31 multi-user reinstall is 5" "$_out" "5. reinstall:"
-        assert_contains "TP-CLI-31 multi-user sudoers is 6" "$_out" "6. sudoers:"
-        assert_not_contains "TP-CLI-31 logged-out hides sync-auth-to-remote" "$_out" \
-            "sync-auth-to-remote:"
-        assert_not_contains "TP-CLI-31 multi-user no setup row" "$_out" "setup:"
+        assert_contains "TP-CLI-31 multi-user sudoers is 8" "$_out" "8. sudoers:"
+        assert_not_contains "TP-CLI-31 top has no setup row" "$_out" "15. setup:"
         assert_not_contains "TP-CLI-31 multi-user no update-grok row" "$_out" "update-grok:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="1
+0" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-31 auth reinstall is 16" "$_out" "16. reinstall:"
+        assert_contains "TP-CLI-31 auth setup is 15" "$_out" "15. setup:"
+        assert_not_contains "TP-CLI-31 logged-out hides sync-auth-to-remote" "$_out" \
+            "13. sync-auth-to-remote:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
-            PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-31 Termux reinstall is 2" "$_out" "2. reinstall:"
-        assert_not_contains "TP-CLI-31 Termux no setup row" "$_out" "setup:"
+            PTY_IN="1
+0" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-31 Termux auth reinstall is 16" "$_out" "16. reinstall:"
+        assert_contains "TP-CLI-31 Termux auth setup is 15" "$_out" "15. setup:"
         ci_cleanup_env
     else
         t_skip "TP-CLI-31 multi-user reinstall row (no python3 for PTY)"
@@ -584,9 +584,9 @@ AUTH
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
             GROK_PROMPT_TIMEOUT=1 GROK_PROMPT_KILL_AFTER=1 \
-            PTY_TIMEOUT=12 PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
+            PTY_TIMEOUT=12 PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
         _elapsed=$(($(date +%s) - _start))
-        assert_contains "TP-CLI-21 Termux hang-grok still prints menu" "$_out" "9. Exit"
+        assert_contains "TP-CLI-21 Termux hang-grok still prints menu" "$_out" "0. Exit"
         assert_not_contains "TP-CLI-21 Termux no live checking-session" "$_out" \
             "checking session (grok -p hello, timeout"
         assert_contains "TP-CLI-21 Termux hang-grok logged out" "$_out" "logged out"
@@ -609,12 +609,12 @@ AUTH
             GROK_PROMPT_TIMEOUT=1 GROK_PROMPT_KILL_AFTER=1 \
             GROK_PROBE_LOG="${_plog}" \
             PTY_TIMEOUT=12 PTY_IN="12
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         _elapsed=$(($(date +%s) - _start))
         _nprobe=$(wc -l < "${_plog}" 2>/dev/null | tr -d ' ')
         [ -n "${_nprobe}" ] || _nprobe=0
         assert_contains "TP-CLI-22 bad pick not a menu choice" "$_out" "Not a menu choice"
-        assert_contains "TP-CLI-22 reprint still Exit 9" "$_out" "9. Exit"
+        assert_contains "TP-CLI-22 reprint still Exit 9" "$_out" "0. Exit"
         assert_eq "TP-CLI-22 hang grok not live-probed" "0" "${_nprobe}"
         if [ "${_elapsed}" -lt 12 ]; then
             t_pass "TP-CLI-22 reprint did not re-probe (${_elapsed}s, probes=${_nprobe})"
@@ -635,29 +635,29 @@ AUTH
         ci_isolated_env
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             PTY_IN="7
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-30 main unused 7 is ERROR" "$_out" "[ERROR]"
         assert_contains "TP-CLI-30 main unused 7 names pick" "$_out" "Not a menu choice '7'"
         assert_not_contains "TP-CLI-30 main unused 7 not unknown argv" "$_out" "Unknown command"
         _nchoice=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c 'Choice:' || true)
         assert_eq "TP-CLI-30 main unused 7 reprints Choice" "2" "${_nchoice}"
-        _nbackup=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c '1. backup:' || true)
+        _nbackup=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c '1. grok-auth:' || true)
         assert_eq "TP-CLI-30 main unused 7 reprints main list" "2" "${_nbackup}"
-        assert_contains "TP-CLI-30 main unused 7 still Exit 9" "$_out" "9. Exit"
+        assert_contains "TP-CLI-30 main unused 7 still Exit 9" "$_out" "0. Exit"
 
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             PTY_IN="nope
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-30 main unknown name is ERROR" "$_out" "[ERROR]"
         assert_contains "TP-CLI-30 main unknown name names pick" "$_out" "Not a menu choice 'nope'"
         _nchoice=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c 'Choice:' || true)
         assert_eq "TP-CLI-30 main unknown name reprints Choice" "2" "${_nchoice}"
 
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
-            PTY_IN="6
+            PTY_IN="8
 6
 8
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-30 submenu unused 6 is ERROR" "$_out" "[ERROR]"
         assert_contains "TP-CLI-30 submenu unused 6 names pick" "$_out" "Not a menu choice '6'"
         assert_not_contains "TP-CLI-30 submenu unused 6 not unknown argv" "$_out" "Unknown command"
@@ -681,7 +681,7 @@ AUTH
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
             PTY_IN="5
-9" ci_pty_capture "${SCRIPT}" menu)
+0" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-30 Termux logged-in unused 5 is ERROR" "$_out" "[ERROR]"
         assert_contains "TP-CLI-30 Termux logged-in unused 5 names pick" "$_out" "Not a menu choice '5'"
         assert_not_contains "TP-CLI-30 Termux logged-in unused 5 does not open sudoers" "$_out" \
@@ -793,17 +793,17 @@ AUTH
 
     if command -v python3 >/dev/null 2>&1; then
         ci_isolated_env
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" --debug menu)
-        assert_contains "TP-CLI-25 debug menu still Exit 9" "$_out" "9. Exit"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="0" ci_pty_capture "${SCRIPT}" --debug menu)
+        assert_contains "TP-CLI-25 debug menu still Exit 9" "$_out" "0. Exit"
         assert_contains "TP-CLI-25 debug menu Choice" "$_out" "Choice:"
         for _st in paint header session host logged-in rows; do
             assert_contains "TP-CLI-25 menu step ${_st} start" "$_out" "menu step ${_st}: start"
             assert_contains "TP-CLI-25 menu step ${_st} elapsed" "$_out" "menu step ${_st}: elapsed"
         done
-        assert_not_contains "TP-CLI-25 elapsed not on choice row" "$_out" "1. backup: elapsed"
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="6
-9" ci_pty_capture "${SCRIPT}" --debug menu)
-        assert_contains "TP-CLI-25 debug submenu still Exit 9" "$_out" "9. Exit"
+        assert_not_contains "TP-CLI-25 elapsed not on choice row" "$_out" "1. grok-auth: elapsed"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="8
+0" ci_pty_capture "${SCRIPT}" --debug menu)
+        assert_contains "TP-CLI-25 debug submenu still Exit 9" "$_out" "0. Exit"
         for _st in sudoers.paint sudoers.header sudoers.rows; do
             assert_contains "TP-CLI-25 menu step ${_st} start" "$_out" "menu step ${_st}: start"
             assert_contains "TP-CLI-25 menu step ${_st} elapsed" "$_out" "menu step ${_st}: elapsed"
@@ -813,8 +813,8 @@ AUTH
         ci_cleanup_env
 
         ci_isolated_env
-        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-26 no-debug still Exit 9" "$_out" "9. Exit"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-26 no-debug still Exit 9" "$_out" "0. Exit"
         assert_contains "TP-CLI-26 no-debug checking session" "$_out" "checking session (grok -p hello, timeout"
         assert_not_contains "TP-CLI-26 no menu step start" "$_out" "menu step "
         assert_not_contains "TP-CLI-26 no DEBUG tag" "$_out" "[DEBUG]"

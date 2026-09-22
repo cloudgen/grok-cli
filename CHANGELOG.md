@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.37] - 2026-09-22
+
+### Changed
+
+- **Main menu families:** the top list is **1** `grok-auth`, **8** `sudoers`, **9** `self-management`, and **0** Exit. This-login-only hosts also show **2** `run` and omit **8**. Inside **1**: **11** backup, **12** sync-auth-from-remote (hidden when logged in), **13** sync-auth-to-remote (hidden when logged out), **14** add-crontab, **15** setup, **16** reinstall. Inside **9**: **91** version-check, **92** self-update, **93** self-uninstall, **94** where-is-me. Law: `requirement-shell-cli-default-interaction` **2.19.0**. Suite **TP-CLI-13** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-31**.
+
 ## [1.8.36] - 2026-09-22
 
 ### Added
