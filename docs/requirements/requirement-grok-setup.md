@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-grok-setup.md  
-**Status**: Active (Version 2.15.0)  
+**Status**: Active (Version 2.16.0 – zsh vendor PATH on `.zshenv`)  
 **Area**: domain  
 **Key**: `requirement-grok-setup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -112,7 +112,7 @@ Studied installer behavior that this procedure **MUST** keep:
 | Artifact | `{{base}}/grok-{{version}}-{{os}}-{{arch}}`; try `.zst` if `zstd`, then `.gz` if `gzip`, then uncompressed. **Windows:** try `.exe` then uncompressed | Same. Git Bash/MSYS/Cygwin: `grok-{{version}}-windows-{{arch}}.exe` then without `.exe` |
 | Place | `$HOME/.grok/downloads/grok-{{os}}-{{arch}}` (download + smoke a `mktemp` sibling **in that directory**, not cache/`/tmp`/`/dev/shm`); `chmod +x`; smoke `--version`; relative symlink `$HOME/.grok/bin/grok` and `agent`. **Windows:** `grok-{{os}}-{{arch}}.exe`; **copy** to `bin/grok.exe` and `bin/agent.exe` (no symlink) | Same (`GROK_HOME` / `GROK_BIN_DIR`). Cache folder **MUST NOT** be the smoke path (Termux/Android `noexec`). Android ET_EXEC that only runs via opt-out or `proot`: POSIX wrapper at `bin/grok` (vendor file unchanged). Git Bash: copy `.exe` like studied `install.sh` |
 | PATH now | If a dir already on PATH is writable: `$HOME/.local/bin` then `/usr/local/bin`. **Windows:** skip those symlinks | Same (`USER_BIN` then `GLOBAL_BIN`); **also** `${PREFIX}/bin` when `PREFIX` is set (Termux). **MUST NOT** symlink into USER_BIN/GLOBAL_BIN on `windows-*` |
-| PATH later | Append `# >>> grok installer >>>` block to bash/zsh/fish rc | **MUST** for bash (`~/.bashrc`); **SHOULD** for zsh/fish. This block is for `~/.grok/bin`, **not** grok-cli’s shared `USER_BIN` line (`requirement-shell-path-and-shell-support`). **MUST NOT** strip the vendor block on grok-cli uninstall |
+| PATH later | Append `# >>> grok installer >>>` block to bash/zsh/fish rc | **MUST** for bash (`~/.bashrc`); **MUST** for zsh (`~/.zshenv`, **not** `.zshrc` — dual mention `requirement-shell-zshenv`); **SHOULD** for fish. This block is for `~/.grok/bin`, **not** grok-cli’s shared `USER_BIN` line (`requirement-shell-path-and-shell-support` · `requirement-shell-zshenv`). **MUST NOT** strip the vendor block on grok-cli uninstall |
 | Completions / `config.toml` | Best-effort | **SHOULD** (must not fail setup if they fail) |
 | Deployment key / managed config | Optional enterprise | **MUST NOT** unless `GROK_DEPLOYMENT_KEY` is set; **MUST NOT** print the key |
 | Auth for install | Optional | Optional; runtime login is `grok login` / `XAI_API_KEY` |
@@ -331,6 +331,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `docs/requirements/requirement-shell-cli-default-interaction.md` | Menu excludes `setup` / `update-grok`; lists `reinstall`; this-login-only lists `run` first |
 | `docs/requirements/requirement-shell-termux-coding.md` | Termux host writing (detect/`pkg`/`noexec`) |
 | `docs/requirements/requirement-project-folder.md` | Termux path classes (`PREFIX`, `~/.grok`) |
+| `docs/requirements/requirement-shell-zshenv.md` | Dual mention: zsh vendor PATH block on `.zshenv` (not `.zshrc`) |
 | `./src/grok-cli` | Implementation |
 
 ---
@@ -358,6 +359,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-10 | Active (2.13.0) | Git Bash / MSYS / Cygwin: `windows-*` PE, `.exe` fetch, copy `grok.exe` / `agent.exe` |
 | 2026-09-12 | Active (2.14.0) | TTY `setup` when grok already runs: numbered keep / reinstall / Exit (off-TTY / `--json` still skip) |
 | 2026-09-14 | Active (2.15.0) | Verb `reinstall`: force place peer grok; listed on the TTY main menu; missing grok still fetches; `auth.*` kept |
+| 2026-09-17 | Active (2.16.0) | Zsh vendor PATH **MUST** land on `.zshenv` (not `.zshrc`); dual mention `requirement-shell-zshenv` |
 
 ---
 
@@ -378,6 +380,6 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-14 (2.15.0 — `reinstall` verb + TTY main-menu row)  
+**Last Updated**: 2026-09-17 (2.16.0 — zsh vendor PATH on `.zshenv`)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

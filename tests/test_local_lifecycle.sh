@@ -3,7 +3,8 @@
 # =============================================================================
 # Primary REQs: requirement-shell-local-self-management, requirement-shell-idempotency,
 # requirement-shell-interactive-vs-noninteractive,
-# requirement-shell-path-and-shell-support (TP-LC-11..14, 20..22, 23..33, rc-test)
+# requirement-shell-path-and-shell-support (TP-LC-11..14, 20..22, 25..33, rc-test)
+# requirement-shell-zshenv (TP-LC-23, 24, 34, 35, 36, rc-test --file zshenv)
 # TP family: TP-LC-*
 # =============================================================================
 
@@ -189,24 +190,61 @@ run_test_local_lifecycle() {
     HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" BASHRC="${CI_BASHRC}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
     ci_cleanup_env
 
-    # TP-LC-23 / 24 ZSHRC env modify / no-op
+    # TP-LC-23 / 24 ZSHENV env modify / no-op
     ci_isolated_env
-    CI_ZSHRC_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-zshrc.XXXXXX")
-    CI_ZSHRC="${CI_ZSHRC_DIR}/.zshrc"
-    printf '%s\n' "# dongle-zshrc-keep" > "${CI_ZSHRC}"
+    CI_ZSHENV_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-zshenv.XXXXXX")
+    CI_ZSHENV="${CI_ZSHENV_DIR}/.zshenv"
+    printf '%s\n' "# dongle-zshenv-keep" > "${CI_ZSHENV}"
     _path_line=$(ci_bashrc_path_line)
-    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" ZSHRC="${CI_ZSHRC}" sh "${SCRIPT}" install >/dev/null 2>&1
-    _zsh=$(cat "${CI_ZSHRC}" 2>/dev/null || true)
-    assert_contains "TP-LC-23 zshrc body kept" "$_zsh" "dongle-zshrc-keep"
-    assert_contains "TP-LC-23 zshrc exact PATH" "$_zsh" "${_path_line}"
-    cp "${CI_ZSHRC}" "${CI_ZSHRC}.orig"
-    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" ZSHRC="${CI_ZSHRC}" sh "${SCRIPT}" install >/dev/null 2>&1
-    if cmp -s "${CI_ZSHRC}" "${CI_ZSHRC}.orig"; then
-        t_pass "TP-LC-24 zshrc bytes unchanged on second install"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" ZSHENV="${CI_ZSHENV}" sh "${SCRIPT}" install >/dev/null 2>&1
+    _zsh=$(cat "${CI_ZSHENV}" 2>/dev/null || true)
+    assert_contains "TP-LC-23 zshenv body kept" "$_zsh" "dongle-zshenv-keep"
+    assert_contains "TP-LC-23 zshenv exact PATH" "$_zsh" "${_path_line}"
+    cp "${CI_ZSHENV}" "${CI_ZSHENV}.orig"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" ZSHENV="${CI_ZSHENV}" sh "${SCRIPT}" install >/dev/null 2>&1
+    if cmp -s "${CI_ZSHENV}" "${CI_ZSHENV}.orig"; then
+        t_pass "TP-LC-24 zshenv bytes unchanged on second install"
     else
-        t_fail "TP-LC-24 zshrc bytes unchanged on second install"
+        t_fail "TP-LC-24 zshenv bytes unchanged on second install"
     fi
-    rm -rf "${CI_ZSHRC_DIR}"
+    rm -rf "${CI_ZSHENV_DIR}"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
+    ci_cleanup_env
+
+    # TP-LC-34 ZSHENV env create-if-missing
+    ci_isolated_env
+    CI_ZSHENV_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-zshenv-c.XXXXXX")
+    CI_ZSHENV="${CI_ZSHENV_DIR}/.zshenv"
+    _path_line=$(ci_bashrc_path_line)
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" ZSHENV="${CI_ZSHENV}" sh "${SCRIPT}" install >/dev/null 2>&1
+    assert_file_exists "TP-LC-34 created ZSHENV in temp folder" "${CI_ZSHENV}"
+    assert_file_missing "TP-LC-34 did not write HOME/.zshenv" "${CI_HOME}/.zshenv"
+    _zsh=$(cat "${CI_ZSHENV}" 2>/dev/null || true)
+    assert_contains "TP-LC-34 zshenv exact PATH" "$_zsh" "${_path_line}"
+    rm -rf "${CI_ZSHENV_DIR}"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
+    ci_cleanup_env
+
+    # TP-LC-35 bash-only does not invent default .zshenv
+    ci_isolated_env
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" SHELL=/bin/bash sh "${SCRIPT}" install >/dev/null 2>&1
+    assert_file_missing "TP-LC-35 did not invent HOME/.zshenv" "${CI_HOME}/.zshenv"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
+    ci_cleanup_env
+
+    # TP-LC-36 .zshrc unchanged for PATH
+    ci_isolated_env
+    CI_ZSHENV_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-zshenv-n.XXXXXX")
+    CI_ZSHENV="${CI_ZSHENV_DIR}/.zshenv"
+    printf '%s\n' "# dongle-zshrc-keep-untouched" > "${CI_HOME}/.zshrc"
+    cp "${CI_HOME}/.zshrc" "${CI_HOME}/.zshrc.orig"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" ZSHENV="${CI_ZSHENV}" sh "${SCRIPT}" install >/dev/null 2>&1
+    if cmp -s "${CI_HOME}/.zshrc" "${CI_HOME}/.zshrc.orig"; then
+        t_pass "TP-LC-36 zshrc bytes unchanged"
+    else
+        t_fail "TP-LC-36 zshrc bytes unchanged"
+    fi
+    rm -rf "${CI_ZSHENV_DIR}"
     HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
     ci_cleanup_env
 
@@ -332,6 +370,16 @@ run_test_local_lifecycle() {
     assert_file_exists "rc-test created fixture bashrc" "${CI_RCT}/.bashrc"
     assert_file_missing "rc-test did not write HOME/.bashrc" "${CI_HOME}/.bashrc"
     assert_contains "rc-test success text" "$_out" "rc-test bashrc create"
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --root "${CI_RCT}" --file zshenv --case create 2>&1)
+    _ec=$?
+    assert_eq "rc-test zshenv create exit 0" 0 "$_ec"
+    assert_file_exists "rc-test created fixture zshenv" "${CI_RCT}/.zshenv"
+    assert_file_missing "rc-test did not write HOME/.zshenv" "${CI_HOME}/.zshenv"
+    assert_contains "rc-test zshenv success text" "$_out" "rc-test zshenv create"
+    _err=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --root "${CI_RCT}" --file zshrc --case modify 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "rc-test zshrc fail-closed exit 1" 1 "$_ec"
+    assert_contains "rc-test zshrc Next zshenv" "$_err" "--file zshenv"
     rm -rf "${CI_RCT}"
     ci_cleanup_env
 }

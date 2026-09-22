@@ -86,4 +86,5 @@ This section is **design posture**, not a third-party certification claim.
   - **Per-user host paths:** draft `~/.config/grok-cli/sudoers.fragment-<user>` installs to `/etc/sudoers.d/grok-cli-<user>`.  
 - **Shared store residual:** `/var/grok-cli/auth.*` are **world-readable** (`0644`) so `sync-auth` needs no sudo. Anyone who can read the host can use those grok credentials. That is intentional for this product (shared login on a host) and is **not** equivalent to keeping tokens `0600` in a private home.  
 - Home copies from `sync-auth` return `auth.json` to mode `0600`.  
+- **`sync-auth-to-remote`** copies this login’s `~/.grok/auth.*` to the remote SSH login’s `~/.grok` (`ssh` + `scp` BatchMode, no sudo) and sets remote `auth.json` to mode `0600`. It does not write `/var/grok-cli`. The remote login can then use those grok credentials.  
 - Related docs: [`README.md`](./README.md), [`LICENSE.md`](./LICENSE.md), `docs/requirements/requirement-three-layer-privilege-model.md`, `docs/requirements/requirement-grok-auth-backup.md`.

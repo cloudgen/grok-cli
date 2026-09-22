@@ -26,11 +26,11 @@
 | P10 | **Independent generate dest** | TP-GROK-CLI-24* |
 | P11 | **Operator-readable errors** | TP-GROK-CLI-25* |
 | P12 | **Session gate + sync-auth** | TP-GROK-CLI-03..10 · 12 |
-| P13 | **sync-auth-from-remote** | TP-GROK-CLI-30..34 · **41** (preferred SPEC) · **42/43** (skip when logged in) |
+| P13 | **sync-auth-from-remote** / **sync-auth-to-remote** | TP-GROK-CLI-30..34 · **41** (preferred SPEC) · **42/43** (skip pull when logged in) · **50** (push to remote `~/.grok`; still runs when logged in) · **TP-CLI-13/19/20** (menu lists the push only when logged in) |
 | P14 | **Empty argv split** | TTY menu; off-TTY Type O; TP-CLI-07/13 · TP-ONL-01 |
 | P15 | **Online lifecycle** | version-check / self-update (start line names local and remote VERSION) / self-uninstall; TP-ONL-02..05 · TP-CLI-10 |
 | P16 | **Human-readable law** | Every Active REQ has §1.1 Human-facing; grant samples use `id -un`; no frozen login (TP-CLI-18) |
-| P17 | **Command line for normal user only** | Related shell REQs print that exact heading; Termux/Git Bash/Windows cmd stay this-login; main menu hides backup/sync-auth/sudoers, lists **`run` first**, and prints the not-available line (TP-CLI-19); logged-in session hides sync-auth / sync-auth-from-remote and **appends** the logged-in not-available line (TP-CLI-20) |
+| P17 | **Command line for normal user only** | Related shell REQs print that exact heading; Termux/Git Bash/Windows cmd stay this-login; main menu hides backup/sync-auth/sudoers, lists **`run` first**, and prints the not-available line (TP-CLI-19); logged-out session hides **sync-auth-to-remote** (TP-CLI-13 · TP-CLI-19); logged-in session hides sync-auth / sync-auth-from-remote, lists **sync-auth-to-remote**, and **appends** the logged-in not-available line (TP-CLI-20) |
 | P18 | **`run` without auto-update** | Dispatcher `gc_run_grok`; inject `--no-auto-update`; `--json` fail-closed Next `run`; missing grok Next `setup`; dual mention grok-setup + CLI-interface + domain; TP-GROK-CLI-46 · TP-CLI-04 |
 | P18b | **TTY `setup` reinstall** | Already-installed TTY list keep / reinstall / Exit; `--json` skip; `--force` skips list; no `$()` of `prompt_ask`; no wipe of `auth.*`; TP-VCLI-37..39 |
 | P18c | **`reinstall` verb + menu** | Routed Type 0; listed on the TTY main menu; missing grok still fetches; `auth.*` kept; JSON `reinstall`/`reinstalled`; `setup` stays off the list; TP-VCLI-40..42 · TP-CLI-31 |
@@ -48,7 +48,7 @@
 | Project folder | `requirement-project-folder.md` | `src/grok-cli`, bins, `/var/grok-cli`, Termux `PREFIX` / `~/.grok` |
 | **Privilege / sudoers** | `requirement-three-layer-privilege-model.md` | Type 0/1; `sudo grok-cli backup` only |
 | **JSON sudoer file** | `requirement-sudoer-json-file.md` | `grok-cli backup` only; no OS tools |
-| **Auth ops** | `requirement-grok-auth-backup.md` | Session gate; deposit; sync-auth; sync-auth-from-remote |
+| **Auth ops** | `requirement-grok-auth-backup.md` | Session gate; deposit; sync-auth; sync-auth-from-remote; sync-auth-to-remote |
 | **Operator-readable error** | `requirement-operator-readable-error.md` | Blocking `[ERROR]` next step |
 | CLI interface | `requirement-shell-cli-interface.md` | setup / run / check-session / backup / sync-auth |
 | Empty argv | `requirement-shell-cli-zero-arguments.md` | TTY = numbered menu; off-TTY = Type O ensure |

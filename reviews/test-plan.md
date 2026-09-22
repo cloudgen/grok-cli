@@ -60,12 +60,12 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-10 | version-check / self-update routed (not unknown) | test_cli | requirement-shell-self-management · requirement-bootstrap-chain | **have** |
 | TP-CLI-11 | env -u HOME version | test_cli | requirement-shell-script-coding | **have** |
 | TP-CLI-12 | preferred cache `/dev/shm/cache/cache-${APP_NAME}`; persistence `${HOME}/.local/${APP_NAME}`; live dirs exist; cache not APP-USERNAME shape; persistence not USER_BIN | test_cli | requirement-shell-cli-storage | **have** |
-| TP-CLI-13 | `menu`/`main`: TTY daily-work list (backup is 1; sync-auth-from-remote is 3; add-crontab is 4; reinstall is 5; sudoers family is 6) + submenu (Back 8 / Exit 9); ignore `--json` on TTY; off-TTY `menu` help; empty argv off-TTY is Type O ensure (not help); `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
+| TP-CLI-13 | `menu`/`main`: TTY daily-work list when logged out (backup is 1; sync-auth-from-remote is 3; add-crontab is 4; reinstall is 5; sudoers family is 6; `sync-auth-to-remote` hidden) + submenu (Back 8 / Exit 9); ignore `--json` on TTY; off-TTY `menu` help; empty argv off-TTY is Type O ensure (not help); `sudoers` not dispatched | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-cli-zero-arguments | **have** |
 | TP-CLI-15 | Static: ship unit has no `$(prompt_ask` / `$(prompt_yes_no` (T1-PROMPT-CAPTURE; **TP-ELEV-10**) | `tests/test_cli.sh` | requirement-shell-script-coding · interactive-vs-noninteractive | **have** |
 | TP-CLI-17 | Default CLI main menu style: header `APP_NAME(APP_VERSION)` bold/italic; numbered explain italic + light gray SGR 3+37; number/name unstyled; not SGR 90; session line under title is independent `[INFO]`; no `check-session` row; submenu nametag; inherited `APP_VERSION` ignored | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-shell-output-requirements | **have** |
 | TP-CLI-18 | Active `requirement-*.md` samples do not freeze a session Unix login | `tests/test_cli.sh` | requirement-sudoer-json-file · requirement-three-layer-privilege-model · requirement-domain-grok-cli | **have** |
-| TP-CLI-19 | Termux / Git Bash / Windows cmd main menu hides backup / sync-auth / sudoers; **run** is **1**; **reinstall** is **2**; host not-available is independent `[INFO]` under session; remaining rows from **1**; pick **5** does not open sudoers; multi-user host unchanged | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
-| TP-CLI-20 | Logged-in main menu hides sync-auth / sync-auth-from-remote; appends logged-in not-available line; host not-available line kept on this-login-only; **run** stays **1** on that class; **reinstall** stays listed; remaining rows from **1**; listed sudoers number opens submenu; pick of hidden verb is not a menu choice | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-19 | Termux / Git Bash / Windows cmd main menu hides backup / sync-auth / sudoers and, when logged out, `sync-auth-to-remote`; **run** is **1**; **reinstall** is **2**; host not-available is independent `[INFO]` under session; remaining rows from **1**; pick **5** does not open sudoers; multi-user host unchanged | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-20 | Logged-in main menu hides sync-auth / sync-auth-from-remote and lists `sync-auth-to-remote`; appends logged-in not-available line; host not-available line kept on this-login-only; **run** stays **1** on that class; **reinstall** stays listed; remaining rows from **1**; listed sudoers number opens submenu; pick of hidden verb is not a menu choice | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-21 | Termux menu uses local auth cookies (no live grok -p hello); hang grok + no cookies → **logged out** instantly; no freeze | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup · requirement-shell-termux-coding | **have** |
 | TP-CLI-22 | Termux hang-grok: bad pick reprints the list; `grok -p hello` runs once | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-auth-backup | **have** |
 | TP-CLI-23 | Ship unit always bounds the probe (`timeout -k` + watchdog `kill -9` + setsid + ignore TSTP + wait reaper first + checking-session; default `GROK_PROMPT_TIMEOUT` 14; menu prints `out_info "timeout"`) | `tests/test_cli.sh` | requirement-grok-auth-backup · requirement-shell-termux-coding · requirement-shell-cli-default-interaction | **have** |
@@ -97,8 +97,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LC-20 | `BASHRC` env create-if-missing | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
 | TP-LC-21 | `BASHRC` env modify dongle | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
 | TP-LC-22 | `BASHRC` env VERSION+exact-PATH no-op | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
-| TP-LC-23 | `ZSHRC` env modify existing | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
-| TP-LC-24 | `ZSHRC` env no-op | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
+| TP-LC-23 | `ZSHENV` env modify existing | test_local_lifecycle | requirement-shell-zshenv | **have** |
+| TP-LC-24 | `ZSHENV` env no-op | test_local_lifecycle | requirement-shell-zshenv | **have** |
 | TP-LC-25 | `PROFILE` env create-if-absent | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
 | TP-LC-26 | `PROFILE` env keep body | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
 | TP-LC-27 | already-installed skip heals missing PATH | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
@@ -107,7 +107,10 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LC-31 | vendor grok installer block unchanged | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
 | TP-LC-32 | uninstall keeps PATH while `USER_BIN` has files | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
 | TP-LC-33 | sudoer-cli login-hook block kept | test_local_lifecycle | requirement-shell-path-and-shell-support | **have** |
-| rc-test | routed `--root` create; real home rc untouched | test_local_lifecycle | requirement-shell-path-and-shell-support · requirement-shell-cli-interface | **have** |
+| TP-LC-34 | `ZSHENV` env create-if-missing | test_local_lifecycle | requirement-shell-zshenv | **have** |
+| TP-LC-35 | bash-only does not invent `.zshenv` | test_local_lifecycle | requirement-shell-zshenv | **have** |
+| TP-LC-36 | `.zshrc` unchanged for PATH | test_local_lifecycle | requirement-shell-zshenv | **have** |
+| rc-test | routed `--root` create; real home rc untouched | test_local_lifecycle | requirement-shell-path-and-shell-support · requirement-shell-cli-interface · requirement-shell-zshenv | **have** |
 
 ### TP-VCLI (vendor peer grok installer)
 
@@ -206,6 +209,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-GROK-CLI-47 | Ship unit dispatches `command -v proot` → `gc_grok_p_once_run` (reaper marker) | test_domain_grok_cli | grok-auth-backup · termux-coding · domain | **have** |
 | TP-GROK-CLI-48 | Fake `proot` on PATH: instant grok `check-session` still exit 0 (reaper path, no freeze) | test_domain_grok_cli | grok-auth-backup · termux-coding | **have** |
 | TP-GROK-CLI-49 | Reaper `setsid` / ignore TSTP / wait reaper first; `self-update` calls wrapper heal | test_domain_grok_cli | grok-auth-backup · termux-coding · self-management | **have** |
+| TP-GROK-CLI-50 | `sync-auth-to-remote` pushes local `auth.json` to remote `~/.grok` via fake ssh+scp (0600 chmod); missing local auth and bad SPEC fail closed; a valid session still pushes; JSON has no token | test_domain_grok_cli | grok-auth-backup · shell-cli-interface · operator-readable-error | **have** |
 | TP-VCLI-32 | `self-update` already-at-remote heals a stale Android wrapper (no vendor re-download) | test_grok_setup | grok-setup · self-management | **have** |
 | TP-VCLI-33 | `update-grok` is routed; help lists it distinct from grok-cli `self-update` | test_grok_setup | requirement-grok-setup · requirement-shell-cli-interface · INC-20260910-002 | **have** |
 | TP-VCLI-34 | `update-grok` with no grok fail-closes; Next `setup` | test_grok_setup | requirement-grok-setup · requirement-operator-readable-error | **have** |

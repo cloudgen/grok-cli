@@ -126,6 +126,7 @@ ci_isolated_env() {
     unset TERMUX_VERSION 2>/dev/null || true
     export GROK_CLI_HOST_OVERRIDE=multiuser
     unset BASHRC 2>/dev/null || true
+    unset ZSHENV 2>/dev/null || true
     unset ZSHRC 2>/dev/null || true
     unset PROFILE 2>/dev/null || true
     unset FISH_CONFIG 2>/dev/null || true

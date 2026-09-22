@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-path-and-shell-support.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0 – zsh PATH points at zshenv)  
 **Area**: shell  
 **Key**: `requirement-shell-path-and-shell-support`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -50,7 +50,7 @@ It owns **path-ensure** (one shared `USER_BIN` line on interactive rc) and **pro
 
 | Feature | This product | Files |
 |---------|--------------|-------|
-| **path-ensure** | **Claimed** | `.bashrc` (`BASHRC`): create if missing. `.zshrc` (`ZSHRC`): only if the file exists (do **not** invent it). Fish `config.fish` (`FISH_CONFIG`): create the config dir if needed. **Not** `.profile` |
+| **path-ensure** | **Claimed (bash / Fish)** | `.bashrc` (`BASHRC`): create if missing. Fish `config.fish` (`FISH_CONFIG`): create the config dir if needed. **Not** `.profile`. **Zsh PATH is not this file** — `requirement-shell-zshenv` (`.zshenv`, not `.zshrc`) |
 | **profile-ensure** | **Claimed** | `.profile` (`PROFILE`): create if absent with a sample that sources `.bashrc`; **never overwrite** an existing body |
 | **login-hook** | **Unused** | Do **not** plant a review scrap in `.bashrc` or `.profile`. Do **not** strip another product’s `# BEGIN … login hook` block |
 | **rc-owner** | **This-login writer** | After create/modify, mode readable (`0644`). No Type 1 `setup` `chown` of another login’s home. Writer **is** this login |
@@ -58,7 +58,8 @@ It owns **path-ensure** (one shared `USER_BIN` line on interactive rc) and **pro
 | File | path-ensure | profile-ensure | login-hook | rc-owner |
 |------|-------------|----------------|------------|----------|
 | `.bashrc` | Yes (create) | — | **Unused** | This login |
-| `.zshrc` | Yes if exists | — | Unused | This login |
+| `.zshrc` | **No** (do not write PATH) | — | Unused | — |
+| `.zshenv` | **Not this file** — `requirement-shell-zshenv` | — | Unused | This login (that REQ) |
 | `.profile` | **No** PATH line | **Yes** | Unused | This login |
 | Fish `config.fish` | Yes (create dir) | — | Unused | This login |
 
@@ -84,7 +85,7 @@ Peer grok’s `# >>> grok installer >>>` / `# <<< grok installer <<<` block for 
 
 | MUST | MUST NOT |
 |------|----------|
-| Create `BASHRC` if missing (header with `grok-cli` / `VERSION`, then PATH) | `printf … >` an **existing** `.bashrc` / `.zshrc` / Fish config |
+| Create `BASHRC` if missing (header with `grok-cli` / `VERSION`, then PATH) | `printf … >` an **existing** `.bashrc` / Fish config. **MUST NOT** write PATH to `.zshrc` (zsh PATH: `requirement-shell-zshenv`) |
 | Keep the prior body; append PATH if the exact line is absent | Truncate or rewrite the whole file to “ensure PATH” |
 | Create `.profile` only when **absent** | Overwrite an existing `.profile` body (including one created by sshd-cli or another sibling) |
 | No-op when this product’s `VERSION` comments **and** the exact export already match (file bytes unchanged) | Replace a dongle or user rc |
@@ -152,7 +153,7 @@ grok-cli rc-test --root "$tmpdir" --file profile --case create
 | Flag | Meaning |
 |------|---------|
 | `--root` | Fixture directory (tmp/cache). Keep real `HOME`. |
-| `--file` | `bashrc` \| `zshrc` \| `profile` (Fish when claimed) |
+| `--file` | `bashrc` \| `zshenv` \| `profile` (Fish when claimed). **`zshrc` MUST fail closed** (Next: `--file zshenv`; owner `requirement-shell-zshenv`) |
 | `--case` | `create` \| `modify` \| `noop` |
 | `--feature` | Optional: `path-ensure` \| `profile-ensure` (default from `--file`) |
 
@@ -165,13 +166,14 @@ Help **MUST** list `rc-test` under a heading **apart** from operational verbs (i
 | Variable | Default | Tests |
 |----------|---------|-------|
 | `BASHRC` | `${HOME}/.bashrc` | Fixture file; **MUST** honor a non-empty override |
-| `ZSHRC` | `${HOME}/.zshrc` | Fixture; honor override when zsh PATH is claimed |
+| `ZSHENV` | `${HOME}/.zshenv` | Fixture; honor override — **owner `requirement-shell-zshenv`** |
+| `ZSHRC` | `${HOME}/.zshrc` | Uninstall may still strip leftover grok-cli comments. PATH ensure **MUST NOT** write this file |
 | `FISH_CONFIG` | `${HOME}/.config/fish/config.fish` | Fixture; honor override when Fish PATH is claimed |
 | `PROFILE` | `${HOME}/.profile` | Fixture; honor override when profile-ensure is claimed |
 
 **MUST NOT** ignore a non-empty `BASHRC` (always write `${HOME}/.bashrc` instead). Same for `ZSHRC` / `FISH_CONFIG` / `PROFILE` when those helpers run.
 
-Helpers: `path_add_shell` (orchestrator), `path_add_bashrc`, `path_add_zshrc`, `path_add_fish`, `path_ensure_profile`, `path_rc_test`. Prefix ownership: `requirement-shell-modular-function-design`.
+Helpers: `path_add_shell` (orchestrator), `path_add_bashrc`, `path_add_zshenv` (body: `requirement-shell-zshenv`), `path_add_fish`, `path_ensure_profile`, `path_rc_test`. Prefix ownership: `requirement-shell-modular-function-design`.
 
 ### 2.8 Implementation Notes (this project)
 
@@ -220,8 +222,9 @@ This chat **MUST NOT** edit those other project trees. Unify means grok-cli **be
 | Heal on every user-bin ensure including already-installed skip | **Implemented** |
 | Empty-dir uninstall keeps shared PATH while `USER_BIN` has files | **Implemented** |
 | Uninstall comment match **only** `grok-cli` (not `# Added by .* installer`) | **Implemented** |
-| Exact-line match on zsh / Fish (not `USER_BIN` substring) | **Implemented** |
-| Honor `BASHRC` / `ZSHRC` / `FISH_CONFIG` / `PROFILE` env | **Implemented** |
+| Exact-line match on Fish (not `USER_BIN` substring) | **Implemented** |
+| Honor `BASHRC` / `FISH_CONFIG` / `PROFILE` env | **Implemented** |
+| Zsh PATH (`.zshenv`, not `.zshrc`) | **Pointed** — `requirement-shell-zshenv` |
 | Comment-only append when sibling already wrote the exact PATH | **Implemented** (MAY = do append the grok-cli sticker) |
 | `rc-test` routed; help testers heading | **Implemented** |
 | Login-hook | **Unused** (honest) |
@@ -268,7 +271,7 @@ When the ship unit detects a **command line for normal user only** (Termux, Git 
 
 **Future AI assistants or maintainers MUST NOT**:
 
-1. Replace an existing `.bashrc` / `.zshrc` / Fish config / `.profile` body to “ensure PATH.”  
+1. Replace an existing `.bashrc` / Fish config / `.profile` body to “ensure PATH.” Write PATH to `.zshrc` (zsh PATH is `.zshenv` — `requirement-shell-zshenv`).  
 2. Append a second exact `export PATH="<USER_BIN>:$PATH"` or invent a private PATH dialect.  
 3. Rewrite another product’s `# Added by … installer` comment.  
 4. Strip the shared PATH line on uninstall while `USER_BIN` still contains files.  
@@ -311,6 +314,7 @@ Work claiming PATH / login-rc support for grok-cli is **not done** if any of the
 |----------|------|
 | `docs/requirements/index.md` | Registry SSOT |
 | `docs/requirements/requirement-shell-cli-interface.md` | Dispatcher, `BASHRC` env, dual mention `install` / `rc-test` |
+| `docs/requirements/requirement-shell-zshenv.md` | Independent zsh PATH (`.zshenv`, not `.zshrc`); `path_add_zshenv` |
 | `docs/requirements/requirement-shell-local-self-management.md` | Checkout place/remove; companion **call site** |
 | `docs/requirements/requirement-shell-online-install.md` | Channel place / already-installed skip **call site** |
 | `docs/requirements/requirement-shell-self-management.md` | `self-update` / `self-uninstall` **call site** |
@@ -338,7 +342,7 @@ Work claiming PATH / login-rc support for grok-cli is **not done** if any of the
 | **TP-LC-31** vendor grok installer block unchanged | `tests/test_local_lifecycle.sh` | have |
 | **TP-LC-32** uninstall while `USER_BIN` still has a file | `tests/test_local_lifecycle.sh` | have |
 | **TP-LC-33** sudoer-cli login-hook block kept | `tests/test_local_lifecycle.sh` | have |
-| **TP-LC-23 / 24** `ZSHRC` env modify / no-op | `tests/test_local_lifecycle.sh` | have |
+| **TP-LC-23 / 24 / 34 / 35 / 36** zsh PATH | `tests/test_local_lifecycle.sh` | **pointed** — `requirement-shell-zshenv` |
 | **TP-LC-25 / 26** `PROFILE` env create / keep-body | `tests/test_local_lifecycle.sh` | have |
 | **`rc-test`** routed `--root` | `tests/test_local_lifecycle.sh` | have |
 
@@ -350,7 +354,8 @@ Work claiming PATH / login-rc support for grok-cli is **not done** if any of the
 | Date | Status | Note |
 |------|--------|------|
 | 2026-09-09 | Active (1.0.0) | Topic-owner: path-ensure + profile-ensure; sibling unify; scoped uninstall; heal on already-installed; routed `rc-test` |
+| 2026-09-17 | Active (1.1.0) | Zsh PATH **points** at `requirement-shell-zshenv` (`.zshenv`, not `.zshrc`) |
 
-**Last Updated**: 2026-09-09  
+**Last Updated**: 2026-09-17  
 **Owner**: grok-cli project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

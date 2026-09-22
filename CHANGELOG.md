@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.35] - 2026-09-22
+
+### Added
+
+- **`sync-auth-to-remote`:** copy this login’s `~/.grok/auth.*` onto a remote login’s `~/.grok` (`ssh` + `scp` BatchMode, no sudo, remote `auth.json` mode `0600`). Same SPEC forms as `sync-auth-from-remote`. A grok session that is already logged in still pushes. The numbered start list shows this row only when logged in (multi-user **2**; Termux / Git Bash / Windows cmd **3**) and hides it when logged out. Logged-out multi-user order stays backup, sync-auth, sync-auth-from-remote, add-crontab, reinstall, sudoers (**6**). Law: `requirement-grok-auth-backup` **1.10.0** · `requirement-shell-cli-interface` **2.14.0** · `requirement-shell-cli-default-interaction` **2.18.0** · `requirement-domain-grok-cli` **1.10.0**. Suite **TP-GROK-CLI-50** · **TP-CLI-13** · **TP-CLI-19** · **TP-CLI-20**.
+
+## [1.8.34] - 2026-09-17
+
+### Changed
+
+- **Zsh PATH lives on `.zshenv`, not `.zshrc`:** user-bin install writes the shared `export PATH="$HOME/.local/bin:$PATH"` line to `.zshenv` (create when `$SHELL` is zsh or `ZSHENV` is set; modify if the file exists). `.zshrc` is left alone. `rc-test --file zshenv` is routed; `--file zshrc` fails closed. Peer grok vendor `# >>> grok installer >>>` block for `~/.grok/bin` also lands on `.zshenv` when `$SHELL` is zsh. Law: `requirement-shell-zshenv` **1.0.0** · `requirement-shell-path-and-shell-support` **1.1.0** · `requirement-shell-cli-interface` **2.13.0** · `requirement-grok-setup` **2.16.0**. Suite **TP-LC-23** · **TP-LC-24** · **TP-LC-34** · **TP-LC-35** · **TP-LC-36**.
+
 ## [1.8.33] - 2026-09-14
 
 ### Added

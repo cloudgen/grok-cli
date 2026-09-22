@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.12.0)  
+**Status**: Active (Version 2.14.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -8,7 +8,7 @@
 
 This requirement is the **project Single Source of Truth** for the **POSIX shell CLI interface** of grok-cli: command surface, privilege typing, global flags, dispatcher behavior, help/about contracts, and mode rules.
 
-It defines a **Type 0 shell CLI** with **dual-mode install** (channel `curl|sh` plus checkout `install`), **domain grok-auth** commands, **`setup`** (peer `grok` via the studied xAI procedure, not `install.sh`), and a **narrow elevated deposit** path. Empty argv: TTY menu; off-TTY Type O ensure. Full domain semantics live in `requirement-domain-grok-cli.md`. Peer grok install lives in `requirement-grok-setup.md`. Channel place lives in `requirement-shell-online-install.md`. PATH / profile / `rc-test` live in `requirement-shell-path-and-shell-support.md`.
+It defines a **Type 0 shell CLI** with **dual-mode install** (channel `curl|sh` plus checkout `install`), **domain grok-auth** commands, **`setup`** (peer `grok` via the studied xAI procedure, not `install.sh`), and a **narrow elevated deposit** path. Empty argv: TTY menu; off-TTY Type O ensure. Full domain semantics live in `requirement-domain-grok-cli.md`. Peer grok install lives in `requirement-grok-setup.md`. Channel place lives in `requirement-shell-online-install.md`. PATH / profile / `rc-test` live in `requirement-shell-path-and-shell-support.md`. Zsh PATH (`.zshenv`, not `.zshrc`) lives in `requirement-shell-zshenv.md`.
 
 ---
 
@@ -84,6 +84,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
 | **Primary install story** | User bin: `~/.local/bin/grok-cli` |
 | **Interactive rc write path** | `BASHRC` default `${HOME}/.bashrc`. User-bin PATH ensure creates/modifies this file. Tests/CI **MAY** set `BASHRC` to a file in a temp folder. Dual mention: `requirement-shell-path-and-shell-support`. |
+| **Zsh always-on rc write path** | `ZSHENV` default `${HOME}/.zshenv`. User-bin zsh PATH ensure writes this file (not `.zshrc`). Tests/CI **MAY** set `ZSHENV` to a file in a temp folder. Dual mention: `requirement-shell-zshenv`. |
 | **Online channel env** | `SCRIPT_URL` default `https://raw.githubusercontent.com/cloudgen/grok-cli/main/src/grok-cli` |
 | **Type 2 commands** | None |
 | **Dedicated system user** | Not required |
@@ -95,7 +96,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | *(no command token — empty argv; overlay flags such as `--debug` allowed)* | Type 0 | TTY → `app_default`; off-TTY → `inst_channel_ensure` | TTY numbered menu; off-TTY Type O ensure (**MUST NOT** help). `--json` no-command is 0-argv **special case** → JSON help (TTY and off-TTY) |
 | `install` | Type 0 | `inst_local_install` | Checkout copy of the running ship unit; idempotent unless `--force`. User-bin: **always** `inst_ensure_companion` (PATH + profile), including already-installed skip. Dual mention: `requirement-shell-local-self-management` · `requirement-shell-path-and-shell-support` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force`. User-bin: PATH cleanup per `requirement-shell-path-and-shell-support` |
-| `rc-test` | Type 0 **test-purpose** | `path_rc_test` | Fixture create / modify / no-op against `--root` tmp/cache. **MUST NOT** write this login’s real `{{HOME}}/.bashrc`. Help lists this **apart** from operational verbs. Dual mention: `requirement-shell-path-and-shell-support`. Sample: `grok-cli rc-test --root "$tmpdir" --file bashrc --case create` |
+| `rc-test` | Type 0 **test-purpose** | `path_rc_test` | Fixture create / modify / no-op against `--root` tmp/cache. **MUST NOT** write this login’s real `{{HOME}}/.bashrc` or `{{HOME}}/.zshenv`. Help lists this **apart** from operational verbs. Dual mention: `requirement-shell-path-and-shell-support` · `requirement-shell-zshenv`. Samples: `grok-cli rc-test --root "$tmpdir" --file bashrc --case create` · `grok-cli rc-test --root "$tmpdir" --file zshenv --case create`. `--file zshrc` **MUST** fail closed (Next: `--file zshenv`) |
 | `version-check` | Type 0 | `ver_check` | Compare local vs remote VERSION on `SCRIPT_URL` |
 | `self-update` | Type 0 | `inst_self_update` | Re-download from `SCRIPT_URL` when remote is newer (or `--force`). Proceeding first INFO: `Starting the self-update of {{APP_NAME}}({{local}}) to new version:{{remote}}...` |
 | `self-uninstall` | Type 0 | `inst_self_uninstall` | Remove managed binary (channel name; same dest as `uninstall`). User-bin PATH cleanup: `requirement-shell-path-and-shell-support` |
@@ -113,6 +114,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `backup` | Type 0 (+ Type 1 deposit step) | `gc_backup` (domain) | Session gate; elevated copy of `~/.grok/auth.*` into `/var/grok-cli` |
 | `sync-auth` | Type 0 | `gc_sync_auth` (domain) | Copy `/var/grok-cli/auth.*` into `~/.grok` without sudo; **skip** when grok is already logged in |
 | `sync-auth-from-remote` | Type 0 | `gc_sync_auth_from_remote` (domain) | `scp` remote `/var/grok-cli/auth.*` into `~/.grok`; SPEC is `user@IPv4`, IPv4, domain, or `user@domain`; **does not** use sudo; **skip** when grok is already logged in |
+| `sync-auth-to-remote` | Type 0 | `gc_sync_auth_to_remote` (domain) | `ssh` + `scp` this login’s `~/.grok/auth.*` onto the remote login’s `~/.grok`; same SPEC forms; **does not** use sudo; **still runs** when grok is already logged in; remote `auth.json` mode `0600` |
 | `add-crontab` | Type 0 | `gc_add_crontab` (domain) | Install this login’s crontab jobs (backup every 30 min; sync-auth at :45) after **this** login’s backup grant exists — **does not** write `/etc` |
 | `print-sudoers` | Type 0 | `gc_print_sudoers` (domain) | Emit sudoers fragment for admin to install under `/etc/sudoers.d/` — **does not** write `/etc` itself |
 | `print-sudoers-install-script` | Type 0 | `gc_print_sudoers_install_script` (domain) | Write admin handoff script (no `/etc` write) |
@@ -172,7 +174,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 
 Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
 
-**This requirement:** the Type 1 backup/sudoers rows stay **unused** on detect. The main menu **MUST NOT** list `backup`, `sync-auth`, or `sudoers` on detect (not-available line: `requirement-shell-cli-default-interaction`). When **logged in**, that REQ also omits **sync-auth** / **sync-auth-from-remote** and **appends** the logged-in not-available line. Do not add sudo verbs because Linux has them.
+**This requirement:** the Type 1 backup/sudoers rows stay **unused** on detect. The main menu **MUST NOT** list `backup`, `sync-auth`, or `sudoers` on detect (not-available line: `requirement-shell-cli-default-interaction`). When **logged in**, that REQ also omits **sync-auth** / **sync-auth-from-remote**, **lists** **sync-auth-to-remote**, and **appends** the logged-in not-available line. When **logged out**, that REQ omits **sync-auth-to-remote**. Do not add sudo verbs because Linux has them.
 
 ---
 
@@ -220,6 +222,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-8 | `menu` / `main` routed; match `requirement-shell-cli-default-interaction` |
 | AC-9 | `add-crontab` is Type 0, routed, listed in help; does not write `/etc`; dual mention `requirement-grok-crontab` |
 | AC-10 | `sync-auth-from-remote` is Type 0, routed, listed in help; dual mention `requirement-grok-auth-backup` |
+| AC-10b | `sync-auth-to-remote` is Type 0, routed, listed in help, and on the TTY main menu only when logged in; dual mention `requirement-grok-auth-backup` · `requirement-shell-cli-default-interaction` |
 | AC-11 | `setup` is Type 0, routed, listed in help; dual mention `requirement-grok-setup`; **MUST NOT** fetch or exec `install.sh` |
 | AC-11b | `update-grok` is Type 0, routed, listed in help (distinct from `self-update`); dual mention `requirement-grok-setup` |
 | AC-11c | `reinstall` is Type 0, routed, listed in help and on the TTY numbered main menu; dual mention `requirement-grok-setup` · `requirement-shell-cli-default-interaction` |
@@ -240,6 +243,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `requirement-shell-internal-volatile-timer` | Dual mention of `--debug` menu elapsed (helpers, not domain verbs) |
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
 | `requirement-shell-path-and-shell-support` | PATH / profile; `BASHRC`; dual mention `rc-test` |
+| `requirement-shell-zshenv` | Zsh PATH on `.zshenv`; dual mention `rc-test --file zshenv` |
 | `requirement-shell-output-requirements` | `out_*` catalog |
 | `requirement-domain-grok-cli` | Domain four pillars |
 | `requirement-grok-setup` | Dual mention of `setup`, `update-grok`, `reinstall`, and `run` |
@@ -262,6 +266,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-VCLI-40**–**42** | `tests/test_grok_setup.sh` | have — `reinstall` |
 | **TP-CLI-31** | `tests/test_cli.sh` | have — TTY menu lists `reinstall`; `setup` stays off |
 | **TP-GROK-CLI-46** | `tests/test_domain_grok_cli.sh` | have — `run` `--no-auto-update` |
+| **TP-GROK-CLI-50** | `tests/test_domain_grok_cli.sh` | have — `sync-auth-to-remote` |
+| **TP-CLI-04**, **TP-CLI-13**, **TP-CLI-19**, **TP-CLI-20** | `tests/test_cli.sh` | have — help + main-menu row for `sync-auth-to-remote` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -299,9 +305,11 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-10 | Active 2.10.0 | `update-grok` Type 0 — refresh peer grok from xAI (dual mention `requirement-grok-setup` 2.12.0; **INC-20260910-002**) |
 | 2026-09-12 | Active 2.11.0 | TTY `setup` already-installed keep / reinstall / Exit (dual mention `requirement-grok-setup` 2.14.0) |
 | 2026-09-14 | Active 2.12.0 | `reinstall` Type 0 — force place peer grok; listed on the TTY main menu (dual mention `requirement-grok-setup` 2.15.0) |
+| 2026-09-17 | Active 2.13.0 | `rc-test --file zshenv`; `ZSHENV` env; dual mention `requirement-shell-zshenv` |
+| 2026-09-22 | Active 2.14.0 | `sync-auth-to-remote` Type 0 — push `~/.grok/auth.*` onto a remote login (dual mention `requirement-grok-auth-backup` 1.10.0) |
 
 ---
 
-**Last Updated**: 2026-09-14 (2.12.0 — `reinstall` verb + menu row)  
+**Last Updated**: 2026-09-22 (2.14.0 — `sync-auth-to-remote`)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

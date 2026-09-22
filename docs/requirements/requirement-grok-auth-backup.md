@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-grok-auth-backup.md  
-**Status**: Active (Version 1.9.0)  
+**Status**: Active (Version 1.10.0)  
 **Area**: backup  
 **Key**: `requirement-grok-auth-backup`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **operations Single Source of Truth** for grok-cli auth handling: how the product **detects a valid grok login**, **copies `~/.grok/auth.*` into `/var/grok-cli`**, **chowns/chmods** that store, how a **normal login syncs those files back** without sudo, and how a login **pulls the same store from another host** over `scp`.
+This requirement is the **operations Single Source of Truth** for grok-cli auth handling: how the product **detects a valid grok login**, **copies `~/.grok/auth.*` into `/var/grok-cli`**, **chowns/chmods** that store, how a **normal login syncs those files back** without sudo, how a login **pulls the same store from another host** over `scp`, and how a login **pushes this login’s `~/.grok/auth.*` onto another host’s `~/.grok`** over `ssh` + `scp`.
 
 It supersedes folder-archive backup/retention law for this product.
 
@@ -37,6 +37,7 @@ It supersedes folder-archive backup/retention law for this product.
 | Share the login | Same live probe, then grok-cli copies `auth.*` to `/var/grok-cli` as root:root mode 0644 | `grok-cli backup` |
 | Use the shared login | If grok is **not** already logged in, grok-cli copies those files into your `~/.grok` as 0600, no sudo. If grok **is** logged in, it does not copy | `grok-cli sync-auth` |
 | Pull from another host | Same login check; then `scp` that host’s store into your `~/.grok` | `grok-cli sync-auth-from-remote user@192.0.2.10` |
+| Push to another host | `ssh` + `scp` this login’s `~/.grok/auth.*` onto that login’s `~/.grok` (no sudo; still runs when this grok is already logged in) | `grok-cli sync-auth-to-remote user@192.0.2.10` |
 
 Jargon: you run these commands **as yourself**. The live question is `grok -p hello` (one prompt, then grok exits). grok-cli does **not** print grok’s answer.
 
@@ -112,6 +113,19 @@ A file under grok home can look valid while grok cannot talk to xAI (revoked ref
 10. Core tests **MUST NOT** open a real SSH session.  
 11. **Logged-in skip (mandatory):** same gate as §2.4 rule 2b. When the session is **valid**, **MUST NOT** prompt for SPEC, **MUST NOT** `scp`, **MUST NOT** write dest `auth.*`. Print **`No sync-auth for logged-in environment.`** and return success. JSON: type `sync-auth-from-remote`, status `skipped`, `reason` `logged-in`. Menu **MAY** reuse `GC_SESSION_STATUS_CACHE`. `--force` **MUST NOT** override. The TTY main menu **MUST NOT** list this verb when the session is valid (`requirement-shell-cli-default-interaction` — hide + **append** not-available line).
 
+### 2.4c sync-auth-to-remote (no sudo)
+
+1. **MUST** route **`sync-auth-to-remote`**. Dual mention: this file **and** `requirement-shell-cli-interface`.  
+2. **MUST** be Type 0. **MUST NOT** call `sudo`. **MUST NOT** write the remote `/var/grok-cli` store.  
+3. Operand **SPEC** **MUST** use the same four forms and the same reject rules as §2.4b (empty, extra `@`, paths, shell metacharacters). Off-TTY missing SPEC **MUST** fail closed with Next: `grok-cli sync-auth-to-remote USER@HOST`. On TTY with no operand, **MAY** prompt via current-shell `prompt_ask` + `PROMPT_ASK_VALUE` (**MUST NOT** `_spec=$(prompt_ask …)`).  
+4. Preferred SPEC **MUST** use the same persistence leaf **`preferred-remote`** as §2.4b. After a successful push, **MUST** save the SPEC that worked. On TTY with no operand, **MUST** show a stored valid SPEC at the **end** of the prompt; empty Enter **MUST** use it.  
+5. Source **MUST** be this login’s grok home `auth.json` (regular, non-empty file). Optional `auth.json.lock` when it is a regular non-empty file. Missing or symlink `auth.json` **MUST** fail closed. Next: `grok login`, then `grok-cli sync-auth-to-remote USER@HOST`.  
+6. Transport **MUST** be `ssh` and `scp` in **BatchMode** (no password hang). Overrides `GROK_CLI_SSH` and `GROK_CLI_SCP` for tests. Missing either binary **MUST** fail closed.  
+7. Remote dest **MUST** be that SSH login’s `~/.grok` (scp path `.grok/auth.json`). Before the copy, **MUST** `mkdir -p .grok` and `chmod 0700 .grok` on that host. After `auth.json` lands, **MUST** `chmod 0600 .grok/auth.json`. A failed prepare, copy, or `auth.json` chmod **MUST** fail closed.  
+8. **MUST NOT** skip because this login’s grok session is **valid**. A logged-in session is a reason to push, not a reason to refuse. **MUST NOT** print **`No sync-auth for logged-in environment.`** for this verb. `--force` is not required. The TTY main menu **MUST** list this verb when the session is **valid** and **MUST NOT** list it when the session is not valid (`requirement-shell-cli-default-interaction`). Direct CLI stays routed in both cases.  
+9. **MUST NOT** print token values. JSON **MAY** name host/user/count/paths only. Type `sync-auth-to-remote`, status `ok` on success.  
+10. Core tests **MUST NOT** open a real SSH session.
+
 ### 2.5 Invocation samples (dual mention)
 
 ```text
@@ -122,6 +136,10 @@ grok-cli sync-auth-from-remote user@192.0.2.10
 grok-cli sync-auth-from-remote 192.0.2.10
 grok-cli sync-auth-from-remote host.example.com
 grok-cli sync-auth-from-remote user@host.example.com
+grok-cli sync-auth-to-remote user@192.0.2.10
+grok-cli sync-auth-to-remote 192.0.2.10
+grok-cli sync-auth-to-remote host.example.com
+grok-cli sync-auth-to-remote user@host.example.com
 ```
 
 ### 2.6 Implementation Notes (this project)
@@ -129,13 +147,14 @@ grok-cli sync-auth-from-remote user@host.example.com
 | Item | Value |
 |------|--------|
 | Product | `grok-cli` |
-| Handlers | `gc_session_uses_local_auth`, `gc_session_from_local_auth`, `gc_auth_session_ok`, `gc_grok_prompt_hello`, `gc_session_status_word`, `gc_session_is_valid`, `gc_sync_skip_if_logged_in`, `gc_check_session`, `gc_backup`, `gc_sync_auth`, `gc_sync_auth_from_remote`, `gc_preferred_remote_load`, `gc_preferred_remote_save` |
+| Handlers | `gc_session_uses_local_auth`, `gc_session_from_local_auth`, `gc_auth_session_ok`, `gc_grok_prompt_hello`, `gc_session_status_word`, `gc_session_is_valid`, `gc_sync_skip_if_logged_in`, `gc_check_session`, `gc_backup`, `gc_sync_auth`, `gc_sync_auth_from_remote`, `gc_sync_auth_to_remote`, `gc_ssh_cmd`, `gc_preferred_remote_load`, `gc_preferred_remote_save` |
 | Menu session cache | `GC_SESSION_STATUS_CACHE` set by `app_default_print_menu` (`valid` / `timeout` / `invalid` / `missing`); sync verbs reuse it in the same process |
 | PRoot/Termux session | local `auth.json` cookies; no live `grok -p hello` |
 | Live probe | `grok -p hello` on non-PRoot hosts (stdin closed; always bounded; GNU `timeout -k` when it works; else POSIX watchdog; `HOME` + `GROK_HOME` pinned to invoking grok home). Code **protected** for future use |
 | Probe timeout | `GROK_PROMPT_TIMEOUT` default `14`; `GROK_PROMPT_KILL_AFTER` default `2` (kept even when PRoot skips the live probe) |
 | Peer override | `GROK_BIN` (tests **MUST** fake this) |
 | Remote pull | `scp -o BatchMode=yes`; `GROK_CLI_SCP` / `GROK_CLI_REMOTE_ROOT` for tests |
+| Remote push | `ssh` + `scp` BatchMode onto remote `~/.grok`; `GROK_CLI_SSH` / `GROK_CLI_SCP` for tests; remote `auth.json` mode `0600` |
 | Preferred remote | Persistence leaf `${HOME}/.local/${APP_NAME}/preferred-remote` (helpers `gc_preferred_remote_load` / `gc_preferred_remote_save`) |
 | Default grok home | `~/.grok` |
 | Default store | `/var/grok-cli` |
@@ -165,7 +184,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 
 Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
 
-**This requirement:** `/var/grok-cli` deposit stays **unused** on this class. `check-session` and `sync-auth-from-remote` (preferred SPEC in persistence) stay this-login work. Menu honesty for unused backup / sync-auth / sudoers is `requirement-shell-cli-default-interaction`.
+**This requirement:** `/var/grok-cli` deposit stays **unused** on this class. `check-session`, `sync-auth-from-remote`, and `sync-auth-to-remote` (preferred SPEC in persistence) stay this-login work. Menu honesty for unused backup / sync-auth / sudoers is `requirement-shell-cli-default-interaction`.
 
 ---
 
@@ -182,7 +201,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
-1. Elevate `sync-auth` or `sync-auth-from-remote`, or grant `chmod`/`cp` as sudoers Cmnds.  
+1. Elevate `sync-auth`, `sync-auth-from-remote`, or `sync-auth-to-remote`, or grant `chmod`/`cp` as sudoers Cmnds.  
 2. Skip the live `grok -p hello` session gate on backup or `check-session`.  
 2b. Run the live probe as root against `/root/.grok` when `SUDO_USER` is a normal login (sudo `env_reset` / `HOME=/root`).  
 3. Treat `auth.json` parse (refresh_token / `expires_at` / `key`) as logged-in without a successful `grok -p hello`.  
@@ -199,6 +218,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 12. Report a live probe that hit `GROK_PROMPT_TIMEOUT` as **logged out** / `invalid` only. That word **MUST** be **timeout**. Default bound **MUST** stay **14** unless the operator overrides the env.  
 13. Delete `GROK_PROMPT_TIMEOUT` / `GROK_PROMPT_KILL_AFTER` or the live-probe functions (`gc_grok_prompt_run_bounded`, `gc_grok_p_once_run`, `gc_grok_prompt_int`) because PRoot skips them today. They stay **protected** for future / non-PRoot use.  
 14. Run live `grok -p hello` for login checking when `proot` is on PATH or the host is Termux. That class **MUST** use local auth cookies.  
+15. Skip `sync-auth-to-remote` because this login is already logged in, hide that verb on the TTY main menu when the session is **valid**, list it when the session is not valid, write the remote `/var/grok-cli` store, or leave remote `auth.json` without mode `0600`.  
 
 
 ## 5. Acceptance criteria
@@ -222,6 +242,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-14 | When the passwordless grant already ran and the child failed, Next is `grok login` then backup — **MUST NOT** `generate-sudoer-request` (TP-GROK-CLI-40) |
 | AC-15 | Successful `sync-auth-from-remote` saves SPEC to persistence `preferred-remote`; TTY prompt shows stored SPEC at the end of the prompt; Enter uses that default (TP-GROK-CLI-41) |
 | AC-16 | Valid live session → `sync-auth` and `sync-auth-from-remote` do not copy; print **`No sync-auth for logged-in environment.`**; exit 0 (TP-GROK-CLI-42 · TP-GROK-CLI-43) |
+| AC-18 | `sync-auth-to-remote` copies local `auth.json` to remote `~/.grok` (mode 0600 via ssh chmod); no sudo; no real SSH in Core tests; a valid session still pushes (TP-GROK-CLI-50) |
 
 ---
 
@@ -260,6 +281,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-07 | Active (1.7.0) | Reaper: `setsid`, ignore TSTP, wait reaper first, empty-stdout still reaps; first-byte done for session probe |
 | 2026-09-07 | Active (1.8.0) | Default `GROK_PROMPT_TIMEOUT` 14; session word `timeout` (not logged-out) when the probe hits the bound |
 | 2026-09-07 | Active (1.9.0) | PRoot/Termux login checking uses local auth cookies; live grok -p hello bound stays protected for future / non-PRoot |
+| 2026-09-22 | Active (1.10.0) | `sync-auth-to-remote` pushes this login’s `auth.*` onto the remote login’s `~/.grok` (no sudo; still runs when logged in) |
 
 ---
 
@@ -276,6 +298,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-GROK-CLI-41** | `tests/test_domain_grok_cli.sh` | have (preferred remote SPEC persisted; TTY prompt shows `[SPEC]` default; Enter uses it) |
 | **TP-GROK-CLI-42** | `tests/test_domain_grok_cli.sh` | have (`sync-auth` skip when session valid; dest unchanged; menu hides the row) |
 | **TP-GROK-CLI-43** | `tests/test_domain_grok_cli.sh` | have (`sync-auth-from-remote` skip when session valid; no scp) |
+| **TP-GROK-CLI-50** | `tests/test_domain_grok_cli.sh` | have (`sync-auth-to-remote` fake ssh+scp; remote `~/.grok`; still pushes when logged in) |
 | **TP-GROK-CLI-44** | `tests/test_domain_grok_cli.sh` | have (SIGTERM-ignoring grok fail-closes as **timed out**, not “not logged in”; GNU `timeout -k`; no freeze) |
 | **TP-GROK-CLI-45** | `tests/test_domain_grok_cli.sh` | have (same hang without GNU `timeout -k`; POSIX watchdog; timed out not “not logged in”) |
 | **TP-CLI-06**, **TP-CLI-17** | `tests/test_cli.sh` | have (about session; menu logged in / timeout / logged out uses probe) |
@@ -287,6 +310,6 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-09-07 (1.9.0 — PRoot/Termux local auth cookies; live probe protected)  
+**Last Updated**: 2026-09-22 (1.10.0 — `sync-auth-to-remote` pushes `~/.grok/auth.*` onto a remote login)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

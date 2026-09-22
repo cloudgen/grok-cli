@@ -4,9 +4,9 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 
 **Ship unit:** `src/grok-cli`  
 **Dispatcher:** `app_main`  
-**Scan date:** 2026-09-14  
-**Mode:** incremental (`reinstall` verb + main-menu row)  
-**Copied:** prior live · **Re-checked:** `setup` (`gc_setup`) · `reinstall` (`gc_reinstall`) · `app_default` menu tokens  
+**Scan date:** 2026-09-22  
+**Mode:** incremental (`sync-auth-to-remote` verb + main-menu row)  
+**Copied:** prior live · **Re-checked:** `sync-auth-to-remote` (`gc_sync_auth_to_remote`) · `app_default` menu tokens  
 **Inventory:** dispatcher `case "${COMMAND}"` — not `app_help` for routing; help one-liners copied into **human-readable**
 
 ## Live commands
@@ -35,11 +35,12 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | submit-sudoer-request | `gc_submit_sudoer_request` | you (Type 0) | 2026-08-17 | `submit-sudoer-request: Queue the JSON grant inbound` |
 | sync-auth | `gc_sync_auth` | you (Type 0) | missing | `sync-auth: Copy /var/grok-cli/auth.* into ~/.grok` |
 | sync-auth-from-remote | `gc_sync_auth_from_remote` | you (Type 0) | 2026-09-02 | `sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok` |
+| sync-auth-to-remote | `gc_sync_auth_to_remote` | you (Type 0) | 2026-09-22 | `sync-auth-to-remote: Copy ~/.grok/auth.* onto a remote host` |
 | uninstall | `inst_local_uninstall` | you (Type 0) | 2026-08-03 | `uninstall: Remove managed binary (confirm or --force); not sudoers` |
 | version | `app_version` | you (Type 0) | missing | `version: Show local version` |
 | where-is-me | `app_where_is_me` | you (Type 0) | 2026-08-03 | `where-is-me: Show running and install paths` |
 
-A TTY main menu **MUST** print daily-work **human-readable** lines as a **numbered list**, with related grant/draft verbs behind family row **`sudoers`** (submenu; **Back 8**, **Exit 9**). Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** `help`, `menu`/`main`, `check-session` (status is under the title), install/setup (`setup`, `update-grok`), self-managed (`install`, `uninstall`, `self-update`, `self-uninstall`, `where-is-me`), diagnostics (`version`, `about`, `version-check`), and test-purpose. **`reinstall` is listed.** **`sudoers` is not a live dispatcher token.** Main **N = 6** (multi-user, logged out); **N = 4** when logged in (hide `sync-auth` / `sync-auth-from-remote`); **N = 4** / **3** on this-login-only (`run` first, then `reinstall`); submenu **K = 5**; **Exit 9**. Internal `ensure` is not a help verb.
+A TTY main menu **MUST** print daily-work **human-readable** lines as a **numbered list**, with related grant/draft verbs behind family row **`sudoers`** (submenu; **Back 8**, **Exit 9**). Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** `help`, `menu`/`main`, `check-session` (status is under the title), install/setup (`setup`, `update-grok`), self-managed (`install`, `uninstall`, `self-update`, `self-uninstall`, `where-is-me`), diagnostics (`version`, `about`, `version-check`), and test-purpose. **`reinstall` is listed.** **`sudoers` is not a live dispatcher token.** Main **N = 6** (multi-user, logged out; hide `sync-auth-to-remote`); **N = 5** when logged in (hide `sync-auth` / `sync-auth-from-remote`; **`sync-auth-to-remote` is listed**); **N = 4** / **4** on this-login-only (`run` first, then `reinstall`); submenu **K = 5**; **Exit 9**. Internal `ensure` is not a help verb.
 
 ## Not yet wired
 

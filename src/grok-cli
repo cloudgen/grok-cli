@@ -30,6 +30,7 @@
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-shell-script-coding.md
 # - requirement-shell-path-and-shell-support.md  (PATH / profile / sibling unify / rc-test)
+# - requirement-shell-zshenv.md  (zsh PATH on .zshenv, not .zshrc)
 # - requirement-shell-termux-coding.md  (Termux/Android: PREFIX, pkg, noexec; not FHS)
 # - requirement-shell-internal-volatile-timer.md  (named volatile stages; --debug menu elapsed)
 # - requirement-grok-auth-backup.md  (session check + deposit + sync-auth ops)
@@ -42,7 +43,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.33"
+# VERSION: hard-assign VERSION="1.8.34"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -56,10 +57,10 @@ APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
 : "${APP_DESC:=Alternative online installer for xAI grok}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
+: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.33"
-: "${VERSION:=1.8.33}"
+VERSION="1.8.35"
+: "${VERSION:=1.8.35}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -704,51 +705,85 @@ path_add_bashrc() {
 }
 
 # =============================================================================
-# path_add_zshrc() - Add ~/.local/bin to ~/.zshrc
+# path_add_zshenv() - Add ~/.local/bin to ~/.zshenv
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Appends the PATH export to ~/.zshrc only if not already present.
+# Appends the PATH export to ~/.zshenv (always-on zsh rc), not ~/.zshrc.
+# Creates the file when zsh environment is detected or ZSHENV is set.
+# Does not invent ${HOME}/.zshenv for a bash-only login with no override.
 #
-# Returns 0 if added (or was already present), 1 if file missing or failed.
-#
-# PRINTF EXCEPTION (class C – file I/O redirect):
-# printf … >> "$zshrc" writes shell config content to a file, not product
-# stdout/stderr. User-visible “→ Added …” lines use out_plain.
-# See requirement-shell-output-requirements.md §2.1.1.
-#
-# Last reviewed: 2026-07-12
+# ALIGNMENT: requirement-shell-zshenv.md
+# Last reviewed: 2026-09-17
 # =============================================================================
 
-path_add_zshrc() {
+path_add_zshenv() {
+    _pae_explicit=0
+    if [ -n "${ZSHENV+x}" ]; then
+        _pae_explicit=1
+    fi
     : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
-    : "${ZSHRC:=${HOME}/.zshrc}"
+    : "${ZSHENV:=${HOME}/.zshenv}"
     : "${APP_NAME:=grok-cli}"
     : "${VERSION:=0}"
     : "${JSON:=0}"
-    local zshrc="${ZSHRC}"
-    local path_line
-    local comment
-    path_line=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
-    comment=$(printf '# Added by %s installer (%s)' "${APP_NAME}" "${VERSION}")
+    _pae_zshenv="${ZSHENV}"
+    _pae_path=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
+    _pae_comment=$(printf '# Added by %s installer (%s)' "${APP_NAME}" "${VERSION}")
+    _pae_zsh_shell=0
+    case "$(basename "${SHELL:-}")" in
+        zsh) _pae_zsh_shell=1 ;;
+    esac
+    _pae_created=0
 
-    if [ ! -f "$zshrc" ]; then
-        return 1
-    fi
-
-    if ! grep -qF "${path_line}" "$zshrc" 2>/dev/null; then
-        printf "\n%s\n" "${comment}" >> "$zshrc"
-        printf '%s\n' "${path_line}" >> "$zshrc"
-        if [ "${JSON}" -eq 0 ]; then
-            out_plain "→ Added ${USER_BIN} to PATH for zsh"
+    if [ ! -f "${_pae_zshenv}" ]; then
+        if [ "${_pae_explicit}" -eq 0 ] && [ "${_pae_zsh_shell}" -eq 0 ]; then
+            unset _pae_explicit _pae_zshenv _pae_path _pae_comment _pae_zsh_shell _pae_created
+            return 1
         fi
+        if ! printf '# Always-on zsh rc created by %s installer (%s)\n' "${APP_NAME}" "${VERSION}" > "${_pae_zshenv}"; then
+            if [ "${JSON}" -eq 0 ]; then
+                out_warn "Could not create ${_pae_zshenv}. Next: create that file as this login, then re-run ${APP_NAME} install."
+            fi
+            unset _pae_explicit _pae_zshenv _pae_path _pae_comment _pae_zsh_shell _pae_created
+            return 1
+        fi
+        chmod 0644 "${_pae_zshenv}" 2>/dev/null || true
+        _pae_created=1
+        if [ "${JSON}" -eq 0 ]; then
+            out_plain "→ Created ${_pae_zshenv}"
+        fi
+    fi
+
+    if ! grep -qF "${_pae_path}" "${_pae_zshenv}" 2>/dev/null; then
+        printf "\n%s\n" "${_pae_comment}" >> "${_pae_zshenv}"
+        printf '%s\n' "${_pae_path}" >> "${_pae_zshenv}"
+        if [ "${JSON}" -eq 0 ]; then
+            out_plain "→ Added ${USER_BIN} to PATH for zsh (.zshenv)"
+        fi
+        unset _pae_explicit _pae_zshenv _pae_path _pae_comment _pae_zsh_shell _pae_created
         return 0
     fi
-    if ! grep -qF "${comment}" "$zshrc" 2>/dev/null; then
-        printf "\n%s\n" "${comment}" >> "$zshrc"
+    if ! grep -qF "${_pae_comment}" "${_pae_zshenv}" 2>/dev/null; then
+        printf "\n%s\n" "${_pae_comment}" >> "${_pae_zshenv}"
+        if [ "${JSON}" -eq 0 ]; then
+            out_plain "→ Noted ${APP_NAME} installer on zsh PATH"
+        fi
+        unset _pae_explicit _pae_zshenv _pae_path _pae_comment _pae_zsh_shell _pae_created
         return 0
     fi
+    if [ "${_pae_created}" -eq 1 ]; then
+        unset _pae_explicit _pae_zshenv _pae_path _pae_comment _pae_zsh_shell _pae_created
+        return 0
+    fi
+    unset _pae_explicit _pae_zshenv _pae_path _pae_comment _pae_zsh_shell _pae_created
+    return 1
+}
+
+# path_add_zshrc is unused for PATH (zsh PATH is .zshenv). Kept as a no-op so
+# leftover callers cannot write .zshrc. ALIGNMENT: requirement-shell-zshenv.md
+path_add_zshrc() {
     return 1
 }
 
@@ -833,12 +868,14 @@ path_add_shell() {
         shell_config="${BASHRC}"
     fi
 
-    if path_add_zshrc; then
+    # Do not default ZSHENV here: path_add_zshenv treats a set ZSHENV as
+    # "zsh environment" (tests). Bash-only with no override must not invent.
+    if path_add_zshenv; then
         added=1
         if [ "$shell_config" = "N/A" ]; then
-            shell_config="${ZSHRC}"
+            shell_config="${ZSHENV:-${HOME}/.zshenv}"
         else
-            shell_config="${shell_config} ${ZSHRC}"
+            shell_config="${shell_config} ${ZSHENV:-${HOME}/.zshenv}"
         fi
     fi
 
@@ -907,9 +944,9 @@ path_ensure_profile() {
 # path_rc_test() - Type 0 test-purpose: create/modify/no-op against --root
 # =============================================================================
 #
-# ALIGNMENT: requirement-shell-path-and-shell-support.md
-# MUST NOT write this login's real ~/.bashrc. Keep real HOME.
-# Last reviewed: 2026-09-09
+# ALIGNMENT: requirement-shell-path-and-shell-support.md · requirement-shell-zshenv.md
+# MUST NOT write this login's real ~/.bashrc or ~/.zshenv. Keep real HOME.
+# Last reviewed: 2026-09-17
 # =============================================================================
 path_rc_test() {
     : "${JSON:=0}"
@@ -927,7 +964,7 @@ path_rc_test() {
                 shift
                 ;;
             --file)
-                [ $# -ge 2 ] || out_die "rc-test --file requires bashrc|zshrc|profile"
+                [ $# -ge 2 ] || out_die "rc-test --file requires bashrc|zshenv|profile. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file zshenv --case create"
                 _prt_file="$2"
                 shift
                 ;;
@@ -951,8 +988,11 @@ path_rc_test() {
         out_die "rc-test requires --root a tmp/cache folder. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file bashrc --case create"
     fi
     case "${_prt_file}" in
-        bashrc|zshrc|profile|fish) ;;
-        *) out_die "rc-test --file must be bashrc, zshrc, profile, or fish" ;;
+        bashrc|zshenv|profile|fish) ;;
+        zshrc)
+            out_die "rc-test zshrc is not claimed (zsh PATH is .zshenv). Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file zshenv --case create"
+            ;;
+        *) out_die "rc-test --file must be bashrc, zshenv, profile, or fish" ;;
     esac
     case "${_prt_case}" in
         create|modify|noop) ;;
@@ -964,20 +1004,24 @@ path_rc_test() {
 
     _prt_home_bashrc="${HOME}/.bashrc"
     _prt_home_profile="${HOME}/.profile"
+    _prt_home_zshenv="${HOME}/.zshenv"
     _prt_snap_b=""
     _prt_snap_p=""
+    _prt_snap_z=""
     [ -f "${_prt_home_bashrc}" ] && _prt_snap_b=$(cat "${_prt_home_bashrc}" 2>/dev/null || true)
     [ -f "${_prt_home_profile}" ] && _prt_snap_p=$(cat "${_prt_home_profile}" 2>/dev/null || true)
+    [ -f "${_prt_home_zshenv}" ] && _prt_snap_z=$(cat "${_prt_home_zshenv}" 2>/dev/null || true)
 
     : "${USER_BIN:=${HOME}/.local/bin}"
     _prt_path=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
     _prt_comment=$(printf '# Added by %s installer (%s)' "${APP_NAME}" "${VERSION}")
 
     BASHRC="${_prt_root}/.bashrc"
+    ZSHENV="${_prt_root}/.zshenv"
     ZSHRC="${_prt_root}/.zshrc"
     PROFILE="${_prt_root}/.profile"
     FISH_CONFIG="${_prt_root}/config.fish"
-    export BASHRC ZSHRC PROFILE FISH_CONFIG
+    export BASHRC ZSHENV ZSHRC PROFILE FISH_CONFIG
 
     case "${_prt_file}" in
         bashrc)
@@ -996,22 +1040,21 @@ path_rc_test() {
             esac
             path_add_bashrc || true
             ;;
-        zshrc)
+        zshenv)
             case "${_prt_case}" in
-                create)
-                    out_die "rc-test zshrc create is not claimed (do not invent .zshrc). Next: --file bashrc --case create"
-                    ;;
+                create) rm -f "${ZSHENV}" ;;
                 modify)
-                    printf '%s\n' "# dongle-zshrc-keep" > "${ZSHRC}"
+                    printf '%s\n' "# dongle-zshenv-keep" > "${ZSHENV}"
                     ;;
                 noop)
                     {
+                        printf '%s\n' "# dongle-already-good"
                         printf '%s\n' "${_prt_comment}"
                         printf '%s\n' "${_prt_path}"
-                    } > "${ZSHRC}"
+                    } > "${ZSHENV}"
                     ;;
             esac
-            path_add_zshrc || true
+            path_add_zshenv || true
             ;;
         profile)
             case "${_prt_case}" in
@@ -1043,9 +1086,11 @@ path_rc_test() {
 
     _prt_now_b=""
     _prt_now_p=""
+    _prt_now_z=""
     [ -f "${_prt_home_bashrc}" ] && _prt_now_b=$(cat "${_prt_home_bashrc}" 2>/dev/null || true)
     [ -f "${_prt_home_profile}" ] && _prt_now_p=$(cat "${_prt_home_profile}" 2>/dev/null || true)
-    if [ "${_prt_now_b}" != "${_prt_snap_b}" ] || [ "${_prt_now_p}" != "${_prt_snap_p}" ]; then
+    [ -f "${_prt_home_zshenv}" ] && _prt_now_z=$(cat "${_prt_home_zshenv}" 2>/dev/null || true)
+    if [ "${_prt_now_b}" != "${_prt_snap_b}" ] || [ "${_prt_now_p}" != "${_prt_snap_p}" ] || [ "${_prt_now_z}" != "${_prt_snap_z}" ]; then
         out_die "rc-test wrote this login's real home rc. Fixture --root only."
     fi
 
@@ -1065,9 +1110,9 @@ path_rc_test() {
 # inst_ensure_companion() - User-bin PATH + profile (install companion)
 # =============================================================================
 #
-# ALIGNMENT: requirement-shell-path-and-shell-support.md
+# ALIGNMENT: requirement-shell-path-and-shell-support.md · requirement-shell-zshenv.md
 # Runs even when the CLI binary is already installed.
-# Last reviewed: 2026-09-09
+# Last reviewed: 2026-09-17
 # =============================================================================
 inst_ensure_companion() {
     : "${HOME:=/tmp}"
@@ -1087,7 +1132,7 @@ inst_ensure_companion() {
 # inst_self_uninstall_cleanup_path() - Remove grok-cli stickers; PATH only if safe
 # =============================================================================
 #
-# ALIGNMENT: requirement-shell-path-and-shell-support.md
+# ALIGNMENT: requirement-shell-path-and-shell-support.md · requirement-shell-zshenv.md
 # MUST match "# Added by grok-cli installer" only — never "# Added by .* installer".
 # MUST NOT delete .profile, vendor grok installer block, or login-hook scraps.
 # Last reviewed: 2026-09-09
@@ -1099,6 +1144,7 @@ inst_self_uninstall_cleanup_path() {
     : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
     : "${BASHRC:=${HOME}/.bashrc}"
+    : "${ZSHENV:=${HOME}/.zshenv}"
     : "${ZSHRC:=${HOME}/.zshrc}"
     : "${FISH_CONFIG:=${HOME}/.config/fish/config.fish}"
     : "${APP_NAME:=grok-cli}"
@@ -1115,7 +1161,7 @@ inst_self_uninstall_cleanup_path() {
     _cup_path=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
     _cup_fish=$(printf 'set -gx PATH %s $PATH' "${USER_BIN}")
     _cup_prefix="# Added by ${APP_NAME} installer"
-    for _cup_cfg in "${BASHRC}" "${ZSHRC}" "${FISH_CONFIG}"; do
+    for _cup_cfg in "${BASHRC}" "${ZSHENV}" "${ZSHRC}" "${FISH_CONFIG}"; do
         [ -f "${_cup_cfg}" ] || continue
         _cup_tmp=$(mktemp "${EFFECTIVE_STORAGE_DIR:-/tmp}/${APP_NAME}.rc.XXXXXX" 2>/dev/null || mktemp)
         while IFS= read -r _cup_line || [ -n "${_cup_line}" ]; do
@@ -3892,13 +3938,28 @@ gc_setup_maybe_android_dns() {
 }
 
 # =============================================================================
-# gc_setup_maybe_bashrc() - append vendor-style PATH block when SHELL is bash
+# gc_setup_maybe_bashrc() - append vendor-style PATH block for bash or zsh
+# =============================================================================
+#
+# ALIGNMENT: requirement-grok-setup.md · requirement-shell-zshenv.md
+# bash → ~/.bashrc; zsh → ~/.zshenv (not ~/.zshrc).
+# Last reviewed: 2026-09-17
 # =============================================================================
 gc_setup_maybe_bashrc() {
     _gmb_bin_dir="${1:-}"
     _gmb_shell=$(basename "${SHELL:-}")
-    [ "${_gmb_shell}" = "bash" ] || return 0
-    _gmb_rc="${HOME}/.bashrc"
+    case "${_gmb_shell}" in
+        bash)
+            _gmb_rc="${HOME}/.bashrc"
+            ;;
+        zsh)
+            : "${ZSHENV:=${HOME}/.zshenv}"
+            _gmb_rc="${ZSHENV}"
+            ;;
+        *)
+            return 0
+            ;;
+    esac
     if grep -qs "grok installer" "${_gmb_rc}" 2>/dev/null; then
         return 0
     fi
@@ -5258,13 +5319,14 @@ EOF
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Return the scp program sync-auth-from-remote will invoke. Tests inject a
-# fake via GROK_CLI_SCP so the suite never opens a real SSH session.
+# Return the scp program sync-auth-from-remote and sync-auth-to-remote will
+# invoke. Tests inject a fake via GROK_CLI_SCP so the suite never opens a
+# real SSH session.
 #
 # ALIGNMENT:
 # - requirement-grok-auth-backup.md
 #
-# Last updated: 2026-09-02
+# Last updated: 2026-09-22
 # =============================================================================
 gc_scp_cmd() {
     : "${GROK_CLI_SCP:=}"
@@ -5273,6 +5335,28 @@ gc_scp_cmd() {
         return 0
     fi
     command -v scp 2>/dev/null || true
+}
+
+# =============================================================================
+# gc_ssh_cmd() - Class B: ssh binary (GROK_CLI_SSH or PATH)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Return the ssh program sync-auth-to-remote will invoke. Tests inject a
+# fake via GROK_CLI_SSH so the suite never opens a real SSH session.
+#
+# ALIGNMENT:
+# - requirement-grok-auth-backup.md
+#
+# Last updated: 2026-09-22
+# =============================================================================
+gc_ssh_cmd() {
+    : "${GROK_CLI_SSH:=}"
+    if [ -n "${GROK_CLI_SSH}" ]; then
+        printf '%s' "${GROK_CLI_SSH}"
+        return 0
+    fi
+    command -v ssh 2>/dev/null || true
 }
 
 # =============================================================================
@@ -5587,6 +5671,107 @@ gc_sync_auth_from_remote() {
             "user" "${GC_REMOTE_USER}" \
             "source" "${GROK_CLI_REMOTE_ROOT}" \
             "grok_home" "${_dest}" \
+            "files" "${_copied}" \
+            "count" "${_n}"
+    fi
+    gc_preferred_remote_save "${_spec}" || true
+    return 0
+}
+
+# =============================================================================
+# gc_sync_auth_to_remote() - Type 0: scp this login's auth.* onto a remote host
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Push auth.* from this login's grok home onto the remote login's ~/.grok.
+# SPEC matches sync-auth-from-remote. Uses ssh + scp in BatchMode (no
+# password hang). MUST NOT sudo. Remote auth.json mode 0600. Tests inject
+# GROK_CLI_SSH and GROK_CLI_SCP. A valid local session does NOT skip this
+# verb (these files are the source). Preferred SPEC is loaded/saved under
+# persistence preferred-remote.
+#
+# ALIGNMENT:
+# - requirement-grok-auth-backup.md
+# - requirement-shell-cli-storage.md
+# - requirement-operator-readable-error.md
+#
+# Last updated: 2026-09-22
+# =============================================================================
+gc_sync_auth_to_remote() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${TTY:=0}"
+    : "${HOME:=/tmp}"
+
+    _spec="${1-}"
+    if [ -z "${_spec}" ] && [ "${TTY}" -eq 1 ] && [ "${JSON}" -ne 1 ]; then
+        _pref=$(gc_preferred_remote_load)
+        prompt_ask "Remote (user@host, IPv4, domain, or user@domain)" "${_pref}"
+        _spec="${PROMPT_ASK_VALUE}"
+    fi
+    if [ -z "${_spec}" ]; then
+        out_die "Cannot sync-auth-to-remote: missing remote. Next: ${APP_NAME} sync-auth-to-remote USER@HOST"
+    fi
+    if ! gc_parse_remote_spec "${_spec}"; then
+        out_die "Cannot sync-auth-to-remote: remote '${_spec}' is not user@host, IPv4, domain, or user@domain. Next: ${APP_NAME} sync-auth-to-remote USER@HOST"
+    fi
+
+    _src=$(gc_resolve_grok_home)
+    _auth="${_src}/auth.json"
+    if [ ! -f "${_auth}" ] || [ ! -s "${_auth}" ] || [ -L "${_auth}" ]; then
+        out_die "Cannot sync-auth-to-remote: no auth.json under ${_src}. Next: grok login, then ${APP_NAME} sync-auth-to-remote USER@HOST"
+    fi
+
+    _scp=$(gc_scp_cmd)
+    if [ -z "${_scp}" ] || [ ! -x "${_scp}" ]; then
+        out_die "Cannot sync-auth-to-remote: scp not found. Next: install openssh-client, then ${APP_NAME} sync-auth-to-remote ${_spec}"
+    fi
+    _ssh=$(gc_ssh_cmd)
+    if [ -z "${_ssh}" ] || [ ! -x "${_ssh}" ]; then
+        out_die "Cannot sync-auth-to-remote: ssh not found. Next: install openssh-client, then ${APP_NAME} sync-auth-to-remote ${_spec}"
+    fi
+
+    if [ -n "${GC_REMOTE_USER}" ]; then
+        _target="${GC_REMOTE_USER}@${GC_REMOTE_HOST}"
+    else
+        _target="${GC_REMOTE_HOST}"
+    fi
+
+    out_info "Sending auth.json to ${_target}"
+    if ! "${_ssh}" -o BatchMode=yes -o ConnectTimeout=15 "${_target}" "mkdir -p .grok && chmod 0700 .grok"; then
+        out_die "Cannot sync-auth-to-remote: cannot prepare ~/.grok on ${_target}. Next: ssh ${_target}, then ${APP_NAME} sync-auth-to-remote ${_spec}"
+    fi
+
+    _copied=""
+    _n=0
+    if ! "${_scp}" -o BatchMode=yes -o ConnectTimeout=15 "${_auth}" "${_target}:.grok/auth.json"; then
+        out_die "Cannot sync-auth-to-remote: scp to ${_target} failed. Next: ssh ${_target}, then ${APP_NAME} sync-auth-to-remote ${_spec}"
+    fi
+    if ! "${_ssh}" -o BatchMode=yes -o ConnectTimeout=15 "${_target}" "chmod 0600 .grok/auth.json"; then
+        out_die "Cannot sync-auth-to-remote: cannot set mode 0600 on ${_target}:.grok/auth.json. Next: ssh ${_target}, then ${APP_NAME} sync-auth-to-remote ${_spec}"
+    fi
+    _copied="auth.json "
+    _n=1
+
+    _lock="${_src}/auth.json.lock"
+    if [ -f "${_lock}" ] && [ ! -L "${_lock}" ] && [ -s "${_lock}" ]; then
+        if "${_scp}" -o BatchMode=yes -o ConnectTimeout=15 "${_lock}" "${_target}:.grok/auth.json.lock"; then
+            if "${_ssh}" -o BatchMode=yes -o ConnectTimeout=15 "${_target}" "chmod 0600 .grok/auth.json.lock"; then
+                _copied="${_copied}auth.json.lock "
+                _n=$((_n + 1))
+            fi
+        fi
+    fi
+
+    out_success "sync-auth-to-remote complete: ${_src} → ${_target}:.grok (${_n} file(s): ${_copied})"
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "sync-auth-to-remote" "ok" \
+            "app" "${APP_NAME}" \
+            "remote" "${_target}" \
+            "host" "${GC_REMOTE_HOST}" \
+            "user" "${GC_REMOTE_USER}" \
+            "source" "${_src}" \
+            "dest" ".grok" \
             "files" "${_copied}" \
             "count" "${_n}"
     fi
@@ -7459,13 +7644,14 @@ gc_host_normal_user_only_label() {
 # sync-auth / sudoers on this-login-only hosts. Those hosts list run
 # first (start grok without auto-update), then reinstall. Hide
 # sync-auth and sync-auth-from-remote when the session is valid.
+# sync-auth-to-remote is listed only when the session is valid.
 # Multi-user lists reinstall after add-crontab and before sudoers.
 # setup / update-grok stay off this list.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-14
+# Last updated: 2026-09-22
 # =============================================================================
 gc_menu_main_tokens() {
     if gc_host_is_normal_user_only; then
@@ -7480,6 +7666,9 @@ gc_menu_main_tokens() {
     fi
     if [ "${GC_SESSION_STATUS_CACHE-}" != "valid" ]; then
         printf '%s\n' "sync-auth-from-remote"
+    fi
+    if [ "${GC_SESSION_STATUS_CACHE-}" = "valid" ]; then
+        printf '%s\n' "sync-auth-to-remote"
     fi
     printf '%s\n' "add-crontab"
     if ! gc_host_is_normal_user_only; then
@@ -7499,6 +7688,7 @@ gc_menu_row_explain() {
         backup) printf '%s' "Push ~/.grok/auth.* to ${GROK_CLI_ROOT}" ;;
         sync-auth) printf '%s' "Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok" ;;
         sync-auth-from-remote) printf '%s' "Copy a remote host's auth.* into ~/.grok" ;;
+        sync-auth-to-remote) printf '%s' "Copy ~/.grok/auth.* onto a remote host" ;;
         add-crontab) printf '%s' "Add backup and sync-auth jobs to this login's crontab" ;;
         sudoers) printf '%s' "Grant and drafts" ;;
         *) printf '%s' "" ;;
@@ -7674,7 +7864,7 @@ app_default_print_sudoers_menu() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-07
+# Last updated: 2026-09-22
 # =============================================================================
 app_default_run_pick() {
     _pick="${1:-}"
@@ -7743,6 +7933,9 @@ EOF
             ;;
         sync-auth-from-remote)
             gc_sync_auth_from_remote
+            ;;
+        sync-auth-to-remote)
+            gc_sync_auth_to_remote
             ;;
         add-crontab)
             gc_add_crontab
@@ -7934,17 +8127,17 @@ app_default() {
 # app_help() - Usage (local Type 0 + domain)
 # =============================================================================
 #
-# Last updated: 2026-09-07
+# Last updated: 2026-09-22
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
-    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
+    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
         out_json "success" "Help text available in human-readable mode. Run without --json." \
             "command" "help" \
-            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth, sync-auth-from-remote, add-crontab. Empty argv and menu/main off-TTY use this help."
+            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab. Empty argv and menu/main off-TTY use this help."
         return 0
     fi
     if [ "${QUIET}" -eq 1 ]; then
@@ -7991,6 +8184,11 @@ app_help() {
     out_plain "                       (SPEC: user@IPv4, IPv4, domain-name, or user@domain-name;"
     out_plain "                       scp BatchMode; no sudo; dest auth.json 0600;"
     out_plain "                       skipped when grok is already logged in)"
+    out_plain "  sync-auth-to-remote SPEC"
+    out_plain "                       Copy ~/.grok/auth.* onto a remote login's ~/.grok"
+    out_plain "                       (SPEC: user@IPv4, IPv4, domain-name, or user@domain-name;"
+    out_plain "                       ssh + scp BatchMode; no sudo; remote auth.json 0600;"
+    out_plain "                       still runs when grok is already logged in)"
     out_plain "  add-crontab          Add backup and sync-auth jobs to this login's crontab"
     out_plain "                       (*/30 sudo ${GLOBAL_BIN}/${APP_NAME} backup; minute 45 ${GLOBAL_BIN}/${APP_NAME} sync-auth;"
     out_plain "                       needs this login's NOPASSWD ${GLOBAL_BIN}/${APP_NAME} backup grant; does not write /etc)"
@@ -8036,6 +8234,7 @@ app_help() {
     out_plain "  GROK_CLI_CRON_BACKUP backup crontab schedule (default */30 * * * *)"
     out_plain "  GROK_CLI_CRON_SYNC   sync-auth crontab schedule (default 45 * * * *)"
     out_plain "  GROK_CLI_SCP            scp binary (default scp; tests inject a fake)"
+    out_plain "  GROK_CLI_SSH            ssh binary (default ssh; tests inject a fake)"
     out_plain "  GROK_CLI_REMOTE_ROOT    remote store path (default /var/grok-cli)"
     out_plain "  GROK_VENDOR_BASE_URL     xAI grok channel/artifact base (default https://x.ai/cli)"
     out_plain "  GROK_VENDOR_FALLBACK_URL xAI grok GCS fallback base"
@@ -8046,7 +8245,8 @@ app_help() {
     out_plain "  GROK_PROMPT_KILL_AFTER  SIGKILL grace after the probe deadline (default 2)"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
     out_plain "  BASHRC               interactive rc write path (default ~/.bashrc; tests retarget)"
-    out_plain "  ZSHRC / PROFILE / FISH_CONFIG  other rc write paths (tests retarget)"
+    out_plain "  ZSHENV              zsh always-on rc write path (default ~/.zshenv; tests retarget)"
+    out_plain "  ZSHRC / PROFILE / FISH_CONFIG  other rc write paths (tests retarget; zsh PATH is ZSHENV)"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers / generate / submit"
     out_plain "  SUDOER_CLI              override path to sudoer-cli"
     out_plain "  SUDOER_ADM_USER         approver login (default sudoer-adm)"
@@ -8076,6 +8276,7 @@ app_help() {
     out_plain "  ${APP_NAME} backup"
     out_plain "  ${APP_NAME} sync-auth"
     out_plain "  ${APP_NAME} sync-auth-from-remote user@192.0.2.10"
+    out_plain "  ${APP_NAME} sync-auth-to-remote user@192.0.2.10"
     out_plain "  ${APP_NAME} add-crontab"
     out_empty_line
     out_info "Empty argv on a real terminal shows the numbered list. Off-TTY empty argv is channel install-ensure (curl|sh)."
@@ -8102,7 +8303,7 @@ app_help() {
 #
 # !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
 #
-# Last updated: 2026-09-07
+# Last updated: 2026-09-22
 # =============================================================================
 app_main() {
     COMMAND=""
@@ -8163,7 +8364,7 @@ app_main() {
                 SUBMIT_ACTION_EXPLICIT=1
                 export SUBMIT_ACTION SUBMIT_ACTION_EXPLICIT
                 ;;
-            version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|update-grok|reinstall|check-session|backup|sync-auth|sync-auth-from-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
+            version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|update-grok|reinstall|check-session|backup|sync-auth|sync-auth-from-remote|sync-auth-to-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
                 COMMAND="$1"
                 _saw_command=1
                 ;;
@@ -8186,7 +8387,8 @@ app_main() {
                     || [ "${COMMAND}" = "remove-project-sudoers" ] \
                     || [ "${COMMAND}" = "generate-sudoer-request" ] \
                     || [ "${COMMAND}" = "submit-sudoer-request" ] \
-                    || [ "${COMMAND}" = "sync-auth-from-remote" ]; then
+                    || [ "${COMMAND}" = "sync-auth-from-remote" ] \
+                    || [ "${COMMAND}" = "sync-auth-to-remote" ]; then
                     if [ -z "${_domain_arg}" ]; then
                         _domain_arg="$1"
                     else
@@ -8232,6 +8434,7 @@ app_main() {
         backup)       gc_backup ;;
         sync-auth)    gc_sync_auth ;;
         sync-auth-from-remote) gc_sync_auth_from_remote "${_domain_arg}" ;;
+        sync-auth-to-remote) gc_sync_auth_to_remote "${_domain_arg}" ;;
         add-crontab)  gc_add_crontab ;;
         print-sudoers) gc_print_sudoers "${_domain_arg}" ;;
         print-sudoers-install-script) gc_print_sudoers_install_script "${_domain_arg}" ;;
