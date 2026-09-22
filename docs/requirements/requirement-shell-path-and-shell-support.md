@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-path-and-shell-support.md  
-**Status**: Active (Version 1.1.0 – zsh PATH points at zshenv)  
+**Status**: Active (Version 1.2.0 – ash PATH points at alpine)  
 **Area**: shell  
 **Key**: `requirement-shell-path-and-shell-support`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -11,7 +11,7 @@ This file is the **topic-owner** for **shell-rc** edits on grok-cli: after a **u
 It owns **path-ensure** (one shared `USER_BIN` line on interactive rc) and **profile-ensure** (create `~/.profile` if missing so a login shell sources `.bashrc`). It also owns **sibling unify** so another similar CLI does not, *by design*, make `.bashrc` non-compliant; **heal** on every user-bin `install` / channel ensure / `self-update` (including already-installed skip); **scoped uninstall**; and **detect** via a Type 0 `rc-test` (not a lock on the file).
 
 **Scope:** Which rc files this product writes; the exact PATH line; create / append / no-op; profile create-if-absent; write-path env; sibling comments; uninstall of **this** product’s stickers; fixture tests; `rc-test`.  
-**Out of scope (cited, not re-owned):** Placing or removing the binary (`requirement-shell-local-self-management` · `requirement-shell-online-install` · `requirement-shell-self-management`); peer grok vendor PATH block for `~/.grok/bin` (`requirement-grok-setup`); Termux host writing (`requirement-shell-termux-coding`); scratch/cache (`requirement-shell-cli-storage`).
+**Out of scope (cited, not re-owned):** Placing or removing the binary (`requirement-shell-local-self-management` · `requirement-shell-online-install` · `requirement-shell-self-management`); peer grok vendor PATH block for `~/.grok/bin` (`requirement-grok-setup`); Termux host writing (`requirement-shell-termux-coding`); scratch/cache (`requirement-shell-cli-storage`); ash PATH on `.profile` (`requirement-shell-alpine`).
 
 **Not claimed:** login-review hook; Type 1 `setup` `chown` of another login’s rc; `/etc/environment`; crontab.
 
@@ -355,7 +355,8 @@ Work claiming PATH / login-rc support for grok-cli is **not done** if any of the
 |------|--------|------|
 | 2026-09-09 | Active (1.0.0) | Topic-owner: path-ensure + profile-ensure; sibling unify; scoped uninstall; heal on already-installed; routed `rc-test` |
 | 2026-09-17 | Active (1.1.0) | Zsh PATH **points** at `requirement-shell-zshenv` (`.zshenv`, not `.zshrc`) |
+| 2026-09-22 | Active (1.2.0) | Ash PATH **points** at `requirement-shell-alpine` (`.profile` when `$0` is ash) |
 
-**Last Updated**: 2026-09-17  
+**Last Updated**: 2026-09-22  
 **Owner**: grok-cli project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

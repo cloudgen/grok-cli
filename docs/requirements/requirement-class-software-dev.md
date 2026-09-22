@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.3.5 – leftover zsh PATH points at zshenv)  
+**Status**: Active (Version 1.3.6 – leftover ash PATH points at alpine)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (CIAO = Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -161,6 +161,7 @@ A **lockfile** is a frozen list of dependency versions.
 | Termux / Android host writing | `requirement-shell-termux-coding` | `PREFIX`, Termux `pkg`, `noexec` tmp, FHS-not-assumed; do not duplicate |
 | PATH / profile / shell-rc sibling unify | `requirement-shell-path-and-shell-support` | One shared `USER_BIN` PATH line on bash/Fish; create `.profile` if missing; do not duplicate |
 | Zsh PATH (`.zshenv`, not `.zshrc`) | `requirement-shell-zshenv` | Independent zsh always-on rc; do not duplicate |
+| Ash / Alpine PATH (`.profile` when `$0` is ash) | `requirement-shell-alpine` | Login ash reads `.profile`; do not duplicate |
 | Login-review hook | **this file** (leftover) | **considered — no login-hook**. This product has no dest review scrap. **MUST NOT** plant one or strip another product’s hook |
 | Privilege layers + sudoers files (print / install / stop if not allowed) | `requirement-three-layer-privilege-model` | Daily work as yourself + a narrow `sudo grok-cli backup` grant (**Type 0** + **Type 1** deposit: Type 1 = the command changes the computer). §2.3 sudoers workflow is the SSOT |
 | JSON sudoer file (grant body) | `requirement-sudoer-json-file` | **JSON** = a structured text format. `{{PRJ_NAME}}` only; no `cp` / `mkdir` / OS-tool commands |
@@ -244,6 +245,7 @@ A **lockfile** is a frozen list of dependency versions.
 | `requirement-shell-termux-coding` | Termux / Android host writing |
 | `requirement-shell-path-and-shell-support` | PATH / profile / sibling unify (bash / Fish) |
 | `requirement-shell-zshenv` | Zsh PATH on `.zshenv` (not `.zshrc`) |
+| `requirement-shell-alpine` | Ash PATH on `.profile` |
 | `requirement-three-layer-privilege-model` | Privilege + working with sudoers fragment files |
 | `requirement-sudoer-json-file` | JSON sudoer file body (`{{PRJ_NAME}}` only) |
 | `requirement-grok-auth-backup` | Grok auth backup operations SSOT |
@@ -267,9 +269,10 @@ A **lockfile** is a frozen list of dependency versions.
 | 2026-09-04 | Active (1.3.3) | Leftover: Termux / Android host writing → `requirement-shell-termux-coding` |
 | 2026-09-09 | Active (1.3.4) | Leftover: PATH / profile / sibling unify → `requirement-shell-path-and-shell-support`; login-hook considered none |
 | 2026-09-17 | Active (1.3.5) | Leftover: zsh PATH → `requirement-shell-zshenv` (`.zshenv`, not `.zshrc`) |
+| 2026-09-22 | Active (1.3.6) | Leftover: ash / Alpine PATH → `requirement-shell-alpine` (`.profile` when `$0` is ash) |
 
 ---
 
-**Last Updated**: 2026-09-17  
+**Last Updated**: 2026-09-22  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

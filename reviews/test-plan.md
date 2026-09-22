@@ -110,6 +110,12 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LC-34 | `ZSHENV` env create-if-missing | test_local_lifecycle | requirement-shell-zshenv | **have** |
 | TP-LC-35 | bash-only does not invent `.zshenv` | test_local_lifecycle | requirement-shell-zshenv | **have** |
 | TP-LC-36 | `.zshrc` unchanged for PATH | test_local_lifecycle | requirement-shell-zshenv | **have** |
+| TP-LC-37 | `$0` `-ash` writes shared PATH on `.profile` and keeps the bash source block | test_local_lifecycle | requirement-shell-alpine | **have** |
+| TP-LC-38 | `$0` `sh` without alpine-release does not write that PATH line | test_local_lifecycle | requirement-shell-alpine | **have** |
+| TP-LC-39 | Alpine `sh` (`$0` `sh` plus release file) writes the PATH line | test_local_lifecycle | requirement-shell-alpine | **have** |
+| TP-LC-40 | `rc-test --file ash` writes the fixture `.profile` only | test_local_lifecycle | requirement-shell-alpine · requirement-shell-cli-interface | **have** |
+| TP-LC-41 | Missing `.profile` for bash, zsh, and fish is generated (source `.bashrc`) with no PATH export | test_local_lifecycle | requirement-shell-alpine · requirement-shell-path-and-shell-support | **have** |
+| TP-LC-42 | Existing `.profile` plus ash appends PATH and keeps the old body | test_local_lifecycle | requirement-shell-alpine | **have** |
 | rc-test | routed `--root` create; real home rc untouched | test_local_lifecycle | requirement-shell-path-and-shell-support · requirement-shell-cli-interface · requirement-shell-zshenv | **have** |
 
 ### TP-VCLI (vendor peer grok installer)

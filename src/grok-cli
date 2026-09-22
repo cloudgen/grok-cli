@@ -30,6 +30,7 @@
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-shell-script-coding.md
 # - requirement-shell-path-and-shell-support.md  (PATH / profile / sibling unify / rc-test)
+# - requirement-shell-alpine.md  (ash $0 writes USER_BIN PATH into .profile)
 # - requirement-shell-zshenv.md  (zsh PATH on .zshenv, not .zshrc)
 # - requirement-shell-termux-coding.md  (Termux/Android: PREFIX, pkg, noexec; not FHS)
 # - requirement-shell-internal-volatile-timer.md  (named volatile stages; --debug menu elapsed)
@@ -59,8 +60,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.35"
-: "${VERSION:=1.8.35}"
+VERSION="1.8.36"
+: "${VERSION:=1.8.36}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -888,10 +889,15 @@ path_add_shell() {
         fi
     fi
 
+    # Missing .profile: generate the login note for bash/zsh/fish.
+    # Alpine ash: that same create also adds USER_BIN, or an existing
+    # file is modified to add it. One call owns both.
     if path_ensure_profile; then
         added=1
         if [ "$shell_config" = "N/A" ]; then
             shell_config="${PROFILE:-${HOME}/.profile}"
+        else
+            shell_config="${shell_config} ${PROFILE:-${HOME}/.profile}"
         fi
     fi
 
@@ -901,11 +907,19 @@ path_add_shell() {
 }
 
 # =============================================================================
-# path_ensure_profile() - Create ~/.profile if absent (never overwrite)
+# path_ensure_profile() - Missing .profile: generate; ash also adds PATH
 # =============================================================================
 #
+# GENERAL PURPOSE:
+# One missing-file step for every shell.
+#   bash / zsh / fish (not ash): generate ~/.profile that sources ~/.bashrc.
+#   ash / Alpine: generate that same file, then add USER_BIN to PATH in it.
+# An existing file is never replaced. Ash modifies it by appending the PATH
+# line when that line is absent.
+#
 # ALIGNMENT: requirement-shell-path-and-shell-support.md
-# Last reviewed: 2026-09-09
+#             requirement-shell-alpine.md
+# Last reviewed: 2026-09-22
 # =============================================================================
 path_ensure_profile() {
     : "${HOME:=/tmp}"
@@ -915,7 +929,8 @@ path_ensure_profile() {
     local profile="${PROFILE}"
 
     if [ -f "$profile" ]; then
-        return 1
+        path_add_profile_ash
+        return $?
     fi
 
     if ! {
@@ -934,10 +949,109 @@ path_ensure_profile() {
         return 1
     fi
     chmod 0644 "$profile" 2>/dev/null || true
+    if path_invoking_is_ash; then
+        if [ "${JSON}" -eq 0 ]; then
+            out_plain "→ Created ${profile}"
+        fi
+        path_add_profile_ash
+        return $?
+    fi
     if [ "${JSON}" -eq 0 ]; then
         out_plain "→ Created ${profile} (login shell sources ~/.bashrc)"
     fi
     return 0
+}
+
+# =============================================================================
+# path_invoking_is_ash() - Class B: this run is ash (including Alpine sh)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# True when the invoking command name is ash. Login ash sets $0 to -ash.
+# Alpine curl|sh sets $0 to sh while /bin/sh is ash; that case is ash when
+# /etc/alpine-release exists (tests may point GROK_CLI_ALPINE_RELEASE).
+#
+# ALIGNMENT: requirement-shell-alpine.md
+# Last updated: 2026-09-22
+# =============================================================================
+path_invoking_is_ash() {
+    _pia_raw="${GROK_CLI_ARGV0:-$0}"
+    _pia_base=$(basename -- "${_pia_raw}" 2>/dev/null || printf '%s' "${_pia_raw}")
+    _pia_base=${_pia_base#-}
+    case "${_pia_base}" in
+        ash)
+            unset _pia_raw _pia_base
+            return 0
+            ;;
+    esac
+    case "${_pia_base}" in
+        sh)
+            if [ -n "${GROK_CLI_ALPINE_RELEASE+x}" ]; then
+                _pia_rel="${GROK_CLI_ALPINE_RELEASE}"
+            else
+                _pia_rel="/etc/alpine-release"
+            fi
+            if [ -n "${_pia_rel}" ] && [ -f "${_pia_rel}" ]; then
+                unset _pia_raw _pia_base _pia_rel
+                return 0
+            fi
+            unset _pia_rel
+            ;;
+    esac
+    unset _pia_raw _pia_base
+    return 1
+}
+
+# =============================================================================
+# path_add_profile_ash() - ash login: PATH export on ~/.profile
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# When this run is ash and ~/.profile already exists, append the shared
+# USER_BIN export. Does not create the file (path_ensure_profile generates
+# a missing .profile first). Does not replace the bash source-bashrc block.
+# A non-ash run does not write that export.
+#
+# ALIGNMENT: requirement-shell-alpine.md
+# Last updated: 2026-09-22
+# =============================================================================
+path_add_profile_ash() {
+    if ! path_invoking_is_ash; then
+        return 1
+    fi
+    : "${HOME:=/tmp}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+    : "${PROFILE:=${HOME}/.profile}"
+    : "${APP_NAME:=grok-cli}"
+    : "${VERSION:=0}"
+    : "${JSON:=0}"
+    _paa_profile="${PROFILE}"
+    _paa_path=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
+    _paa_comment=$(printf '# Added by %s installer (%s)' "${APP_NAME}" "${VERSION}")
+    if [ ! -f "${_paa_profile}" ]; then
+        unset _paa_profile _paa_path _paa_comment
+        return 1
+    fi
+
+    if ! grep -qF "${_paa_path}" "${_paa_profile}" 2>/dev/null; then
+        printf '\n%s\n' "${_paa_comment}" >> "${_paa_profile}"
+        printf '%s\n' "${_paa_path}" >> "${_paa_profile}"
+        if [ "${JSON}" -eq 0 ]; then
+            out_plain "→ Added ${USER_BIN} to PATH for ash (.profile)"
+        fi
+        unset _paa_profile _paa_path _paa_comment
+        return 0
+    fi
+    if ! grep -qF "${_paa_comment}" "${_paa_profile}" 2>/dev/null; then
+        printf '\n%s\n' "${_paa_comment}" >> "${_paa_profile}"
+        if [ "${JSON}" -eq 0 ]; then
+            out_plain "→ Noted ${APP_NAME} installer on ash PATH"
+        fi
+        unset _paa_profile _paa_path _paa_comment
+        return 0
+    fi
+    unset _paa_profile _paa_path _paa_comment
+    return 1
 }
 
 # =============================================================================
@@ -964,7 +1078,7 @@ path_rc_test() {
                 shift
                 ;;
             --file)
-                [ $# -ge 2 ] || out_die "rc-test --file requires bashrc|zshenv|profile. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file zshenv --case create"
+                [ $# -ge 2 ] || out_die "rc-test --file requires bashrc|zshenv|profile|ash. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file ash --case create"
                 _prt_file="$2"
                 shift
                 ;;
@@ -988,11 +1102,11 @@ path_rc_test() {
         out_die "rc-test requires --root a tmp/cache folder. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file bashrc --case create"
     fi
     case "${_prt_file}" in
-        bashrc|zshenv|profile|fish) ;;
+        bashrc|zshenv|profile|fish|ash) ;;
         zshrc)
             out_die "rc-test zshrc is not claimed (zsh PATH is .zshenv). Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file zshenv --case create"
             ;;
-        *) out_die "rc-test --file must be bashrc, zshenv, profile, or fish" ;;
+        *) out_die "rc-test --file must be bashrc, zshenv, profile, ash, or fish" ;;
     esac
     case "${_prt_case}" in
         create|modify|noop) ;;
@@ -1064,6 +1178,26 @@ path_rc_test() {
                     ;;
             esac
             path_ensure_profile || true
+            ;;
+        ash)
+            case "${_prt_case}" in
+                create) rm -f "${PROFILE}" ;;
+                modify)
+                    printf '%s\n' "# keep-existing-profile" > "${PROFILE}"
+                    ;;
+                noop)
+                    {
+                        printf '%s\n' "# keep-existing-profile"
+                        printf '%s\n' "${_prt_comment}"
+                        printf '%s\n' "${_prt_path}"
+                    } > "${PROFILE}"
+                    ;;
+            esac
+            GROK_CLI_ARGV0=ash
+            export GROK_CLI_ARGV0
+            path_ensure_profile || true
+            path_add_profile_ash || true
+            unset GROK_CLI_ARGV0
             ;;
         fish)
             case "${_prt_case}" in
@@ -1147,6 +1281,7 @@ inst_self_uninstall_cleanup_path() {
     : "${ZSHENV:=${HOME}/.zshenv}"
     : "${ZSHRC:=${HOME}/.zshrc}"
     : "${FISH_CONFIG:=${HOME}/.config/fish/config.fish}"
+    : "${PROFILE:=${HOME}/.profile}"
     : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     _cup_should_path=1
@@ -1161,7 +1296,7 @@ inst_self_uninstall_cleanup_path() {
     _cup_path=$(printf 'export PATH="%s:$PATH"' "${USER_BIN}")
     _cup_fish=$(printf 'set -gx PATH %s $PATH' "${USER_BIN}")
     _cup_prefix="# Added by ${APP_NAME} installer"
-    for _cup_cfg in "${BASHRC}" "${ZSHENV}" "${ZSHRC}" "${FISH_CONFIG}"; do
+    for _cup_cfg in "${BASHRC}" "${ZSHENV}" "${ZSHRC}" "${FISH_CONFIG}" "${PROFILE}"; do
         [ -f "${_cup_cfg}" ] || continue
         _cup_tmp=$(mktemp "${EFFECTIVE_STORAGE_DIR:-/tmp}/${APP_NAME}.rc.XXXXXX" 2>/dev/null || mktemp)
         while IFS= read -r _cup_line || [ -n "${_cup_line}" ]; do
@@ -8247,6 +8382,8 @@ app_help() {
     out_plain "  BASHRC               interactive rc write path (default ~/.bashrc; tests retarget)"
     out_plain "  ZSHENV              zsh always-on rc write path (default ~/.zshenv; tests retarget)"
     out_plain "  ZSHRC / PROFILE / FISH_CONFIG  other rc write paths (tests retarget; zsh PATH is ZSHENV)"
+    out_plain "  GROK_CLI_ARGV0      invoking name for ash detect (default \$0; -ash / ash)"
+    out_plain "  GROK_CLI_ALPINE_RELEASE  alpine-release file (default /etc/alpine-release; sh on Alpine is ash)"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers / generate / submit"
     out_plain "  SUDOER_CLI              override path to sudoer-cli"
     out_plain "  SUDOER_ADM_USER         approver login (default sudoer-adm)"

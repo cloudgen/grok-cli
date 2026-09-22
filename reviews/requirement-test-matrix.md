@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-22 (1.8.35 `sync-auth-to-remote`)  
-**Product VERSION:** 1.8.35
+**Updated:** 2026-09-22 (1.8.36 Alpine ash PATH on `.profile`)  
+**Product VERSION:** 1.8.36
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -19,6 +19,7 @@
 | requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 · TP-CLI-30 · TP-CLI-31 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); this-login-only lists `run` first then `reinstall`; session and not-available lines are independent `[INFO]`; hide backup/sync-auth/sudoers on that class; logged-out hides `sync-auth-to-remote`; logged-in hides pull verbs and lists `sync-auth-to-remote`; invalid pick retries this layer |
 | requirement-shell-path-and-shell-support | shell | TP-LC-11..14 · 20..22 · 25..33 · rc-test | bash PATH + profile; zsh PATH **points** at zshenv |
 | requirement-shell-zshenv | shell | TP-LC-23 · 24 · 34 · 35 · 36 · rc-test `--file zshenv` | zsh PATH on `.zshenv` (not `.zshrc`) |
+| requirement-shell-alpine | shell | TP-LC-37 · 38 · 39 · 40 · 41 · 42 | Missing `.profile`: bash/zsh/fish generate it; ash generates it and adds `USER_BIN`. Existing file: only ash appends PATH |
 | requirement-shell-local-self-management | shell | TP-LC-* | checkout install/uninstall/where-is-me; 0755; Termux dest is `USER_BIN` |
 | requirement-shell-online-install | shell | TP-ONL-01 · TP-CLI-07 | Channel `SCRIPT_URL`; pipe place |
 | requirement-shell-self-management | shell | TP-ONL-03 · 04 · 05 · TP-CLI-04 · 10 · TP-VCLI-32 · TP-GROK-CLI-49 | version-check / self-update (start line names versions; heals Android wrapper) / self-uninstall |

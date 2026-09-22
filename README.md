@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.35-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.36-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -60,6 +60,8 @@ grok-cli setup
 ```
 
 Then open a **new terminal** if this session cannot find `grok`, and run `grok login`.
+
+On **Alpine** the login shell is ash (`echo $0` prints `-ash`). If `~/.profile` is missing, install creates it: bash, zsh, and fish get a login note that sources `~/.bashrc`; ash gets that same note and also `~/.local/bin` on `PATH`. If `~/.profile` is already there, only ash adds the `PATH` line. Open a new login, or run `. ~/.profile`, before `grok-cli setup`. The shell that ran `curl | sh` does not inherit the new PATH by itself.
 
 If grok already **runs** on this host, a real terminal offers keep / reinstall / Exit (pick **2** to install again). Scripts and `--json` skip. `--force` skips the list.
 
@@ -135,7 +137,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.35*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.36*) — Alternative online installer for xAI grok
 [INFO] logged out
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
 2. sync-auth: *Copy /var/grok-cli/auth.* into ~/.grok*
@@ -150,7 +152,7 @@ On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** a
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.35*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.36*) — Alternative online installer for xAI grok
 [INFO] logged out
 [INFO] backup, sync-auth and sudoers features are not available in termux.
 1. run: *Start grok without auto-update*
@@ -164,7 +166,7 @@ Live capture on a multi-user host that is **logged in**:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.35*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.36*) — Alternative online installer for xAI grok
 [INFO] logged in
 [INFO] sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
@@ -397,4 +399,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-22 — version **1.8.35**: `sync-auth-to-remote` copies this login’s `~/.grok/auth.*` onto a remote login. The start list shows that row only when grok is logged in. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-22 — version **1.8.36**: Alpine ash writes `~/.local/bin` into `~/.profile` so a new login can run `grok-cli`. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

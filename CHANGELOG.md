@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.36] - 2026-09-22
+
+### Added
+
+- **Alpine ash PATH on `.profile`:** one missing-file step. Bash, zsh, and fish **generate** `~/.profile` (login sources `~/.bashrc`) and do not put `~/.local/bin` on that new file. Ash, including Alpine `curl | sh` (`$0` is `sh` and `/etc/alpine-release` exists), generates that same file and adds `export PATH="$HOME/.local/bin:$PATH"` in the same step. If `.profile` already exists, only ash modifies it by appending that line. Law: `requirement-shell-alpine` **1.0.0** · `requirement-shell-path-and-shell-support` **1.2.0** · `requirement-shell-cli-interface` **2.15.0**. Suite **TP-LC-37** · **TP-LC-38** · **TP-LC-39** · **TP-LC-40** · **TP-LC-41** · **TP-LC-42**.
+
 ## [1.8.35] - 2026-09-22
 
 ### Added

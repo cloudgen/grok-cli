@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.14.0)  
+**Status**: Active (Version 2.15.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -96,7 +96,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | *(no command token — empty argv; overlay flags such as `--debug` allowed)* | Type 0 | TTY → `app_default`; off-TTY → `inst_channel_ensure` | TTY numbered menu; off-TTY Type O ensure (**MUST NOT** help). `--json` no-command is 0-argv **special case** → JSON help (TTY and off-TTY) |
 | `install` | Type 0 | `inst_local_install` | Checkout copy of the running ship unit; idempotent unless `--force`. User-bin: **always** `inst_ensure_companion` (PATH + profile), including already-installed skip. Dual mention: `requirement-shell-local-self-management` · `requirement-shell-path-and-shell-support` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force`. User-bin: PATH cleanup per `requirement-shell-path-and-shell-support` |
-| `rc-test` | Type 0 **test-purpose** | `path_rc_test` | Fixture create / modify / no-op against `--root` tmp/cache. **MUST NOT** write this login’s real `{{HOME}}/.bashrc` or `{{HOME}}/.zshenv`. Help lists this **apart** from operational verbs. Dual mention: `requirement-shell-path-and-shell-support` · `requirement-shell-zshenv`. Samples: `grok-cli rc-test --root "$tmpdir" --file bashrc --case create` · `grok-cli rc-test --root "$tmpdir" --file zshenv --case create`. `--file zshrc` **MUST** fail closed (Next: `--file zshenv`) |
+| `rc-test` | Type 0 **test-purpose** | `path_rc_test` | Fixture create / modify / no-op against `--root` tmp/cache. **MUST NOT** write this login’s real `{{HOME}}/.bashrc` or `{{HOME}}/.zshenv`. Help lists this **apart** from operational verbs. Dual mention: `requirement-shell-path-and-shell-support` · `requirement-shell-zshenv` · `requirement-shell-alpine`. Samples: `grok-cli rc-test --root "$tmpdir" --file bashrc --case create` · `grok-cli rc-test --root "$tmpdir" --file zshenv --case create` · `grok-cli rc-test --root "$tmpdir" --file ash --case create`. `--file zshrc` **MUST** fail closed (Next: `--file zshenv`) |
 | `version-check` | Type 0 | `ver_check` | Compare local vs remote VERSION on `SCRIPT_URL` |
 | `self-update` | Type 0 | `inst_self_update` | Re-download from `SCRIPT_URL` when remote is newer (or `--force`). Proceeding first INFO: `Starting the self-update of {{APP_NAME}}({{local}}) to new version:{{remote}}...` |
 | `self-uninstall` | Type 0 | `inst_self_uninstall` | Remove managed binary (channel name; same dest as `uninstall`). User-bin PATH cleanup: `requirement-shell-path-and-shell-support` |
@@ -244,6 +244,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
 | `requirement-shell-path-and-shell-support` | PATH / profile; `BASHRC`; dual mention `rc-test` |
 | `requirement-shell-zshenv` | Zsh PATH on `.zshenv`; dual mention `rc-test --file zshenv` |
+| `requirement-shell-alpine` | Ash PATH on `.profile`; dual mention `rc-test --file ash` |
 | `requirement-shell-output-requirements` | `out_*` catalog |
 | `requirement-domain-grok-cli` | Domain four pillars |
 | `requirement-grok-setup` | Dual mention of `setup`, `update-grok`, `reinstall`, and `run` |
@@ -307,9 +308,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-14 | Active 2.12.0 | `reinstall` Type 0 — force place peer grok; listed on the TTY main menu (dual mention `requirement-grok-setup` 2.15.0) |
 | 2026-09-17 | Active 2.13.0 | `rc-test --file zshenv`; `ZSHENV` env; dual mention `requirement-shell-zshenv` |
 | 2026-09-22 | Active 2.14.0 | `sync-auth-to-remote` Type 0 — push `~/.grok/auth.*` onto a remote login (dual mention `requirement-grok-auth-backup` 1.10.0) |
+| 2026-09-22 | Active 2.15.0 | `rc-test --file ash`; ash PATH on `.profile` (dual mention `requirement-shell-alpine` 1.0.0) |
 
 ---
 
-**Last Updated**: 2026-09-22 (2.14.0 — `sync-auth-to-remote`)  
+**Last Updated**: 2026-09-22 (2.15.0 — ash PATH on `.profile`)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

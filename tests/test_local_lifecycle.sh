@@ -360,6 +360,107 @@ run_test_local_lifecycle() {
     HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" BASHRC="${CI_BASHRC}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
     ci_cleanup_env
 
+    # TP-LC-37 ash $0 writes PATH into PROFILE and keeps the bash source block
+    ci_isolated_env
+    CI_PROF_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-ash.XXXXXX")
+    CI_PROF="${CI_PROF_DIR}/.profile"
+    _path_line=$(ci_bashrc_path_line)
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PROFILE="${CI_PROF}" \
+        GROK_CLI_ARGV0=-ash \
+        GROK_CLI_ALPINE_RELEASE="${CI_PROF_DIR}/no-release" \
+        sh "${SCRIPT}" install 2>&1)
+    _ec=$?
+    assert_eq "TP-LC-37 ash install exit 0" 0 "$_ec"
+    _prof=$(cat "${CI_PROF}" 2>/dev/null || true)
+    assert_contains "TP-LC-37 profile sources bashrc" "$_prof" '. "${HOME}/.bashrc"'
+    assert_contains "TP-LC-37 ash PATH line" "$_prof" "${_path_line}"
+    assert_contains "TP-LC-37 ash message" "$_out" "PATH for ash"
+    assert_file_missing "TP-LC-37 did not write HOME/.profile" "${CI_HOME}/.profile"
+    cp "${CI_PROF}" "${CI_PROF}.orig"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PROFILE="${CI_PROF}" \
+        GROK_CLI_ARGV0=-ash \
+        GROK_CLI_ALPINE_RELEASE="${CI_PROF_DIR}/no-release" \
+        sh "${SCRIPT}" install >/dev/null 2>&1
+    if cmp -s "${CI_PROF}" "${CI_PROF}.orig"; then
+        t_pass "TP-LC-37 second ash install does not duplicate PATH"
+    else
+        t_fail "TP-LC-37 second ash install does not duplicate PATH"
+    fi
+    rm -rf "${CI_PROF_DIR}"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
+    ci_cleanup_env
+
+    # TP-LC-38 plain sh is not ash
+    ci_isolated_env
+    CI_PROF_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-ash-no.XXXXXX")
+    CI_PROF="${CI_PROF_DIR}/.profile"
+    _path_line=$(ci_bashrc_path_line)
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PROFILE="${CI_PROF}" \
+        GROK_CLI_ARGV0=sh \
+        GROK_CLI_ALPINE_RELEASE="${CI_PROF_DIR}/missing-release" \
+        sh "${SCRIPT}" install >/dev/null 2>&1
+    _prof=$(cat "${CI_PROF}" 2>/dev/null || true)
+    assert_contains "TP-LC-38 profile still sources bashrc" "$_prof" '. "${HOME}/.bashrc"'
+    assert_not_contains "TP-LC-38 sh does not write ash PATH" "$_prof" "${_path_line}"
+    rm -rf "${CI_PROF_DIR}"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
+    ci_cleanup_env
+
+    # TP-LC-39 Alpine sh ($0=sh and alpine-release) writes PATH
+    ci_isolated_env
+    CI_PROF_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-ash-rel.XXXXXX")
+    CI_PROF="${CI_PROF_DIR}/.profile"
+    printf '%s\n' "3.20.0" > "${CI_PROF_DIR}/alpine-release"
+    _path_line=$(ci_bashrc_path_line)
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PROFILE="${CI_PROF}" \
+        GROK_CLI_ARGV0=sh \
+        GROK_CLI_ALPINE_RELEASE="${CI_PROF_DIR}/alpine-release" \
+        sh "${SCRIPT}" install >/dev/null 2>&1
+    _prof=$(cat "${CI_PROF}" 2>/dev/null || true)
+    assert_contains "TP-LC-39 alpine sh PATH line" "$_prof" "${_path_line}"
+    assert_contains "TP-LC-39 alpine sh keeps source block" "$_prof" '. "${HOME}/.bashrc"'
+    rm -rf "${CI_PROF_DIR}"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
+    ci_cleanup_env
+
+    # TP-LC-41 missing .profile: bash / zsh / fish generate it, no PATH export
+    ci_isolated_env
+    CI_PROF_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-prof-gen.XXXXXX")
+    _path_line=$(ci_bashrc_path_line)
+    for _argv0 in bash zsh fish; do
+        CI_PROF="${CI_PROF_DIR}/.profile-${_argv0}"
+        rm -f "${CI_PROF}"
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PROFILE="${CI_PROF}" \
+            GROK_CLI_ARGV0="${_argv0}" \
+            GROK_CLI_ALPINE_RELEASE="${CI_PROF_DIR}/missing-release" \
+            sh "${SCRIPT}" install >/dev/null 2>&1
+        _prof=$(cat "${CI_PROF}" 2>/dev/null || true)
+        assert_contains "TP-LC-41 ${_argv0} generated profile" "$_prof" '. "${HOME}/.bashrc"'
+        assert_not_contains "TP-LC-41 ${_argv0} no PATH export" "$_prof" "${_path_line}"
+    done
+    assert_file_missing "TP-LC-41 did not write HOME/.profile" "${CI_HOME}/.profile"
+    rm -rf "${CI_PROF_DIR}"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
+    ci_cleanup_env
+
+    # TP-LC-42 existing .profile + ash: append PATH, keep the old body
+    ci_isolated_env
+    CI_PROF_DIR=$(mktemp -d "${TMPDIR:-/tmp}/gc-ash-mod.XXXXXX")
+    CI_PROF="${CI_PROF_DIR}/.profile"
+    printf '%s\n' "# user-kept-profile" > "${CI_PROF}"
+    _path_line=$(ci_bashrc_path_line)
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PROFILE="${CI_PROF}" \
+        GROK_CLI_ARGV0=-ash \
+        GROK_CLI_ALPINE_RELEASE="${CI_PROF_DIR}/missing-release" \
+        sh "${SCRIPT}" install >/dev/null 2>&1
+    _prof=$(cat "${CI_PROF}" 2>/dev/null || true)
+    assert_contains "TP-LC-42 kept existing body" "$_prof" "# user-kept-profile"
+    assert_contains "TP-LC-42 ash appended PATH" "$_prof" "${_path_line}"
+    assert_not_contains "TP-LC-42 did not replace with source block" "$_prof" "BEGIN grok-cli profile"
+    rm -rf "${CI_PROF_DIR}"
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
+    ci_cleanup_env
+
     # rc-test routed --root (does not write HOME/.bashrc)
     ci_isolated_env
     CI_RCT=$(mktemp -d "${TMPDIR:-/tmp}/gc-rct.XXXXXX")
@@ -380,6 +481,13 @@ run_test_local_lifecycle() {
     _ec=$?
     assert_eq "rc-test zshrc fail-closed exit 1" 1 "$_ec"
     assert_contains "rc-test zshrc Next zshenv" "$_err" "--file zshenv"
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --root "${CI_RCT}" --file ash --case modify 2>&1)
+    _ec=$?
+    assert_eq "TP-LC-40 rc-test ash exit 0" 0 "$_ec"
+    _prof=$(cat "${CI_RCT}/.profile" 2>/dev/null || true)
+    assert_contains "TP-LC-40 ash fixture keeps body" "$_prof" "keep-existing-profile"
+    assert_contains "TP-LC-40 ash fixture PATH" "$_prof" "export PATH="
+    assert_file_missing "TP-LC-40 did not write HOME/.profile" "${CI_HOME}/.profile"
     rm -rf "${CI_RCT}"
     ci_cleanup_env
 }
