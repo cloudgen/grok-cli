@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.37-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.38-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -137,12 +137,13 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.37*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.38*) — Alternative online installer for xAI grok
 [INFO] logged out
 1. grok-auth: *Backup, sync, crontab, setup, and reinstall*
-8. sudoers: *Grant and drafts*
-9. self-management: *Check, update, or remove grok-cli*
-0. Exit
+7. sudoers: *Grant and drafts*
+8. self-management: *Check, update, or remove grok-cli*
+0. Back
+9. Exit
 ```
 
 Pick **1** for the auth list. Numbers stay put when a row is hidden (logged out hides **13**; logged in hides **12**):
@@ -153,8 +154,8 @@ Pick **1** for the auth list. Numbers stay put when a row is hidden (logged out 
 14. add-crontab: *Add backup and sync-auth jobs to this login's crontab*
 15. setup: *Install grok from x.ai*
 16. reinstall: *Remove existing grok and install again*
-10. Back
-0. Exit
+0. Back
+9. Exit
 ```
 
 On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. Each of those notices is its own `[INFO]` line. Remaining rows start at **1** with **run** (start grok without auto-update). When the session is **logged out**, **sync-auth-to-remote** is omitted. When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are omitted on every host, **sync-auth-to-remote** is listed, and a second `[INFO]` line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Termux, logged out:
@@ -408,4 +409,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-22 — version **1.8.37**: the start list is **1** grok-auth (**11–16**), **8** sudoers, **9** self-management, **0** Exit. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-22 — version **1.8.38**: start list is **1** grok-auth, **7** sudoers, **8** self-management, **9** Exit, **0** Back. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

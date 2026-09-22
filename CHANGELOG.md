@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.38] - 2026-09-22
+
+### Changed
+
+- **Menu keys:** top list is **1** grok-auth, **7** sudoers, **8** self-management, **9** Exit, **0** Back. Submenus use **0** Back and **9** Exit. Auth rows stay **11–16**. Self-management stays **91–94**. Law: `requirement-shell-cli-default-interaction` **2.19.1**. Suite **TP-CLI-13** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-30**.
+
 ## [1.8.37] - 2026-09-22
 
 ### Changed

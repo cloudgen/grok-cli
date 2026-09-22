@@ -60,8 +60,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.37"
-: "${VERSION:=1.8.37}"
+VERSION="1.8.38"
+: "${VERSION:=1.8.38}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -7788,9 +7788,9 @@ gc_menu_main_rows() {
     if gc_host_is_normal_user_only; then
         printf '%s\n' "2 run"
     else
-        printf '%s\n' "8 sudoers"
+        printf '%s\n' "7 sudoers"
     fi
-    printf '%s\n' "9 self-management"
+    printf '%s\n' "8 self-management"
 }
 
 # gc_menu_auth_rows() - grok-auth submenu "NUMBER TOKEN" (fixed 11-16)
@@ -7951,7 +7951,8 @@ app_default_print_menu() {
     done <<EOF
 $(gc_menu_main_rows)
 EOF
-    out_menu_choice "0" "Exit"
+    out_menu_choice "0" "Back"
+    out_menu_choice "9" "Exit"
     util_int_timer_debug_end "rows"
 
     util_int_timer_debug_end "paint"
@@ -7987,8 +7988,8 @@ app_default_print_sudoers_menu() {
     out_menu_choice "3" "print-sudoers" "Emit sudoers draft"
     out_menu_choice "4" "print-sudoers-install-script" "Write admin install script"
     out_menu_choice "5" "remove-project-sudoers" "Remove sudoers draft only"
-    out_menu_choice "8" "Back"
-    out_menu_choice "0" "Exit"
+    out_menu_choice "0" "Back"
+    out_menu_choice "9" "Exit"
     util_int_timer_debug_end "sudoers.rows"
 
     util_int_timer_debug_end "sudoers.paint"
@@ -8013,7 +8014,7 @@ app_default_run_pick() {
     _pick="${1:-}"
 
     case "${_pick}" in
-        0|99|exit|quit|Exit|QUIT)
+        9|99|exit|quit|Exit|QUIT|0|back|Back)
             return 0
             ;;
     esac
@@ -8051,8 +8052,8 @@ app_default_print_auth_menu() {
     done <<EOF
 $(gc_menu_auth_rows)
 EOF
-    out_menu_choice "10" "Back"
-    out_menu_choice "0" "Exit"
+    out_menu_choice "0" "Back"
+    out_menu_choice "9" "Exit"
 }
 
 app_default_run_auth_pick() {
@@ -8084,10 +8085,10 @@ app_default_auth_loop() {
             return 0
         fi
         case "${_pick}" in
-            10|back|Back)
+            0|back|Back)
                 return 1
                 ;;
-            0|99|exit|quit|Exit|QUIT)
+            9|99|exit|quit|Exit|QUIT)
                 return 0
                 ;;
         esac
@@ -8097,7 +8098,7 @@ app_default_auth_loop() {
         if app_default_run_auth_pick "${_pick}"; then
             return 0
         fi
-        out_error "Not a menu choice '${_pick}'. Type 11-16, 10 back, 0 to leave, or a listed command name."
+        out_error "Not a menu choice '${_pick}'. Type 11-16, 0 back, 9 to leave, or a listed command name."
     done
 }
 
@@ -8115,8 +8116,8 @@ app_default_print_self_menu() {
     done <<EOF
 $(gc_menu_self_rows)
 EOF
-    out_menu_choice "10" "Back"
-    out_menu_choice "0" "Exit"
+    out_menu_choice "0" "Back"
+    out_menu_choice "9" "Exit"
 }
 
 app_default_run_self_pick() {
@@ -8146,10 +8147,10 @@ app_default_self_loop() {
             return 0
         fi
         case "${_pick}" in
-            10|back|Back)
+            0|back|Back)
                 return 1
                 ;;
-            0|99|exit|quit|Exit|QUIT)
+            9|99|exit|quit|Exit|QUIT)
                 return 0
                 ;;
         esac
@@ -8159,7 +8160,7 @@ app_default_self_loop() {
         if app_default_run_self_pick "${_pick}"; then
             return 0
         fi
-        out_error "Not a menu choice '${_pick}'. Type 91-94, 10 back, 0 to leave, or a listed command name."
+        out_error "Not a menu choice '${_pick}'. Type 91-94, 0 back, 9 to leave, or a listed command name."
     done
 }
 
@@ -8232,10 +8233,10 @@ app_default_sudoers_loop() {
             return 0
         fi
         case "${_pick}" in
-            8|back|Back)
+            0|back|Back)
                 return 1
                 ;;
-            0|99|exit|quit|Exit|QUIT)
+            9|99|exit|quit|Exit|QUIT)
                 return 0
                 ;;
         esac
@@ -8245,7 +8246,7 @@ app_default_sudoers_loop() {
         if app_default_run_sudoers_pick "${_pick}"; then
             return 0
         fi
-        out_error "Not a menu choice '${_pick}'. Type 1-5, 8 back, 0 to leave, or a listed command name."
+        out_error "Not a menu choice '${_pick}'. Type 1-5, 0 back, 9 to leave, or a listed command name."
     done
 }
 
@@ -8299,7 +8300,7 @@ app_default() {
             return 0
         fi
         case "${_pick}" in
-            0|99|exit|quit|Exit|QUIT)
+            9|99|exit|quit|Exit|QUIT|0|back|Back)
                 JSON="${_menu_json}"
                 QUIET="${_menu_quiet}"
                 export JSON QUIET
@@ -8361,9 +8362,9 @@ app_default() {
         QUIET=0
         export JSON QUIET
         if gc_host_is_normal_user_only; then
-            out_error "Not a menu choice '${_pick}'. Type 1, 2, 9, or 0 to leave, or a listed command name."
+            out_error "Not a menu choice '${_pick}'. Type 1, 2, 8, or 9 to leave, or 0 back, or a listed command name."
         else
-            out_error "Not a menu choice '${_pick}'. Type 1, 8, 9, or 0 to leave, or a listed command name."
+            out_error "Not a menu choice '${_pick}'. Type 1, 7, 8, or 9 to leave, or 0 back, or a listed command name."
         fi
     done
 }
