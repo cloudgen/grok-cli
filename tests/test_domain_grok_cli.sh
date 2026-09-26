@@ -884,7 +884,7 @@ PY
     assert_contains "TP-GROK-CLI-42 json reason" "${_j}" '"reason":"logged-in"'
     if command -v python3 >/dev/null 2>&1; then
         _pty_out=$(HOME="${CI_HOME}" GROK_HOME="${_keep}" GROK_BIN="${GROK_BIN}" \
-            GROK_CLI_ROOT="${_store}" PTY_IN="0" ci_pty_capture "${SCRIPT}" menu)
+            GROK_CLI_ROOT="${_store}" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-GROK-CLI-42 menu logged in" "${_pty_out}" "logged in"
         assert_contains "TP-GROK-CLI-42 menu hides sync-auth" "${_pty_out}" \
             "sync-auth and sync-auth-from-remote features are not available for logged-in environment."

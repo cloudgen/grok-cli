@@ -60,8 +60,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.38"
-: "${VERSION:=1.8.38}"
+VERSION="1.8.39"
+: "${VERSION:=1.8.39}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -7774,14 +7774,15 @@ gc_host_normal_user_only_label() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Top layer is 1 grok-auth, 8 sudoers (multi-user), 9 self-management.
-# This-login-only hosts add 2 run and omit 8 sudoers. Exit is 0, not a row
-# here. Auth commands live under 1 (numbers 11-16).
+# Top layer is 1 grok-auth, 7 sudoers (multi-user), 8 self-management.
+# This-login-only hosts add 2 run and omit 7 sudoers. Exit 9 is printed
+# by the caller. The top list has no Back row. Auth commands live under
+# 1 (numbers 11-16).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-22
+# Last updated: 2026-09-26
 # =============================================================================
 gc_menu_main_rows() {
     printf '%s\n' "1 grok-auth"
@@ -7883,18 +7884,18 @@ gc_menu_pick_is_family() {
 # Print the grok-cli daily-work list: APP_NAME(APP_VERSION) header plus
 # SHORT_DESCRIPTION, login status, host not-available (this-login-only),
 # appended logged-in not-available when session is valid, then remaining
-# listed rows from 1, then Exit 9. Session status is under the title
-# (not a row): logged in / timeout / logged out. Host not-available is
-# never replaced by the logged-in line. Reuse GC_SESSION_STATUS_CACHE on
-# reprint so a bad pick does not run grok -p hello again. PRoot/Termux
-# uses local auth cookies (no live probe). On other hosts, print a
-# checking-session line before the live probe.
+# listed rows, then Exit 9. The top list has no Back row. Session status
+# is under the title (not a row): logged in / timeout / logged out. Host
+# not-available is never replaced by the logged-in line. Reuse
+# GC_SESSION_STATUS_CACHE on reprint so a bad pick does not run grok -p
+# hello again. PRoot/Termux uses local auth cookies (no live probe). On
+# other hosts, print a checking-session line before the live probe.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 # - requirement-shell-internal-volatile-timer.md
 #
-# Last updated: 2026-09-09
+# Last updated: 2026-09-26
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=grok-cli}"
@@ -7951,7 +7952,6 @@ app_default_print_menu() {
     done <<EOF
 $(gc_menu_main_rows)
 EOF
-    out_menu_choice "0" "Back"
     out_menu_choice "9" "Exit"
     util_int_timer_debug_end "rows"
 
@@ -8008,13 +8008,13 @@ app_default_print_sudoers_menu() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-22
+# Last updated: 2026-09-26
 # =============================================================================
 app_default_run_pick() {
     _pick="${1:-}"
 
     case "${_pick}" in
-        9|99|exit|quit|Exit|QUIT|0|back|Back)
+        9|99|exit|quit|Exit|QUIT)
             return 0
             ;;
     esac
@@ -8265,7 +8265,7 @@ app_default_sudoers_loop() {
 # - requirement-shell-interactive-vs-noninteractive.md
 # - requirement-shell-cli-zero-arguments.md
 #
-# Last updated: 2026-09-13
+# Last updated: 2026-09-26
 # =============================================================================
 app_default() {
     : "${TTY:=0}"
@@ -8300,7 +8300,7 @@ app_default() {
             return 0
         fi
         case "${_pick}" in
-            9|99|exit|quit|Exit|QUIT|0|back|Back)
+            9|99|exit|quit|Exit|QUIT)
                 JSON="${_menu_json}"
                 QUIET="${_menu_quiet}"
                 export JSON QUIET
@@ -8362,9 +8362,9 @@ app_default() {
         QUIET=0
         export JSON QUIET
         if gc_host_is_normal_user_only; then
-            out_error "Not a menu choice '${_pick}'. Type 1, 2, 8, or 9 to leave, or 0 back, or a listed command name."
+            out_error "Not a menu choice '${_pick}'. Type 1, 2, 8, or 9 to leave, or a listed command name."
         else
-            out_error "Not a menu choice '${_pick}'. Type 1, 7, 8, or 9 to leave, or 0 back, or a listed command name."
+            out_error "Not a menu choice '${_pick}'. Type 1, 7, 8, or 9 to leave, or a listed command name."
         fi
     done
 }

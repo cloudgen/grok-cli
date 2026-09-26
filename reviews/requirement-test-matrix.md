@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-22 (1.8.38 menu keys 7 / 8 / 9 / 0)  
-**Product VERSION:** 1.8.38
+**Updated:** 2026-09-26 (1.8.39 top menu has no Back; submenus keep 0 Back)  
+**Product VERSION:** 1.8.39
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -16,7 +16,7 @@
 | requirement-grok-crontab | domain | TP-GROK-CLI-26..29 · TP-CLI-04 · TP-CLI-13 | Per-login crontab jobs; grant gate is this `id -un` |
 | requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-VCLI-33 · TP-VCLI-37..42 · TP-ONL-* · TP-GROK-CLI-46 | Commands, flags, dispatch; `setup` (TTY reinstall); `update-grok`; `reinstall`; `run`; online verbs; TP-CLI-18 no frozen login in Active REQ samples; `--debug` dual mention TP-CLI-25..28 |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-CLI-29 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure; overlay `--debug` / `--quiet` follow empty argv |
-| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 · TP-CLI-30 · TP-CLI-31 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); this-login-only lists `run` first then `reinstall`; session and not-available lines are independent `[INFO]`; hide backup/sync-auth/sudoers on that class; logged-out hides `sync-auth-to-remote`; logged-in hides pull verbs and lists `sync-auth-to-remote`; invalid pick retries this layer |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 · TP-CLI-30 · TP-CLI-31 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); top list is **1** grok-auth, **7** sudoers, **8** self-management, **9** Exit, no Back; this-login-only adds **2** run and hides sudoers; session and not-available lines are independent `[INFO]`; hide backup/sync-auth/sudoers on that class; logged-out hides `sync-auth-to-remote`; logged-in hides pull verbs and lists `sync-auth-to-remote`; **0** on the top list retries; submenu **0** is Back; invalid pick retries this layer |
 | requirement-shell-path-and-shell-support | shell | TP-LC-11..14 · 20..22 · 25..33 · rc-test | bash PATH + profile; zsh PATH **points** at zshenv |
 | requirement-shell-zshenv | shell | TP-LC-23 · 24 · 34 · 35 · 36 · rc-test `--file zshenv` | zsh PATH on `.zshenv` (not `.zshrc`) |
 | requirement-shell-alpine | shell | TP-LC-37 · 38 · 39 · 40 · 41 · 42 | Missing `.profile`: bash/zsh/fish generate it; ash generates it and adds `USER_BIN`. Existing file: only ash appends PATH |

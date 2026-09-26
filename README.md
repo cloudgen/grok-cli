@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.38-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.39-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -137,12 +137,11 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.38*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.39*) — Alternative online installer for xAI grok
 [INFO] logged out
 1. grok-auth: *Backup, sync, crontab, setup, and reinstall*
 7. sudoers: *Grant and drafts*
 8. self-management: *Check, update, or remove grok-cli*
-0. Back
 9. Exit
 ```
 
@@ -158,17 +157,16 @@ Pick **1** for the auth list. Numbers stay put when a row is hidden (logged out 
 9. Exit
 ```
 
-On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. Each of those notices is its own `[INFO]` line. Remaining rows start at **1** with **run** (start grok without auto-update). When the session is **logged out**, **sync-auth-to-remote** is omitted. When the session is **logged in**, **sync-auth** and **sync-auth-from-remote** are omitted on every host, **sync-auth-to-remote** is listed, and a second `[INFO]` line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Termux, logged out:
+On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. Each of those notices is its own `[INFO]` line. The top list is **1** grok-auth, **2** run (start grok without auto-update), **8** self-management, and **9** Exit. There is no Back row. When the session is **logged out**, auth row **13** is omitted. When the session is **logged in**, auth row **12** is omitted, **13** is listed, and a second `[INFO]` line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` That line does not replace the host line. Termux, logged out:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.36*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.39*) — Alternative online installer for xAI grok
 [INFO] logged out
 [INFO] backup, sync-auth and sudoers features are not available in termux.
-1. run: *Start grok without auto-update*
-2. reinstall: *Remove existing grok and install again*
-3. sync-auth-from-remote: *Copy a remote host's auth.* into ~/.grok*
-4. add-crontab: *Add backup and sync-auth jobs to this login's crontab*
+1. grok-auth: *Backup, sync, crontab, setup, and reinstall*
+2. run: *Start grok without auto-update*
+8. self-management: *Check, update, or remove grok-cli*
 9. Exit
 ```
 
@@ -176,29 +174,27 @@ Live capture on a multi-user host that is **logged in**:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.36*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.39*) — Alternative online installer for xAI grok
 [INFO] logged in
 [INFO] sync-auth and sync-auth-from-remote features are not available for logged-in environment.
-1. backup: *Push ~/.grok/auth.* to /var/grok-cli*
-2. sync-auth-to-remote: *Copy ~/.grok/auth.* onto a remote host*
-3. add-crontab: *Add backup and sync-auth jobs to this login's crontab*
-4. reinstall: *Remove existing grok and install again*
-5. sudoers: *Grant and drafts*
+1. grok-auth: *Backup, sync, crontab, setup, and reinstall*
+7. sudoers: *Grant and drafts*
+8. self-management: *Check, update, or remove grok-cli*
 9. Exit
 ```
 
-Choose a number, or type the command name. `9` exits. The line under the title is an independent `[INFO]` **logged in**, **timeout**, or **logged out**. On Termux/PRoot that line comes from local `auth.json` cookies (no `grok -p hello` wait). On other hosts it is a live `grok -p hello`; a hang that hits the bound prints **timeout**, not **logged out**. On a real terminal the descriptions after the colon are gray and italic. `setup` is not on this list — pick **reinstall** or type `grok-cli reinstall`. A later `sync-auth-from-remote` or `sync-auth-to-remote` remembers the last remote in persistence and offers it as the prompt default.
+Choose a number, or type the command name. `9` exits from every list. `0` goes back only inside a submenu. The top list has no Back row. The line under the title is an independent `[INFO]` **logged in**, **timeout**, or **logged out**. On Termux/PRoot that line comes from local `auth.json` cookies (no `grok -p hello` wait). On other hosts it is a live `grok -p hello`; a hang that hits the bound prints **timeout**, not **logged out**. On a real terminal the descriptions after the colon are gray and italic. `setup` and `reinstall` are on the grok-auth list (**15** and **16**), not on the top list. Direct `grok-cli reinstall` still works. A later `sync-auth-from-remote` or `sync-auth-to-remote` remembers the last remote in persistence and offers it as the prompt default.
 
 ## Usage
 
 | How you run it | What you get |
 |----------------|--------------|
-| `grok-cli` or `grok-cli --debug` at a real terminal | Numbered start list (`backup` is **1** on a multi-user host when logged out; **logged in** / **timeout** / **logged out** under the title from `grok -p hello`; Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers; logged-out session hides **sync-auth-to-remote**; logged-in session hides sync-auth / sync-auth-from-remote, lists **sync-auth-to-remote**, and appends a not-available line; **9** leaves). Same as `grok-cli menu`. Overlay switches with no command still follow empty argv. |
+| `grok-cli` or `grok-cli --debug` at a real terminal | Numbered start list (**1** grok-auth, **7** sudoers, **8** self-management, **9** Exit; no Back on that list; this-login-only shows **2** run and hides sudoers; **logged in** / **timeout** / **logged out** under the title from `grok -p hello`; Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers; logged-out session hides **sync-auth-to-remote**; logged-in session hides sync-auth / sync-auth-from-remote, lists **sync-auth-to-remote**, and appends a not-available line; **9** leaves; **0** goes back only inside a submenu). Same as `grok-cli menu`. Overlay switches with no command still follow empty argv. |
 | `curl -fsSL … \| sh` or `grok-cli` in a script (no args) | Install-ensure: places `~/.local/bin/grok-cli` or reports already installed. **Not** help. **Not** the menu. |
 | `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help. `--json` with no command is empty argv **special case**: JSON help even at a prompt |
 | `grok-cli menu` in a script | Help (the list is TTY-only) |
 | `grok-cli setup` at a real terminal | If grok already runs: numbered **keep** / **reinstall** / **Exit**. Pick **2** to remove existing grok and install again. Scripts / `--json` skip. `--force` fetches without the list. |
-| `grok-cli reinstall` | Remove existing grok and install again (keeps `auth.*`). Same as pick **reinstall** on the start list. Missing grok still installs. |
+| `grok-cli reinstall` | Remove existing grok and install again (keeps `auth.*`). Same as pick **16** on the grok-auth list. Missing grok still installs. |
 
 ```sh
 grok-cli                 # numbered list on a real terminal; install-ensure in a script / pipe
@@ -409,4 +405,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-22 — version **1.8.38**: start list is **1** grok-auth, **7** sudoers, **8** self-management, **9** Exit, **0** Back. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-26 — version **1.8.39**: the top list is **1** grok-auth, **7** sudoers, **8** self-management, and **9** Exit, with no Back row. Submenus keep **0** Back. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

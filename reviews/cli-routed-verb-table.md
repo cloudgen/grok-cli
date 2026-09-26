@@ -40,7 +40,7 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | version | `app_version` | you (Type 0) | missing | `version: Show local version` |
 | where-is-me | `app_where_is_me` | you (Type 0) | 2026-08-03 | `where-is-me: Show running and install paths` |
 
-A TTY main menu **MUST** print daily-work **human-readable** lines as a **numbered list**, with related grant/draft verbs behind family row **`sudoers`** (submenu; **Back 8**, **Exit 9**). Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** `help`, `menu`/`main`, `check-session` (status is under the title), install/setup (`setup`, `update-grok`), self-managed (`install`, `uninstall`, `self-update`, `self-uninstall`, `where-is-me`), diagnostics (`version`, `about`, `version-check`), and test-purpose. **`reinstall` is listed.** **`sudoers` is not a live dispatcher token.** Main **N = 6** (multi-user, logged out; hide `sync-auth-to-remote`); **N = 5** when logged in (hide `sync-auth` / `sync-auth-from-remote`; **`sync-auth-to-remote` is listed**); **N = 4** / **4** on this-login-only (`run` first, then `reinstall`); submenu **K = 5**; **Exit 9**. Internal `ensure` is not a help verb.
+A TTY main menu **MUST** print a numbered **top** list of families, then **9** Exit. The top list **MUST NOT** print **Back**. Multi-user: **1** `grok-auth`, **7** `sudoers`, **8** `self-management`. This-login-only: **1** `grok-auth`, **2** `run`, **8** `self-management` (no **7**). Submenus print **0** Back and **9** Exit. Auth submenu **11–16** (hide **11** backup on this-login-only, hide **12** when logged in, hide **13** when logged out). Self-management **91–94**. Sudoers submenu is the five grant/draft verbs. Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **timeout** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** from every numbered list: `help`, `menu`/`main`, `check-session` (status is under the title), `update-grok`, diagnostics (`version`, `about`), and test-purpose. **`setup`** and **`reinstall`** are on the grok-auth submenu. Self-managed verbs are on the self-management submenu. **`sudoers` is not a live dispatcher token.** **0** / `back` on the top list is an invalid choice. **9** leaves from every layer. Internal `ensure` is not a help verb.
 
 ## Not yet wired
 
@@ -50,5 +50,5 @@ A TTY main menu **MUST** print daily-work **human-readable** lines as a **number
 
 ---
 
-**Last Updated:** 2026-09-14 (`reinstall` verb + main-menu row; this-login-only main **N = 4** / **3**)  
+**Last Updated:** 2026-09-26 (top list has no Back; **9** Exit; submenu Back stays **0**)  
 **Alignment:** term `cli-routed-verb-table` · **`SK-CLI-ROUTED-VERB-TABLE`** · **`SK-CLI-DEFAULT-INTERACTION`**

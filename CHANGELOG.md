@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.39] - 2026-09-26
+
+### Changed
+
+- **Top menu:** the start list has no Back row. It is **1** grok-auth, **7** sudoers, **8** self-management, and **9** Exit. This-login-only hosts also show **2** run and omit **7**. **0** / `back` on the top list is a wrong pick and reprints that list. Submenus still use **0** Back and **9** Exit. Auth rows stay **11–16**. Self-management stays **91–94**. Law: `requirement-shell-cli-default-interaction` **2.20.0**. Suite **TP-CLI-13** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-30**.
+
 ## [1.8.38] - 2026-09-22
 
 ### Changed
