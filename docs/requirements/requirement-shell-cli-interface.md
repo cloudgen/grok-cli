@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.15.0)  
+**Status**: Active (Version 2.15.1)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -102,7 +102,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `self-uninstall` | Type 0 | `inst_self_uninstall` | Remove managed binary (channel name; same dest as `uninstall`). User-bin PATH cleanup: `requirement-shell-path-and-shell-support` |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
-| `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY; **Cache folder (preferred)** `/dev/shm/cache/cache-${APP_NAME}` and **Cache folder (fallback)**; **Persistence storage** `${HOME}/.local/${APP_NAME}`; grok home, session, deposit dir; **no** channel one-liner |
+| `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY; **Cache folder used**, **Cache folder (preferred)**, **Cache folder (1st fallback)**, **Cache folder (2nd fallback)** when that host has one (`requirement-shell-cli-storage`); **Persistence storage** `${HOME}/.local/${APP_NAME}`; grok home, session, deposit dir; **no** channel one-liner |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
 | `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
 | `main` | Type 0 | `app_default` (alias) | Same as `menu` |
@@ -309,9 +309,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-17 | Active 2.13.0 | `rc-test --file zshenv`; `ZSHENV` env; dual mention `requirement-shell-zshenv` |
 | 2026-09-22 | Active 2.14.0 | `sync-auth-to-remote` Type 0 — push `~/.grok/auth.*` onto a remote login (dual mention `requirement-grok-auth-backup` 1.10.0) |
 | 2026-09-22 | Active 2.15.0 | `rc-test --file ash`; ash PATH on `.profile` (dual mention `requirement-shell-alpine` 1.0.0) |
+| 2026-09-27 | Active 2.15.1 | `about` cache lines follow `requirement-shell-cli-storage` 1.4.0 (used / preferred / 1st / 2nd) |
 
 ---
 
-**Last Updated**: 2026-09-22 (2.15.0 — ash PATH on `.profile`)  
+**Last Updated**: 2026-09-27 (2.15.1 — about cache lines)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

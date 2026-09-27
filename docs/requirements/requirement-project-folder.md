@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-project-folder.md  
-**Status**: Active (Version 1.2.0)  
+**Status**: Active (Version 1.2.1)  
 **Area**: architecture  
 **Key**: `requirement-project-folder`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -65,8 +65,8 @@ Rules:
 
 | Purpose | Pattern |
 |---------|---------|
-| Preferred cache | `/dev/shm/cache/cache-grok-cli` (`requirement-shell-cli-storage`) |
-| Fallback cache | `${XDG_CACHE_HOME}/cache-grok-cli` |
+| Preferred cache | Linux `/dev/shm/cache/cache-${APP_NAME}-${login}-$$`; Git Bash and Mac `/tmp/cache/cache-${APP_NAME}-${login}-$$` (`requirement-shell-cli-storage`) |
+| Fallback cache | Host chain in `requirement-shell-cli-storage` (silent when a higher tier is skipped) |
 | Live root | From `util_resolve_storage` |
 | Archive staging | `${EFFECTIVE_STORAGE_DIR}/stage/` (or `mktemp` under that root) |
 | Persistence storage | `${HOME}/.local/grok-cli` (`requirement-shell-cli-storage`) |
@@ -74,8 +74,8 @@ Rules:
 
 Rules:
 
-1. Preferred cache **MUST** be `/dev/shm/cache/cache-${APP_NAME}` — **MUST NOT** `/dev/shm/${APP_NAME}` or `/dev/shm/${APP_NAME}-${USERNAME}` (those look like ram-drive project folders).  
-2. Fallback **MUST** be under this login’s XDG cache as `cache-${APP_NAME}`.  
+1. Preferred cache **MUST** follow `requirement-shell-cli-storage` — **MUST NOT** `/dev/shm/${APP_NAME}` or `/dev/shm/${APP_NAME}-${USERNAME}` (those look like ram-drive project folders).  
+2. Fallback **MUST** follow that same host chain. A skipped tier **MUST NOT** warn or error.  
 3. Persistence **MUST** be `${HOME}/.local/${APP_NAME}` — **MUST NOT** `${HOME}/.local/bin` (install) and **MUST NOT** `/var/grok-cli` (Type 1 deposit).  
 4. Temps **MUST** clean up (`trap`) after success/failure of a backup run.  
 5. Staging archives are **EPHEMERAL** until successfully deposited; do not leave world-writable archives.
@@ -229,6 +229,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-08-30 | Active 1.1.1 | Preferred cache `/dev/shm/cache/cache-${APP_NAME}` |
 | 2026-08-30 | Active 1.1.2 | Persistence storage `${HOME}/.local/${APP_NAME}` |
 | 2026-09-04 | Active 1.2.0 | Termux/Android path classes (`PREFIX`, `~/.grok/downloads`, noexec tmp); AC-3 deposit is `/var/grok-cli` |
+| 2026-09-27 | Active 1.2.1 | Cache paths point at `requirement-shell-cli-storage` 1.4.0 (per-login per-process leaves) |
 
 ---
 

@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.40] - 2026-09-27
+
+### Changed
+
+- **Cache folder.** Each login and each process gets its own leaf. Linux: `/dev/shm/cache/cache-${APP_NAME}-${login}-$$`, then `/tmp/cache/cache-${APP_NAME}-${login}-$$`, then `${HOME}/.cache/cache-${APP_NAME}-$$`. Git Bash: `/tmp/cache/cache-${APP_NAME}-${login}-$$`, then `${HOME}/AppData/Local/Temp/cache-${APP_NAME}-$$`. Mac: `/tmp/cache/cache-${APP_NAME}-${login}-$$`, then `${HOME}/Library/Caches/cache-${APP_NAME}-$$`, then `${HOME}/cache/cache-${APP_NAME}-$$`. Skipping a tier prints no warning and no error. `about` prints **Cache folder used**, **preferred**, **1st fallback**, and **2nd fallback** when that host has one. Law: `requirement-shell-cli-storage` **1.4.0**. Suite **TP-CLI-06** · **TP-CLI-12**.
+
 ## [1.8.39] - 2026-09-26
 
 ### Changed

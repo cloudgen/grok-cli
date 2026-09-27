@@ -60,7 +60,7 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.39"
+VERSION="1.8.40"
 : "${VERSION:=1.8.39}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
@@ -1524,26 +1524,125 @@ util_backup() {
 }
 
 # =============================================================================
-# Cache folder paths (preferred / fallback) — not ram-drive project trees
+# Cache folder paths — per login, per process, under cache/
 # =============================================================================
 #
-# Preferred: /dev/shm/cache/cache-${APP_NAME}
-# Fallback:  ${XDG_CACHE_HOME}/cache-${APP_NAME}
-# MUST NOT use /dev/shm/${APP_NAME} or /dev/shm/${APP_NAME}-${USERNAME}
-# (those look like ram-drive project folders).
+# Linux:  /dev/shm/cache/cache-${APP_NAME}-${login}-$$
+#          then /tmp/cache/cache-${APP_NAME}-${login}-$$
+#          then ${HOME}/.cache/cache-${APP_NAME}-$$
+# Git Bash: /tmp/cache/cache-${APP_NAME}-${login}-$$
+#          then ${HOME}/AppData/Local/Temp/cache-${APP_NAME}-$$
+# Mac:    /tmp/cache/cache-${APP_NAME}-${login}-$$
+#          then ${HOME}/Library/Caches/cache-${APP_NAME}-$$
+#          then ${HOME}/cache/cache-${APP_NAME}-$$
+# $$ is this process id. Home tiers omit the login (HOME already isolates).
+# A missed tier is silent. MUST NOT use /dev/shm/${APP_NAME} or
+# /dev/shm/${APP_NAME}-${USERNAME} (ram-drive project folders).
 #
 # ALIGNMENT: requirement-shell-cli-storage.md
+# Test-purpose: GROK_CLI_CACHE_HOST=linux|gitbash|mac
+#               GROK_CLI_CACHE_SKIP=preferred skips tier 1 with no message
 # =============================================================================
+util_cache_host_kind() {
+    case "${GROK_CLI_CACHE_HOST:-}" in
+        linux|gitbash|mac)
+            printf '%s' "${GROK_CLI_CACHE_HOST}"
+            return 0
+            ;;
+    esac
+    if [ -n "${MSYSTEM:-}" ]; then
+        printf '%s' "gitbash"
+        return 0
+    fi
+    case "$(uname -s 2>/dev/null)" in
+        MINGW*|MSYS*) printf '%s' "gitbash" ;;
+        Darwin) printf '%s' "mac" ;;
+        *) printf '%s' "linux" ;;
+    esac
+}
+
+util_cache_login() {
+    _clogin="${USERNAME:-unknown}"
+    case "${_clogin}" in
+        *[!A-Za-z0-9._-]*)
+            _clogin=$(printf '%s' "${_clogin}" | tr -c 'A-Za-z0-9._-' '_')
+            ;;
+    esac
+    [ -n "${_clogin}" ] || _clogin="unknown"
+    printf '%s' "${_clogin}"
+}
+
+util_cache_volatile_leaf() {
+    : "${APP_NAME:=app}"
+    printf '%s' "cache-${APP_NAME}-$(util_cache_login)-$$"
+}
+
+util_cache_home_leaf() {
+    : "${APP_NAME:=app}"
+    printf '%s' "cache-${APP_NAME}-$$"
+}
+
 util_preferred_cache_dir() {
     : "${APP_NAME:=app}"
-    printf '%s' "/dev/shm/cache/cache-${APP_NAME}"
+    : "${HOME:=/tmp}"
+    case "$(util_cache_host_kind)" in
+        gitbash|mac)
+            printf '%s' "/tmp/cache/$(util_cache_volatile_leaf)"
+            ;;
+        *)
+            printf '%s' "/dev/shm/cache/$(util_cache_volatile_leaf)"
+            ;;
+    esac
 }
 
 util_fallback_cache_dir() {
     : "${APP_NAME:=app}"
     : "${HOME:=/tmp}"
-    : "${XDG_CACHE_HOME:=${HOME}/.cache}"
-    printf '%s' "${XDG_CACHE_HOME}/cache-${APP_NAME}"
+    case "$(util_cache_host_kind)" in
+        gitbash)
+            printf '%s' "${HOME}/AppData/Local/Temp/$(util_cache_home_leaf)"
+            ;;
+        mac)
+            printf '%s' "${HOME}/Library/Caches/$(util_cache_home_leaf)"
+            ;;
+        *)
+            printf '%s' "/tmp/cache/$(util_cache_volatile_leaf)"
+            ;;
+    esac
+}
+
+util_fallback2_cache_dir() {
+    : "${APP_NAME:=app}"
+    : "${HOME:=/tmp}"
+    case "$(util_cache_host_kind)" in
+        gitbash)
+            printf '%s' ""
+            ;;
+        mac)
+            printf '%s' "${HOME}/cache/$(util_cache_home_leaf)"
+            ;;
+        *)
+            printf '%s' "${HOME}/.cache/$(util_cache_home_leaf)"
+            ;;
+    esac
+}
+
+# Create one cache tier. Silent on failure (caller tries the next tier).
+util_cache_try_dir() {
+    _cdir="${1:-}"
+    [ -n "${_cdir}" ] || return 1
+    _cparent=$(dirname "${_cdir}")
+    case "${_cparent}" in
+        /dev/shm/cache|/tmp/cache)
+            mkdir -m 1777 -p "${_cparent}" 2>/dev/null || mkdir -p "${_cparent}" 2>/dev/null || return 1
+            ;;
+        *)
+            mkdir -p "${_cparent}" 2>/dev/null || return 1
+            ;;
+    esac
+    mkdir -m 0700 -p "${_cdir}" 2>/dev/null || mkdir -p "${_cdir}" 2>/dev/null || return 1
+    [ -d "${_cdir}" ] && [ -w "${_cdir}" ] || return 1
+    return 0
 }
 
 # Persistence storage (Type 0 durable per-user data).
@@ -1579,17 +1678,13 @@ util_resolve_persistent_storage() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Returns the best available volatile cache directory for scratch files.
-# Prefers /dev/shm/cache/cache-${APP_NAME} → /tmp/cache/cache-${APP_NAME} →
-# ${XDG_CACHE_HOME}/cache-${APP_NAME}.
-#
-# Isolation: app-named leaf under a sticky /dev/shm/cache (or /tmp/cache)
-# parent so other logins can create sibling cache-<app> dirs. If this login
-# cannot write the leaf (another owner), fall through. XDG fallback is
-# already under this login's home. MUST NOT restore
-# /dev/shm/${APP_NAME}-${USERNAME} as the preferred cache.
-#
-# Create chosen root before echo. Fail closed if none can be created.
+# Returns the best available cache directory for scratch files.
+# Linux: shm leaf, then /tmp leaf, then ${HOME}/.cache leaf.
+# Git Bash: /tmp leaf, then AppData Local Temp leaf.
+# Mac: /tmp leaf, then Library/Caches leaf, then ${HOME}/cache leaf.
+# Volatile leaves are cache-${APP_NAME}-${login}-$$. Home leaves omit login.
+# A missed tier is silent (no warning, no error). Error only if every tier fails.
+# MUST NOT restore /dev/shm/${APP_NAME} or /dev/shm/${APP_NAME}-${USERNAME}.
 #
 # ECHO EXCEPTION (class B – function return-via-stdout):
 # echo of cache paths is a data return for $(util_resolve_storage) capture,
@@ -1599,46 +1694,42 @@ util_resolve_persistent_storage() {
 # Lessons Learned (CIAO Reflection):
 # 2026-07-13: STORAGE_DIR was bare/unset on third fallback (INC-20260713-001 P1).
 # 2026-07-16: Create chosen tier root before echo (fail-closed) for all tiers.
-# 2026-08-30: Preferred cache is /dev/shm/cache/cache-${APP_NAME}; about
-#             labels are Cache folder (preferred)/(fallback).
+# 2026-08-30: Preferred cache moved under /dev/shm/cache/.
+# 2026-09-27: Leaf is cache-${APP_NAME}-${login}-$$ so logins do not share
+#             one directory. Tier misses stay silent.
 #
-# Last reviewed: 2026-08-30
+# Last reviewed: 2026-09-27
 # SSOT: requirement-shell-cli-storage.md
 # =============================================================================
 util_resolve_storage() {
     : "${USERNAME:=unknown}"
     : "${APP_NAME:=app}"
     : "${HOME:=/tmp}"
-    : "${XDG_CACHE_HOME:=${HOME}/.cache}"
-    : "${STORAGE_DIR:=${XDG_CACHE_HOME}/cache-${APP_NAME}}"
 
     _storage_candidate=""
-    if [ -d "/dev/shm" ] && [ -w "/dev/shm" ]; then
-        mkdir -m 1777 -p /dev/shm/cache 2>/dev/null || mkdir -p /dev/shm/cache 2>/dev/null || true
-        if [ -d /dev/shm/cache ]; then
-            _pref="/dev/shm/cache/cache-${APP_NAME}"
-            if mkdir -p "${_pref}" 2>/dev/null && [ -w "${_pref}" ]; then
-                _storage_candidate="${_pref}"
-            fi
-        fi
-    fi
-    if [ -z "${_storage_candidate}" ] && [ -w "/tmp" ]; then
-        mkdir -m 1777 -p /tmp/cache 2>/dev/null || mkdir -p /tmp/cache 2>/dev/null || true
-        if [ -d /tmp/cache ]; then
-            _tmpc="/tmp/cache/cache-${APP_NAME}"
-            if mkdir -p "${_tmpc}" 2>/dev/null && [ -w "${_tmpc}" ]; then
-                _storage_candidate="${_tmpc}"
-            fi
+    if [ "${GROK_CLI_CACHE_SKIP:-}" != "preferred" ]; then
+        _pref=$(util_preferred_cache_dir)
+        if util_cache_try_dir "${_pref}"; then
+            _storage_candidate="${_pref}"
         fi
     fi
     if [ -z "${_storage_candidate}" ]; then
-        _storage_candidate="${STORAGE_DIR}"
-        if ! mkdir -p "${_storage_candidate}" 2>/dev/null || [ ! -w "${_storage_candidate}" ]; then
-            out_die "Cannot create cache folder ${_storage_candidate}"
+        _fb1=$(util_fallback_cache_dir)
+        if util_cache_try_dir "${_fb1}"; then
+            _storage_candidate="${_fb1}"
         fi
     fi
+    if [ -z "${_storage_candidate}" ]; then
+        _fb2=$(util_fallback2_cache_dir)
+        if [ -n "${_fb2}" ] && util_cache_try_dir "${_fb2}"; then
+            _storage_candidate="${_fb2}"
+        fi
+    fi
+    if [ -z "${_storage_candidate}" ]; then
+        out_die "Cannot create cache folder"
+    fi
     echo "${_storage_candidate}"
-    unset _storage_candidate _pref _tmpc
+    unset _storage_candidate _pref _fb1 _fb2
     return 0
 }
 
@@ -7501,7 +7592,6 @@ app_about() {
     : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
     : "${USERNAME:=unknown}"
-    : "${XDG_CACHE_HOME:=${HOME}/.cache}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ -z "${EFFECTIVE_STORAGE_DIR:-}" ]; then
@@ -7509,7 +7599,8 @@ app_about() {
     fi
     _cache_preferred=$(util_preferred_cache_dir)
     _cache_fallback=$(util_fallback_cache_dir)
-    : "${STORAGE_DIR:=${_cache_fallback}}"
+    _cache_fallback_2=$(util_fallback2_cache_dir)
+    STORAGE_DIR="${_cache_fallback}"
     if [ -z "${PERSISTENT_STORAGE_DIR:-}" ]; then
         PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)
     fi
@@ -7585,8 +7676,10 @@ app_about() {
             "shell" "${_shell}" \
             "interactive" "${_interactive}" \
             "user" "${_user}" \
+            "cache_used" "${EFFECTIVE_STORAGE_DIR}" \
             "cache_preferred" "${_cache_preferred}" \
             "cache_fallback" "${_cache_fallback}" \
+            "cache_fallback_2" "${_cache_fallback_2}" \
             "persistence_storage" "${PERSISTENT_STORAGE_DIR}" \
             "effective_storage" "${EFFECTIVE_STORAGE_DIR}" \
             "storage_dir" "${STORAGE_DIR}" \
@@ -7643,8 +7736,12 @@ app_about() {
         out_info "TTY / Interactive: no"
     fi
     out_empty_line
+    out_info "Cache folder used: ${EFFECTIVE_STORAGE_DIR}"
     out_info "Cache folder (preferred): ${_cache_preferred}"
-    out_info "Cache folder (fallback):  ${_cache_fallback}"
+    out_info "Cache folder (1st fallback): ${_cache_fallback}"
+    if [ -n "${_cache_fallback_2}" ]; then
+        out_info "Cache folder (2nd fallback): ${_cache_fallback_2}"
+    fi
     out_info "Persistence storage:      ${PERSISTENT_STORAGE_DIR}"
     out_empty_line
     _grok_peer=$(gc_resolve_grok_peer)
@@ -8569,11 +8666,10 @@ app_main() {
     : "${SUBMIT_ACTION_EXPLICIT:=0}"
     : "${USERNAME:=unknown}"
     : "${HOME:=/tmp}"
-    : "${XDG_CACHE_HOME:=${HOME}/.cache}"
     : "${APP_NAME:=grok-cli}"
-    : "${STORAGE_DIR:=${XDG_CACHE_HOME}/cache-${APP_NAME}}"
 
     EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
+    STORAGE_DIR=$(util_fallback_cache_dir)
     PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)
     export EFFECTIVE_STORAGE_DIR STORAGE_DIR PERSISTENT_STORAGE_DIR
     export TMPDIR="${EFFECTIVE_STORAGE_DIR}"

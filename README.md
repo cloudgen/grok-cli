@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.39-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.40-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -36,6 +36,7 @@ It is **not** a second grok program and **not** official x.ai Termux support. Af
 - **Termux-aware place**: uses `${PREFIX}/bin` when `PREFIX` is set. A missing `/etc/resolv.conf` is a note, not an install failure, when `--version` succeeded. If grok still will not run: `pkg install proot`, then `grok-cli setup --force`. From **1.8.22** the PRoot wrapper stops leftover `runsvdir` from freezing `grok -p` (see **Platform Compatibility**).
 - **Install this program**: paste the curl one-liner; later `version-check`, `self-update`, `self-uninstall`
 - **Install from a checkout**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`
+- **Scratch is per login and per process.** `about` prints **Cache folder used**, **preferred**, **1st fallback**, and **2nd fallback** when this computer has one. Linux uses `/dev/shm/cache/cache-<app>-<login>-<pid>`, then `/tmp/cache/...`, then `~/.cache/cache-<app>-<pid>`. Git Bash uses `/tmp/cache/...`, then `~/AppData/Local/Temp/cache-<app>-<pid>`. Mac uses `/tmp/cache/...`, then `~/Library/Caches/cache-<app>-<pid>`, then `~/cache/cache-<app>-<pid>`. A skipped folder is silent. Durable data for this login stays `~/.local/grok-cli`. On a phone, do not run a downloaded program from the cache folder.
 - **Update grok without grok auto-update**: type `grok-cli update-grok`. Fetches the latest xAI grok into `~/.grok` (Termux grok updater is unsupported). This is **not** `self-update` (that refreshes grok-cli). Missing grok → `grok-cli setup`.
 - **Reinstall grok from the start list**: type `grok-cli reinstall`, or pick **reinstall** on the numbered list. Same fetch as `setup --force`. Keeps `auth.*`. Missing grok still installs. `setup` stays off the list.
 - **Start grok without auto-update**: type `grok-cli run` (or `grok-cli run -p hello`). On Termux this avoids the hang until Ctrl-Z. Missing grok → `grok-cli setup`.
@@ -137,7 +138,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.39*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.40*) — Alternative online installer for xAI grok
 [INFO] logged out
 1. grok-auth: *Backup, sync, crontab, setup, and reinstall*
 7. sudoers: *Grant and drafts*
@@ -161,7 +162,7 @@ On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** a
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.39*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.40*) — Alternative online installer for xAI grok
 [INFO] logged out
 [INFO] backup, sync-auth and sudoers features are not available in termux.
 1. grok-auth: *Backup, sync, crontab, setup, and reinstall*
@@ -174,7 +175,7 @@ Live capture on a multi-user host that is **logged in**:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.39*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.40*) — Alternative online installer for xAI grok
 [INFO] logged in
 [INFO] sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. grok-auth: *Backup, sync, crontab, setup, and reinstall*
@@ -405,4 +406,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-09-26 — version **1.8.39**: the top list is **1** grok-auth, **7** sudoers, **8** self-management, and **9** Exit, with no Back row. Submenus keep **0** Back. Full history: [`CHANGELOG.md`](./CHANGELOG.md).
+2026-09-27 — version **1.8.40**: the cache folder is per login and per process (Linux `/dev/shm/cache/...`, Git Bash and Mac `/tmp/cache/...`). Skipping a folder is silent. `about` prints the folder in use plus the fallbacks. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-three-layer-privilege-model.md  
-**Status**: Active (Version 2.0.1)  
+**Status**: Active (Version 2.0.2)  
 **Area**: architecture  
 **Key**: `requirement-three-layer-privilege-model`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -328,7 +328,7 @@ When an agent **creates or materially revises** a sudoers draft (beyond re-runni
 | Invocation | `sudo -n` after passwordless fragment; non-interactive without ticket **fails closed** |
 | Scope | Deposit only — not package install, not shell |
 | Destination create | Deposit dir `/var/grok-cli` **SHOULD** exist (admin or project command after elev) |
-| Staging | Preferred cache `/dev/shm/cache/cache-grok-cli`, else `/tmp/cache/cache-grok-cli`, else XDG `cache-grok-cli` — Type 1 internals, **not** fragment operands |
+| Staging | Cache chain in `requirement-shell-cli-storage` (Linux: `/dev/shm/cache/cache-${APP_NAME}-${login}-$$`, else `/tmp/cache/cache-${APP_NAME}-${login}-$$`, else `${HOME}/.cache/cache-${APP_NAME}-$$`) — Type 1 internals, **not** fragment operands |
 
 ### 2.5 Implementation Notes (this project)
 
@@ -556,9 +556,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-08-17 | Active 1.9.0 | `generate-sudoer-request` §2.3.3d; submit compact handoff; AC-23; TP-24; INC-20260817-002 |
 | 2026-08-17 | Active 1.10.0 | §2.3.2a independent generate (any sudoer generate = Type 0 subcommand → readable dest); AC-24; TP-24d |
 | 2026-08-30 | Active 2.0.1 | Staging preferred cache `/dev/shm/cache/cache-${APP_NAME}` |
+| 2026-09-27 | Active 2.0.2 | Staging cache points at `requirement-shell-cli-storage` 1.4.0 |
 
 ---
 
-**Last Updated**: 2026-09-06 (2.0.1 preferred cache path)  
+**Last Updated**: 2026-09-27 (2.0.2 staging cache chain)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; mold `template-three-layer-privilege-model.md` (**`LM-THREE-LAYER-PRIVILEGE-MODEL`**); **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
