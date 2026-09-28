@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-09-26 (1.8.39 top menu has no Back; submenus keep 0 Back)  
-**Product VERSION:** 1.8.39
+**Updated:** 2026-09-28 (1.8.41 menu language on front row 6)  
+**Product VERSION:** 1.8.41
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -16,7 +16,8 @@
 | requirement-grok-crontab | domain | TP-GROK-CLI-26..29 · TP-CLI-04 · TP-CLI-13 | Per-login crontab jobs; grant gate is this `id -un` |
 | requirement-shell-cli-interface | shell | TP-CLI-* · TP-VCLI-01 · TP-VCLI-33 · TP-VCLI-37..42 · TP-ONL-* · TP-GROK-CLI-46 | Commands, flags, dispatch; `setup` (TTY reinstall); `update-grok`; `reinstall`; `run`; online verbs; TP-CLI-18 no frozen login in Active REQ samples; `--debug` dual mention TP-CLI-25..28 |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · TP-CLI-13 · TP-CLI-29 · TP-ONL-01 | TTY numbered menu; off-TTY Type O ensure; overlay `--debug` / `--quiet` follow empty argv |
-| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 · TP-CLI-30 · TP-CLI-31 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); top list is **1** grok-auth, **7** sudoers, **8** self-management, **9** Exit, no Back; this-login-only adds **2** run and hides sudoers; session and not-available lines are independent `[INFO]`; hide backup/sync-auth/sudoers on that class; logged-out hides `sync-auth-to-remote`; logged-in hides pull verbs and lists `sync-auth-to-remote`; **0** on the top list retries; submenu **0** is Back; invalid pick retries this layer |
+| requirement-shell-cli-default-interaction | shell | TP-CLI-13 · TP-CLI-07 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-25 · TP-CLI-26 · TP-CLI-29 · TP-CLI-30 · TP-CLI-31 · TP-CLI-32 | Case 3 `menu`/`main` + TTY empty argv (including overlay `--debug`); top list is **1** grok-auth, **6** language, **7** sudoers, **8** self-management, **9** Exit, no Back; this-login-only adds **2** run and hides sudoers; session and not-available lines are independent `[INFO]`; hide backup/sync-auth/sudoers on that class; logged-out hides `sync-auth-to-remote`; logged-in hides pull verbs and lists `sync-auth-to-remote`; **0** on the top list retries; submenu **0** is Back; invalid pick retries this layer |
+| requirement-shell-cli-language | shell | TP-CLI-32 · TP-CLI-13 · TP-CLI-20 · TP-CLI-30 | Eight codes on front **6** / **61–68**; persistence leaf `language` mode 0600; `GROK_CLI_LANG` does not write; human help and about follow the code; English menu literals stay |
 | requirement-shell-path-and-shell-support | shell | TP-LC-11..14 · 20..22 · 25..33 · rc-test | bash PATH + profile; zsh PATH **points** at zshenv |
 | requirement-shell-zshenv | shell | TP-LC-23 · 24 · 34 · 35 · 36 · rc-test `--file zshenv` | zsh PATH on `.zshenv` (not `.zshrc`) |
 | requirement-shell-alpine | shell | TP-LC-37 · 38 · 39 · 40 · 41 · 42 | Missing `.profile`: bash/zsh/fish generate it; ash generates it and adds `USER_BIN`. Existing file: only ash appends PATH |
@@ -31,7 +32,7 @@
 | requirement-shell-termux-coding | shell | TP-VCLI-15..32 · TP-LC-01 · TP-CLI-01 · TP-GROK-CLI-35..38 · 44 · 45 · 47 · 48 · 49 · TP-CLI-21 · 23 | `PREFIX`/`pkg`/`noexec`; Android ET_EXEC; wrapper `--kill-on-exit` / `proot-exit-reaper` / `start-services.sh` bind; probe dispatch `proot` → TSTP-safe reaper else simple `-p`; grok-cli dest stays `USER_BIN` |
 | requirement-shell-idempotency | shell | TP-LC-03,07 · TP-GROK-CLI-08 · 29 | Re-install; auth overwrite; crontab no-duplicate |
 | requirement-shell-interactive-vs-noninteractive | shell | TP-LC-05 · TP-GROK-CLI-15 · 15b · 34 · TP-CLI-15 · TP-VCLI-37..39 | Confirm fail-closed; TTY `setup` keep/reinstall/Exit; no `$()` of `prompt_ask` |
-| requirement-shell-cli-storage | shell | TP-CLI-**06**, **12** · TP-GROK-CLI-41 · TP-VCLI-15 | Per-login per-process cache (`cache-${APP_NAME}-${login}-$$` on shm/tmp) + persistence `${HOME}/.local/${APP_NAME}` (preferred-remote leaf); silent tier miss; Termux cache may be `noexec` |
+| requirement-shell-cli-storage | shell | TP-CLI-**06**, **12**, **32** · TP-GROK-CLI-41 · TP-VCLI-15 | Per-login per-process cache (`cache-${APP_NAME}-${login}-$$` on shm/tmp) + persistence `${HOME}/.local/${APP_NAME}` (preferred-remote and language leaves); silent tier miss; Termux cache may be `noexec` |
 | requirement-shell-internal-volatile-timer | shell | TP-CLI-25 · 26 · 27 · 28 | Named volatile `util_int_timer_*`; `--debug menu` elapsed of each paint step; JSON stdout stays pure |
 | requirement-domain-grok-cli | domain | TP-GROK-CLI-01,02,11,14,15,19,20,21*,23*,24* · 26..29 · 46..48 · 50 · TP-CLI-04,06 · TP-VCLI-02 · TP-VCLI-33 · TP-VCLI-37..42 · TP-CLI-31 | Surface verbs/help/about including `setup` (TTY reinstall), `update-grok`, `reinstall`, `run`, `sync-auth-to-remote`, `check-session` (PRoot-aware `-p`) |
 | requirement-domain-folder-backup | superseded | n/a | Retired |

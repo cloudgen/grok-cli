@@ -22,6 +22,7 @@
 # - requirement-shell-self-management.md
 # - requirement-shell-automatic-checksum.md
 # - requirement-shell-cli-default-interaction.md  (menu/main numbered list)
+# - requirement-shell-cli-language.md  (menu language: en zh-Hant es fr de zh-Hans ja ko)
 # - requirement-shell-local-self-management.md
 # - requirement-shell-cli-storage.md
 # - requirement-shell-idempotency.md
@@ -44,7 +45,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.34"
+# VERSION: hard-assign VERSION="1.8.41"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -60,8 +61,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.40"
-: "${VERSION:=1.8.39}"
+VERSION="1.8.41"
+: "${VERSION:=1.8.40}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -7701,6 +7702,14 @@ app_about() {
 
     [ "${QUIET}" -eq 1 ] && return 0
 
+    case "${APP_LANG:-en}" in
+        en) ;;
+        *)
+            app_about_i18n
+            return 0
+            ;;
+    esac
+
     out_info "=== ${APP_NAME} ${VERSION} - About / Diagnostics ==="
     out_empty_line
     if [ "${_installed}" = "true" ]; then
@@ -7867,25 +7876,1877 @@ gc_host_normal_user_only_label() {
 }
 
 # =============================================================================
+# app_lang_load() / app_lang_save() / app_menu_text()
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Menu language for the numbered list, human help, and human about.
+# Codes: en, zh-Hant, es, fr, de, zh-Hans, ja, ko. Default is English.
+# The leaf is ${PERSISTENT_STORAGE_DIR}/language (mode 0600).
+# GROK_CLI_LANG wins at process start and does not write the file.
+# One load at the start of app_main. A later pick sets APP_LANG itself.
+# Leaf shorts stay the English verb. Category shorts follow APP_LANG.
+# app_menu_text is pure data: no read builtin. Command substitution is legal.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-language.md
+# - requirement-shell-cli-storage.md
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-28
+# =============================================================================
+app_lang_load() {
+    APP_LANG=en
+    if [ -z "${PERSISTENT_STORAGE_DIR:-}" ]; then
+        PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)
+        export PERSISTENT_STORAGE_DIR
+    fi
+    _ll_path="${PERSISTENT_STORAGE_DIR}/language"
+    if [ -f "${_ll_path}" ]; then
+        _ll_line=$(head -n 1 "${_ll_path}" 2>/dev/null || true)
+        _ll_line=$(printf '%s' "${_ll_line}" | tr -d '\r')
+        case "${_ll_line}" in
+            en|zh-Hant|es|fr|de|zh-Hans|ja|ko) APP_LANG="${_ll_line}" ;;
+        esac
+    fi
+    case "${GROK_CLI_LANG-}" in
+        en|zh-Hant|es|fr|de|zh-Hans|ja|ko) APP_LANG="${GROK_CLI_LANG}" ;;
+    esac
+    export APP_LANG
+    unset _ll_path _ll_line
+}
+
+app_lang_save() {
+    _ls_code=${1-}
+    case "${_ls_code}" in
+        en|zh-Hant|es|fr|de|zh-Hans|ja|ko) ;;
+        *)
+            unset _ls_code
+            return 1
+            ;;
+    esac
+    if [ -z "${PERSISTENT_STORAGE_DIR:-}" ]; then
+        PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)
+        export PERSISTENT_STORAGE_DIR
+    fi
+    _ls_path="${PERSISTENT_STORAGE_DIR}/language"
+    if ! printf '%s\n' "${_ls_code}" > "${_ls_path}"; then
+        unset _ls_code _ls_path
+        return 1
+    fi
+    chmod 0600 "${_ls_path}" 2>/dev/null || true
+    APP_LANG="${_ls_code}"
+    export APP_LANG
+    unset _ls_code _ls_path
+    return 0
+}
+
+app_menu_text() {
+    _mt_key=${1-}
+    _mt_a=${2-}
+    _mt_b=${3-}
+    _mt_lang=${APP_LANG:-en}
+    case "${_mt_lang}" in
+        zh-Hant|zh-Hans|es|fr|de|ja|ko) ;;
+        *) _mt_lang=en ;;
+    esac
+    _mt_out=""
+    case "${_mt_key}" in
+        short_desc)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="xAI grok 的替代線上安裝程式" ;;
+                zh-Hans) _mt_out="xAI grok 的替代在线安装程序" ;;
+                es) _mt_out="Instalador en línea alternativo para xAI grok" ;;
+                fr) _mt_out="Installateur en ligne alternatif pour xAI grok" ;;
+                de) _mt_out="Alternativer Online-Installer für xAI grok" ;;
+                ja) _mt_out="xAI grok の代替オンラインインストーラ" ;;
+                ko) _mt_out="xAI grok 대체 온라인 설치 프로그램" ;;
+                *) _mt_out="Alternative online installer for xAI grok" ;;
+            esac
+            ;;
+        session_in)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="已登入" ;;
+                zh-Hans) _mt_out="已登录" ;;
+                es) _mt_out="sesión iniciada" ;;
+                fr) _mt_out="connecté" ;;
+                de) _mt_out="angemeldet" ;;
+                ja) _mt_out="ログイン済み" ;;
+                ko) _mt_out="로그인됨" ;;
+                *) _mt_out="logged in" ;;
+            esac
+            ;;
+        session_out)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="已登出" ;;
+                zh-Hans) _mt_out="已登出" ;;
+                es) _mt_out="sesión cerrada" ;;
+                fr) _mt_out="déconnecté" ;;
+                de) _mt_out="abgemeldet" ;;
+                ja) _mt_out="未ログイン" ;;
+                ko) _mt_out="로그아웃됨" ;;
+                *) _mt_out="logged out" ;;
+            esac
+            ;;
+        session_timeout)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="逾時" ;;
+                zh-Hans) _mt_out="超时" ;;
+                es) _mt_out="tiempo agotado" ;;
+                fr) _mt_out="délai dépassé" ;;
+                de) _mt_out="Zeitüberschreitung" ;;
+                ja) _mt_out="タイムアウト" ;;
+                ko) _mt_out="시간 초과" ;;
+                *) _mt_out="timeout" ;;
+            esac
+            ;;
+        session_checking)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="正在檢查工作階段（grok -p hello，逾時 ${_mt_a} 秒）..." ;;
+                zh-Hans) _mt_out="正在检查会话（grok -p hello，超时 ${_mt_a} 秒）..." ;;
+                es) _mt_out="comprobando la sesión (grok -p hello, tiempo límite ${_mt_a}s)..." ;;
+                fr) _mt_out="vérification de la session (grok -p hello, délai ${_mt_a}s)..." ;;
+                de) _mt_out="Sitzung wird geprüft (grok -p hello, Zeitlimit ${_mt_a}s)..." ;;
+                ja) _mt_out="セッションを確認しています（grok -p hello、制限 ${_mt_a} 秒）..." ;;
+                ko) _mt_out="세션을 확인하는 중 (grok -p hello, 제한 ${_mt_a}초)..." ;;
+                *) _mt_out="checking session (grok -p hello, timeout ${_mt_a}s)..." ;;
+            esac
+            ;;
+        hidden_host)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="backup、sync-auth 與 sudoers 功能不適用於 ${_mt_a}。" ;;
+                zh-Hans) _mt_out="backup、sync-auth 与 sudoers 功能不适用于 ${_mt_a}。" ;;
+                es) _mt_out="las funciones backup, sync-auth y sudoers no están disponibles en ${_mt_a}." ;;
+                fr) _mt_out="les fonctions backup, sync-auth et sudoers ne sont pas disponibles pour ${_mt_a}." ;;
+                de) _mt_out="backup, sync-auth und sudoers sind in ${_mt_a} nicht verfügbar." ;;
+                ja) _mt_out="backup、sync-auth、sudoers は ${_mt_a} では使えません。" ;;
+                ko) _mt_out="backup, sync-auth, sudoers 기능은 ${_mt_a} 에서 사용할 수 없습니다." ;;
+                *) _mt_out="backup, sync-auth and sudoers features are not available in ${_mt_a}." ;;
+            esac
+            ;;
+        hidden_login)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="已登入環境無法使用 sync-auth 與 sync-auth-from-remote。" ;;
+                zh-Hans) _mt_out="已登录环境无法使用 sync-auth 与 sync-auth-from-remote。" ;;
+                es) _mt_out="sync-auth y sync-auth-from-remote no están disponibles con la sesión iniciada." ;;
+                fr) _mt_out="sync-auth et sync-auth-from-remote ne sont pas disponibles lorsque la session est connectée." ;;
+                de) _mt_out="sync-auth und sync-auth-from-remote sind bei angemeldeter Sitzung nicht verfügbar." ;;
+                ja) _mt_out="ログイン済みの環境では sync-auth と sync-auth-from-remote は使えません。" ;;
+                ko) _mt_out="로그인된 환경에서는 sync-auth 와 sync-auth-from-remote 를 사용할 수 없습니다." ;;
+                *) _mt_out="sync-auth and sync-auth-from-remote features are not available for logged-in environment." ;;
+            esac
+            ;;
+        cat_auth)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="grok 認證" ;;
+                zh-Hans) _mt_out="grok 认证" ;;
+                es) _mt_out="autenticación grok" ;;
+                fr) _mt_out="authentification grok" ;;
+                de) _mt_out="grok-Anmeldung" ;;
+                ja) _mt_out="grok 認証" ;;
+                ko) _mt_out="grok 인증" ;;
+                *) _mt_out="grok-auth" ;;
+            esac
+            ;;
+        cat_auth_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="備份、同步、crontab、安裝與重新安裝" ;;
+                zh-Hans) _mt_out="备份、同步、crontab、安装与重新安装" ;;
+                es) _mt_out="Copia, sincronización, crontab, instalación y reinstalación" ;;
+                fr) _mt_out="Sauvegarde, synchro, crontab, installation et réinstallation" ;;
+                de) _mt_out="Sicherung, Abgleich, Crontab, Einrichtung und Neuinstallation" ;;
+                ja) _mt_out="バックアップ、同期、crontab、導入、再導入" ;;
+                ko) _mt_out="백업, 동기화, crontab, 설치, 다시 설치" ;;
+                *) _mt_out="Backup, sync, crontab, setup, and reinstall" ;;
+            esac
+            ;;
+        cat_language)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="語言" ;;
+                zh-Hans) _mt_out="语言" ;;
+                es) _mt_out="idioma" ;;
+                fr) _mt_out="langue" ;;
+                de) _mt_out="Sprache" ;;
+                ja) _mt_out="言語" ;;
+                ko) _mt_out="언어" ;;
+                *) _mt_out="language" ;;
+            esac
+            ;;
+        cat_language_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單的顯示語言" ;;
+                zh-Hans) _mt_out="这个菜单的显示语言" ;;
+                es) _mt_out="idioma de este menú" ;;
+                fr) _mt_out="langue d'affichage de ce menu" ;;
+                de) _mt_out="Anzeigesprache für dieses Menü" ;;
+                ja) _mt_out="このメニューの表示言語" ;;
+                ko) _mt_out="이 메뉴의 표시 언어" ;;
+                *) _mt_out="display language for this menu" ;;
+            esac
+            ;;
+        cat_self)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="自我管理" ;;
+                zh-Hans) _mt_out="自我管理" ;;
+                es) _mt_out="autogestión" ;;
+                fr) _mt_out="autogestion" ;;
+                de) _mt_out="Selbstverwaltung" ;;
+                ja) _mt_out="自己管理" ;;
+                ko) _mt_out="자기관리" ;;
+                *) _mt_out="self-management" ;;
+            esac
+            ;;
+        cat_self_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="檢查、更新或移除 grok-cli" ;;
+                zh-Hans) _mt_out="检查、更新或移除 grok-cli" ;;
+                es) _mt_out="Comprobar, actualizar o quitar grok-cli" ;;
+                fr) _mt_out="Vérifier, mettre à jour ou retirer grok-cli" ;;
+                de) _mt_out="grok-cli prüfen, aktualisieren oder entfernen" ;;
+                ja) _mt_out="grok-cli の確認、更新、削除" ;;
+                ko) _mt_out="grok-cli 확인, 업데이트 또는 제거" ;;
+                *) _mt_out="Check, update, or remove grok-cli" ;;
+            esac
+            ;;
+        cat_sudoers_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="授權與草稿" ;;
+                zh-Hans) _mt_out="授权与草稿" ;;
+                es) _mt_out="Concesión y borradores" ;;
+                fr) _mt_out="Autorisation et brouillons" ;;
+                de) _mt_out="Freigabe und Entwürfe" ;;
+                ja) _mt_out="認可と下書き" ;;
+                ko) _mt_out="허가와 초안" ;;
+                *) _mt_out="Grant and drafts" ;;
+            esac
+            ;;
+        long_run)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="啟動 grok 且不自動更新" ;;
+                zh-Hans) _mt_out="启动 grok 且不自动更新" ;;
+                es) _mt_out="Iniciar grok sin actualización automática" ;;
+                fr) _mt_out="Démarrer grok sans mise à jour automatique" ;;
+                de) _mt_out="grok ohne automatische Aktualisierung starten" ;;
+                ja) _mt_out="自動更新なしで grok を起動" ;;
+                ko) _mt_out="자동 업데이트 없이 grok 시작" ;;
+                *) _mt_out="Start grok without auto-update" ;;
+            esac
+            ;;
+        long_reinstall)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="移除現有 grok 並重新安裝" ;;
+                zh-Hans) _mt_out="移除现有 grok 并重新安装" ;;
+                es) _mt_out="Quitar el grok existente e instalar de nuevo" ;;
+                fr) _mt_out="Retirer le grok existant et l'installer à nouveau" ;;
+                de) _mt_out="Vorhandenes grok entfernen und erneut installieren" ;;
+                ja) _mt_out="既存の grok を削除して入れ直す" ;;
+                ko) _mt_out="기존 grok 를 지우고 다시 설치" ;;
+                *) _mt_out="Remove existing grok and install again" ;;
+            esac
+            ;;
+        long_setup)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="從 x.ai 安裝 grok" ;;
+                zh-Hans) _mt_out="从 x.ai 安装 grok" ;;
+                es) _mt_out="Instalar grok desde x.ai" ;;
+                fr) _mt_out="Installer grok depuis x.ai" ;;
+                de) _mt_out="grok von x.ai installieren" ;;
+                ja) _mt_out="x.ai から grok を導入" ;;
+                ko) _mt_out="x.ai 에서 grok 설치" ;;
+                *) _mt_out="Install grok from x.ai" ;;
+            esac
+            ;;
+        long_backup)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="將 ~/.grok/auth.* 推送到 ${_mt_a}" ;;
+                zh-Hans) _mt_out="将 ~/.grok/auth.* 推送到 ${_mt_a}" ;;
+                es) _mt_out="Enviar ~/.grok/auth.* a ${_mt_a}" ;;
+                fr) _mt_out="Envoyer ~/.grok/auth.* vers ${_mt_a}" ;;
+                de) _mt_out="~/.grok/auth.* nach ${_mt_a} schieben" ;;
+                ja) _mt_out="~/.grok/auth.* を ${_mt_a} へ送る" ;;
+                ko) _mt_out="~/.grok/auth.* 를 ${_mt_a} 로 보냄" ;;
+                *) _mt_out="Push ~/.grok/auth.* to ${_mt_a}" ;;
+            esac
+            ;;
+        long_sync)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="將 ${_mt_a}/auth.* 複製到 ~/.grok" ;;
+                zh-Hans) _mt_out="将 ${_mt_a}/auth.* 复制到 ~/.grok" ;;
+                es) _mt_out="Copiar ${_mt_a}/auth.* a ~/.grok" ;;
+                fr) _mt_out="Copier ${_mt_a}/auth.* dans ~/.grok" ;;
+                de) _mt_out="${_mt_a}/auth.* nach ~/.grok kopieren" ;;
+                ja) _mt_out="${_mt_a}/auth.* を ~/.grok へコピー" ;;
+                ko) _mt_out="${_mt_a}/auth.* 를 ~/.grok 로 복사" ;;
+                *) _mt_out="Copy ${_mt_a}/auth.* into ~/.grok" ;;
+            esac
+            ;;
+        long_from)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="將遠端主機的 auth.* 複製到 ~/.grok" ;;
+                zh-Hans) _mt_out="将远程主机的 auth.* 复制到 ~/.grok" ;;
+                es) _mt_out="Copiar el auth.* de un host remoto a ~/.grok" ;;
+                fr) _mt_out="Copier le auth.* d'un hôte distant dans ~/.grok" ;;
+                de) _mt_out="auth.* eines fernen Hosts nach ~/.grok kopieren" ;;
+                ja) _mt_out="遠隔ホストの auth.* を ~/.grok へコピー" ;;
+                ko) _mt_out="원격 호스트의 auth.* 를 ~/.grok 로 복사" ;;
+                *) _mt_out="Copy a remote host's auth.* into ~/.grok" ;;
+            esac
+            ;;
+        long_to)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="將 ~/.grok/auth.* 複製到遠端主機" ;;
+                zh-Hans) _mt_out="将 ~/.grok/auth.* 复制到远程主机" ;;
+                es) _mt_out="Copiar ~/.grok/auth.* a un host remoto" ;;
+                fr) _mt_out="Copier ~/.grok/auth.* vers un hôte distant" ;;
+                de) _mt_out="~/.grok/auth.* auf einen fernen Host kopieren" ;;
+                ja) _mt_out="~/.grok/auth.* を遠隔ホストへコピー" ;;
+                ko) _mt_out="~/.grok/auth.* 를 원격 호스트로 복사" ;;
+                *) _mt_out="Copy ~/.grok/auth.* onto a remote host" ;;
+            esac
+            ;;
+        long_cron)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="把 backup 與 sync-auth 工作加到這個登入的 crontab" ;;
+                zh-Hans) _mt_out="把 backup 与 sync-auth 作业加到这个登录的 crontab" ;;
+                es) _mt_out="Añadir tareas backup y sync-auth al crontab de este login" ;;
+                fr) _mt_out="Ajouter les tâches backup et sync-auth au crontab de cette session" ;;
+                de) _mt_out="backup- und sync-auth-Aufträge in die Crontab dieser Anmeldung" ;;
+                ja) _mt_out="このログインの crontab に backup と sync-auth を追加" ;;
+                ko) _mt_out="이 로그인의 crontab 에 backup 과 sync-auth 작업을 추가" ;;
+                *) _mt_out="Add backup and sync-auth jobs to this login's crontab" ;;
+            esac
+            ;;
+        long_vercheck)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="比較本機版本與頻道版本" ;;
+                zh-Hans) _mt_out="比较本机版本与频道版本" ;;
+                es) _mt_out="Comparar la versión local con el canal" ;;
+                fr) _mt_out="Comparer la version locale au canal" ;;
+                de) _mt_out="Lokale Version mit dem Kanal vergleichen" ;;
+                ja) _mt_out="ローカル版とチャンネルを比較" ;;
+                ko) _mt_out="로컬 버전과 채널을 비교" ;;
+                *) _mt_out="Compare local version with the channel" ;;
+            esac
+            ;;
+        long_selfup)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="從頻道重新下載 grok-cli" ;;
+                zh-Hans) _mt_out="从频道重新下载 grok-cli" ;;
+                es) _mt_out="Volver a descargar grok-cli desde el canal" ;;
+                fr) _mt_out="Retélécharger grok-cli depuis le canal" ;;
+                de) _mt_out="grok-cli erneut vom Kanal herunterladen" ;;
+                ja) _mt_out="チャンネルから grok-cli を再取得" ;;
+                ko) _mt_out="채널에서 grok-cli 를 다시 받기" ;;
+                *) _mt_out="Re-download grok-cli from the channel" ;;
+            esac
+            ;;
+        long_selfun)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="移除 grok-cli" ;;
+                zh-Hans) _mt_out="移除 grok-cli" ;;
+                es) _mt_out="Quitar grok-cli" ;;
+                fr) _mt_out="Retirer grok-cli" ;;
+                de) _mt_out="grok-cli entfernen" ;;
+                ja) _mt_out="grok-cli を削除" ;;
+                ko) _mt_out="grok-cli 제거" ;;
+                *) _mt_out="Remove grok-cli" ;;
+            esac
+            ;;
+        long_where)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="顯示執行中與安裝路徑" ;;
+                zh-Hans) _mt_out="显示运行中与安装路径" ;;
+                es) _mt_out="Mostrar las rutas en ejecución y de instalación" ;;
+                fr) _mt_out="Afficher les chemins d'exécution et d'installation" ;;
+                de) _mt_out="Lauf- und Installationspfade anzeigen" ;;
+                ja) _mt_out="実行中のパスとインストール先を表示" ;;
+                ko) _mt_out="실행 경로와 설치 경로를 표시" ;;
+                *) _mt_out="Show running and install paths" ;;
+            esac
+            ;;
+        long_generate)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="寫一份可閱讀的 JSON 授權" ;;
+                zh-Hans) _mt_out="写一份可阅读的 JSON 授权" ;;
+                es) _mt_out="Escribe una concesión JSON que se puede leer" ;;
+                fr) _mt_out="Écrire une autorisation JSON lisible" ;;
+                de) _mt_out="Eine lesbare JSON-Freigabe schreiben" ;;
+                ja) _mt_out="読める JSON 認可を書く" ;;
+                ko) _mt_out="읽을 수 있는 JSON 허가를 작성" ;;
+                *) _mt_out="Write a JSON grant you can read" ;;
+            esac
+            ;;
+        long_submit)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="將 JSON 授權排入 inbound" ;;
+                zh-Hans) _mt_out="将 JSON 授权排入 inbound" ;;
+                es) _mt_out="Poner la concesión JSON en la cola de entrada" ;;
+                fr) _mt_out="Mettre l'autorisation JSON dans la file entrante" ;;
+                de) _mt_out="Die JSON-Freigabe in die Eingangs-Warteschlange legen" ;;
+                ja) _mt_out="JSON 認可を受信待ちに入れる" ;;
+                ko) _mt_out="JSON 허가를 수신 대기열에 넣기" ;;
+                *) _mt_out="Queue the JSON grant inbound" ;;
+            esac
+            ;;
+        long_print)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="印出 sudoers 草稿" ;;
+                zh-Hans) _mt_out="印出 sudoers 草稿" ;;
+                es) _mt_out="Emitir el borrador de sudoers" ;;
+                fr) _mt_out="Émettre le brouillon sudoers" ;;
+                de) _mt_out="sudoers-Entwurf ausgeben" ;;
+                ja) _mt_out="sudoers 下書きを出力" ;;
+                ko) _mt_out="sudoers 초안을 출력" ;;
+                *) _mt_out="Emit sudoers draft" ;;
+            esac
+            ;;
+        long_script)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="寫出管理員安裝腳本" ;;
+                zh-Hans) _mt_out="写出管理员安装脚本" ;;
+                es) _mt_out="Escribir el script de instalación para el admin" ;;
+                fr) _mt_out="Écrire le script d'installation pour l'admin" ;;
+                de) _mt_out="Admin-Installationsskript schreiben" ;;
+                ja) _mt_out="管理者用の導入スクリプトを書く" ;;
+                ko) _mt_out="관리자 설치 스크립트를 작성" ;;
+                *) _mt_out="Write admin install script" ;;
+            esac
+            ;;
+        long_remove)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="只移除 sudoers 草稿" ;;
+                zh-Hans) _mt_out="只移除 sudoers 草稿" ;;
+                es) _mt_out="Quitar solo el borrador de sudoers" ;;
+                fr) _mt_out="Retirer seulement le brouillon sudoers" ;;
+                de) _mt_out="Nur den sudoers-Entwurf entfernen" ;;
+                ja) _mt_out="sudoers 下書きだけを削除" ;;
+                ko) _mt_out="sudoers 초안만 제거" ;;
+                *) _mt_out="Remove sudoers draft only" ;;
+            esac
+            ;;
+        label_back)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="返回" ;;
+                zh-Hans) _mt_out="返回" ;;
+                es) _mt_out="Atrás" ;;
+                fr) _mt_out="Retour" ;;
+                de) _mt_out="Zurück" ;;
+                ja) _mt_out="戻る" ;;
+                ko) _mt_out="뒤로" ;;
+                *) _mt_out="Back" ;;
+            esac
+            ;;
+        label_exit)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="離開" ;;
+                zh-Hans) _mt_out="离开" ;;
+                es) _mt_out="Salir" ;;
+                fr) _mt_out="Quitter" ;;
+                de) _mt_out="Beenden" ;;
+                ja) _mt_out="終了" ;;
+                ko) _mt_out="종료" ;;
+                *) _mt_out="Exit" ;;
+            esac
+            ;;
+        prompt)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="請選擇： " ;;
+                zh-Hans) _mt_out="请选择： " ;;
+                es) _mt_out="Elección: " ;;
+                fr) _mt_out="Choix : " ;;
+                de) _mt_out="Auswahl: " ;;
+                ja) _mt_out="選択: " ;;
+                ko) _mt_out="선택: " ;;
+                *) _mt_out="Choice: " ;;
+            esac
+            ;;
+        unknown)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="不是選單選項 '${_mt_a}'。請輸入 ${_mt_b}，或輸入列出的指令名稱。" ;;
+                zh-Hans) _mt_out="不是菜单选项 '${_mt_a}'。请输入 ${_mt_b}，或输入列出的指令名称。" ;;
+                es) _mt_out="No es una opción del menú '${_mt_a}'. Escriba ${_mt_b}, o un nombre de comando de la lista." ;;
+                fr) _mt_out="Pas un choix de menu '${_mt_a}'. Saisissez ${_mt_b}, ou un nom de commande de la liste." ;;
+                de) _mt_out="Keine Menüauswahl '${_mt_a}'. Geben Sie ${_mt_b} ein, oder einen aufgeführten Befehlsnamen." ;;
+                ja) _mt_out="メニューの選択ではありません '${_mt_a}'。${_mt_b} を入力するか、一覧のコマンド名を入力してください。" ;;
+                ko) _mt_out="메뉴 선택이 아닙니다 '${_mt_a}'. ${_mt_b} 를 입력하거나 목록의 명령 이름을 입력하세요." ;;
+                *) _mt_out="Not a menu choice '${_mt_a}'. Type ${_mt_b}, or a listed command name." ;;
+            esac
+            ;;
+        lang_saved)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="選單語言是繁體中文" ;;
+                zh-Hans) _mt_out="菜单语言是简体中文" ;;
+                es) _mt_out="El idioma del menú es español" ;;
+                fr) _mt_out="La langue du menu est le français" ;;
+                de) _mt_out="Die Menüsprache ist Deutsch" ;;
+                ja) _mt_out="メニューの言語は日本語" ;;
+                ko) _mt_out="메뉴 언어는 한국어" ;;
+                *) _mt_out="Menu language is English" ;;
+            esac
+            ;;
+        lang_save_fail)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="無法儲存選單語言" ;;
+                zh-Hans) _mt_out="无法保存菜单语言" ;;
+                es) _mt_out="No se pudo guardar el idioma del menú" ;;
+                fr) _mt_out="Impossible d'enregistrer la langue du menu" ;;
+                de) _mt_out="Die Menüsprache konnte nicht gespeichert werden" ;;
+                ja) _mt_out="メニューの言語を保存できませんでした" ;;
+                ko) _mt_out="메뉴 언어를 저장하지 못했습니다" ;;
+                *) _mt_out="Could not save the menu language" ;;
+            esac
+            ;;
+        title_sudoers)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="sudoers（授權與草稿）" ;;
+                zh-Hans) _mt_out="sudoers（授权与草稿）" ;;
+                es) _mt_out="sudoers (concesión y borradores)" ;;
+                fr) _mt_out="sudoers (autorisation et brouillons)" ;;
+                de) _mt_out="sudoers (Freigabe und Entwürfe)" ;;
+                ja) _mt_out="sudoers（認可と下書き）" ;;
+                ko) _mt_out="sudoers(허가와 초안)" ;;
+                *) _mt_out="sudoers (grant and drafts)" ;;
+            esac
+            ;;
+        help_h_usage)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="用法：" ;;
+                zh-Hans) _mt_out="用法：" ;;
+                es) _mt_out="Uso:" ;;
+                fr) _mt_out="Utilisation :" ;;
+                de) _mt_out="Verwendung:" ;;
+                ja) _mt_out="使い方:" ;;
+                ko) _mt_out="사용법:" ;;
+                *) _mt_out="Usage:" ;;
+            esac
+            ;;
+        help_h_life)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="生命週期（Type 0 — 本機自行管理）：" ;;
+                zh-Hans) _mt_out="生命周期（Type 0 — 本机自行管理）：" ;;
+                es) _mt_out="Ciclo de vida (Type 0 — autogestionado local):" ;;
+                fr) _mt_out="Cycle de vie (Type 0 — autogéré local) :" ;;
+                de) _mt_out="Lebenszyklus (Type 0 — lokal selbstverwaltet):" ;;
+                ja) _mt_out="ライフサイクル（Type 0 — このログインで自己管理）:" ;;
+                ko) _mt_out="수명 주기 (Type 0 — 이 로그인에서 자체 관리):" ;;
+                *) _mt_out="Lifecycle (Type 0 — local self-managed):" ;;
+            esac
+            ;;
+        help_h_test)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="測試用途（只動測試資料夾 — 不是安裝）：" ;;
+                zh-Hans) _mt_out="测试用途（只动测试文件夹 — 不是安装）：" ;;
+                es) _mt_out="Pruebas (solo carpeta local — no es install):" ;;
+                fr) _mt_out="Tests (dossier local seulement — pas install) :" ;;
+                de) _mt_out="Testzweck (nur lokaler Ordner — nicht install):" ;;
+                ja) _mt_out="テスト用（ローカルの試しフォルダだけ — install ではない）:" ;;
+                ko) _mt_out="테스트용 (로컬 폴더만 — install 아님):" ;;
+                *) _mt_out="Test-purpose (local fixture only — not install):" ;;
+            esac
+            ;;
+        help_h_domain)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="領域（Type 0 工作階段／同步 + Type 1 認證存放）：" ;;
+                zh-Hans) _mt_out="领域（Type 0 会话／同步 + Type 1 认证存放）：" ;;
+                es) _mt_out="Dominio (sesión/sync Type 0 + depósito de auth Type 1):" ;;
+                fr) _mt_out="Domaine (session/sync Type 0 + dépôt d'auth Type 1) :" ;;
+                de) _mt_out="Domäne (Type 0 Sitzung/Abgleich + Type 1 Auth-Ablage):" ;;
+                ja) _mt_out="領域（Type 0 のセッション／同期 + Type 1 の認証の置き場）:" ;;
+                ko) _mt_out="도메인 (Type 0 세션/동기화 + Type 1 인증 보관):" ;;
+                *) _mt_out="Domain (Type 0 session/sync + Type 1 auth deposit):" ;;
+            esac
+            ;;
+        help_h_opt)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="全域選項：" ;;
+                zh-Hans) _mt_out="全局选项：" ;;
+                es) _mt_out="Opciones globales:" ;;
+                fr) _mt_out="Options globales :" ;;
+                de) _mt_out="Globale Optionen:" ;;
+                ja) _mt_out="共通オプション:" ;;
+                ko) _mt_out="공통 옵션:" ;;
+                *) _mt_out="Global Options:" ;;
+            esac
+            ;;
+        help_h_env)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="環境變數：" ;;
+                zh-Hans) _mt_out="环境变量：" ;;
+                es) _mt_out="Entorno:" ;;
+                fr) _mt_out="Environnement :" ;;
+                de) _mt_out="Umgebung:" ;;
+                ja) _mt_out="環境変数:" ;;
+                ko) _mt_out="환경 변수:" ;;
+                *) _mt_out="Environment:" ;;
+            esac
+            ;;
+        help_install)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="安裝 grok-cli（root 到全域路徑，使用者到 ~/.local/bin）" ;;
+                zh-Hans) _mt_out="安装 grok-cli（root 到全局路径，用户到 ~/.local/bin）" ;;
+                es) _mt_out="Instalar grok-cli (root al bin global, usuario a ~/.local/bin)" ;;
+                fr) _mt_out="Installer grok-cli (root vers le bin global, utilisateur vers ~/.local/bin)" ;;
+                de) _mt_out="grok-cli installieren (root in den globalen Bin, Nutzer nach ~/.local/bin)" ;;
+                ja) _mt_out="grok-cli を導入（root はグローバル、利用者は ~/.local/bin）" ;;
+                ko) _mt_out="grok-cli 설치 (root 는 전역 bin, 사용자는 ~/.local/bin)" ;;
+                *) _mt_out="Install grok-cli (root to the global bin, user to ~/.local/bin)" ;;
+            esac
+            ;;
+        help_uninstall)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="移除受管理的執行檔（確認或 --force）；不是 sudoers" ;;
+                zh-Hans) _mt_out="移除受管理的可执行文件（确认或 --force）；不是 sudoers" ;;
+                es) _mt_out="Quitar el binario gestionado (confirmar o --force); no es sudoers" ;;
+                fr) _mt_out="Retirer le binaire géré (confirmer ou --force) ; pas sudoers" ;;
+                de) _mt_out="Verwaltete Binärdatei entfernen (bestätigen oder --force); nicht sudoers" ;;
+                ja) _mt_out="管理対象の実行ファイルを削除（確認または --force）。sudoers ではない" ;;
+                ko) _mt_out="관리되는 실행 파일을 제거 (확인 또는 --force). sudoers 아님" ;;
+                *) _mt_out="Remove the managed binary (confirm or --force); not sudoers" ;;
+            esac
+            ;;
+        help_selfun)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="與 uninstall 相同的移除（頻道名稱）" ;;
+                zh-Hans) _mt_out="与 uninstall 相同的移除（频道名称）" ;;
+                es) _mt_out="La misma retirada que uninstall (nombre del canal)" ;;
+                fr) _mt_out="Le même retrait que uninstall (nom du canal)" ;;
+                de) _mt_out="Dieselbe Entfernung wie uninstall (Kanalname)" ;;
+                ja) _mt_out="uninstall と同じ削除（チャンネル名）" ;;
+                ko) _mt_out="uninstall 과 같은 제거 (채널 이름)" ;;
+                *) _mt_out="Same remove as uninstall (channel name)" ;;
+            esac
+            ;;
+        help_where)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="顯示執行中與安裝路徑" ;;
+                zh-Hans) _mt_out="显示运行中与安装路径" ;;
+                es) _mt_out="Mostrar las rutas en ejecución y de instalación" ;;
+                fr) _mt_out="Afficher les chemins d'exécution et d'installation" ;;
+                de) _mt_out="Lauf- und Installationspfade anzeigen" ;;
+                ja) _mt_out="実行中のパスとインストール先を表示" ;;
+                ko) _mt_out="실행 경로와 설치 경로를 표시" ;;
+                *) _mt_out="Show running and install paths" ;;
+            esac
+            ;;
+        help_version)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="顯示本機版本" ;;
+                zh-Hans) _mt_out="显示本机版本" ;;
+                es) _mt_out="Mostrar la versión local" ;;
+                fr) _mt_out="Afficher la version locale" ;;
+                de) _mt_out="Lokale Version anzeigen" ;;
+                ja) _mt_out="ローカルの版を表示" ;;
+                ko) _mt_out="로컬 버전 표시" ;;
+                *) _mt_out="Show local version" ;;
+            esac
+            ;;
+        help_vercheck)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="比較本機與 SCRIPT_URL 上的遠端 VERSION" ;;
+                zh-Hans) _mt_out="比较本机与 SCRIPT_URL 上的远程 VERSION" ;;
+                es) _mt_out="Comparar VERSION local y remota en SCRIPT_URL" ;;
+                fr) _mt_out="Comparer VERSION locale et distante sur SCRIPT_URL" ;;
+                de) _mt_out="Lokale und ferne VERSION auf SCRIPT_URL vergleichen" ;;
+                ja) _mt_out="SCRIPT_URL の遠隔 VERSION とローカルを比較" ;;
+                ko) _mt_out="SCRIPT_URL 의 원격 VERSION 과 로컬을 비교" ;;
+                *) _mt_out="Compare local vs remote VERSION on SCRIPT_URL" ;;
+            esac
+            ;;
+        help_selfup)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="從 SCRIPT_URL 重新下載 grok-cli（不是 grok）" ;;
+                zh-Hans) _mt_out="从 SCRIPT_URL 重新下载 grok-cli（不是 grok）" ;;
+                es) _mt_out="Volver a descargar grok-cli desde SCRIPT_URL (no grok)" ;;
+                fr) _mt_out="Retélécharger grok-cli depuis SCRIPT_URL (pas grok)" ;;
+                de) _mt_out="grok-cli erneut von SCRIPT_URL holen (nicht grok)" ;;
+                ja) _mt_out="SCRIPT_URL から grok-cli を再取得（grok ではない）" ;;
+                ko) _mt_out="SCRIPT_URL 에서 grok-cli 를 다시 받기 (grok 아님)" ;;
+                *) _mt_out="Re-download grok-cli from SCRIPT_URL (not grok)" ;;
+            esac
+            ;;
+        help_about)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="顯示診斷（含 sudoers 信任層）" ;;
+                zh-Hans) _mt_out="显示诊断（含 sudoers 信任层）" ;;
+                es) _mt_out="Mostrar diagnósticos (incluye el nivel de confianza sudoers)" ;;
+                fr) _mt_out="Afficher les diagnostics (dont le niveau de confiance sudoers)" ;;
+                de) _mt_out="Diagnose anzeigen (einschließlich sudoers-Vertrauensstufe)" ;;
+                ja) _mt_out="診断を表示（sudoers の信頼段階を含む）" ;;
+                ko) _mt_out="진단 표시 (sudoers 신뢰 단계 포함)" ;;
+                *) _mt_out="Show diagnostics (incl. sudoers trust tier)" ;;
+            esac
+            ;;
+        help_help)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="顯示這份說明" ;;
+                zh-Hans) _mt_out="显示这份说明" ;;
+                es) _mt_out="Mostrar esta ayuda" ;;
+                fr) _mt_out="Afficher cette aide" ;;
+                de) _mt_out="Diese Hilfe anzeigen" ;;
+                ja) _mt_out="この説明を表示" ;;
+                ko) _mt_out="이 도움말 표시" ;;
+                *) _mt_out="Show this help" ;;
+            esac
+            ;;
+        help_menu)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="終端機上是編號清單；不是終端機則為說明。第 6 列設定語言。" ;;
+                zh-Hans) _mt_out="终端上是编号清单；不是终端则为说明。第 6 行设定语言。" ;;
+                es) _mt_out="Lista numerada en un terminal; ayuda fuera de un terminal. La fila 6 fija el idioma." ;;
+                fr) _mt_out="Liste numérotée sur un terminal ; aide hors terminal. La ligne 6 fixe la langue." ;;
+                de) _mt_out="Nummerierte Liste an einem Terminal; Hilfe ohne Terminal. Zeile 6 setzt die Sprache." ;;
+                ja) _mt_out="端末では番号リスト。端末でなければ説明。6 行目が言語。" ;;
+                ko) _mt_out="터미널에서는 번호 목록. 터미널이 아니면 도움말. 6번이 언어." ;;
+                *) _mt_out="Numbered list on a terminal; help off a terminal. Row 6 sets the language." ;;
+            esac
+            ;;
+        help_rc)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="在 --root 暫存資料夾建立或修改 PATH 或 profile" ;;
+                zh-Hans) _mt_out="在 --root 临时文件夹建立或修改 PATH 或 profile" ;;
+                es) _mt_out="Crear o modificar PATH o profile en una carpeta temporal --root" ;;
+                fr) _mt_out="Créer ou modifier PATH ou profile dans un dossier temporaire --root" ;;
+                de) _mt_out="PATH oder profile in einem --root-Tempordner anlegen oder ändern" ;;
+                ja) _mt_out="--root の一時フォルダで PATH または profile を作成・変更" ;;
+                ko) _mt_out="--root 임시 폴더에서 PATH 또는 profile 을 만들거나 수정" ;;
+                *) _mt_out="Create or modify PATH or profile in a --root temp folder" ;;
+            esac
+            ;;
+        help_setup)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="從 x.ai 安裝 grok" ;;
+                zh-Hans) _mt_out="从 x.ai 安装 grok" ;;
+                es) _mt_out="Instalar grok desde x.ai" ;;
+                fr) _mt_out="Installer grok depuis x.ai" ;;
+                de) _mt_out="grok von x.ai installieren" ;;
+                ja) _mt_out="x.ai から grok を導入" ;;
+                ko) _mt_out="x.ai 에서 grok 설치" ;;
+                *) _mt_out="Install grok from x.ai" ;;
+            esac
+            ;;
+        help_update)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="從 x.ai 更新 grok（不是 grok-cli）" ;;
+                zh-Hans) _mt_out="从 x.ai 更新 grok（不是 grok-cli）" ;;
+                es) _mt_out="Actualizar grok desde x.ai (no grok-cli)" ;;
+                fr) _mt_out="Mettre à jour grok depuis x.ai (pas grok-cli)" ;;
+                de) _mt_out="grok von x.ai aktualisieren (nicht grok-cli)" ;;
+                ja) _mt_out="x.ai から grok を更新（grok-cli ではない）" ;;
+                ko) _mt_out="x.ai 에서 grok 업데이트 (grok-cli 아님)" ;;
+                *) _mt_out="Update grok from x.ai (not grok-cli)" ;;
+            esac
+            ;;
+        help_reinstall)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="移除現有 grok 並重新安裝（保留 auth.*）" ;;
+                zh-Hans) _mt_out="移除现有 grok 并重新安装（保留 auth.*）" ;;
+                es) _mt_out="Quitar el grok existente e instalar de nuevo (conserva auth.*)" ;;
+                fr) _mt_out="Retirer le grok existant et réinstaller (conserve auth.*)" ;;
+                de) _mt_out="Vorhandenes grok entfernen und erneut installieren (auth.* bleibt)" ;;
+                ja) _mt_out="既存の grok を削除して入れ直す（auth.* は残す）" ;;
+                ko) _mt_out="기존 grok 를 지우고 다시 설치 (auth.* 유지)" ;;
+                *) _mt_out="Remove existing grok and install again (keeps auth.*)" ;;
+            esac
+            ;;
+        help_run)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="啟動 grok 且不自動更新" ;;
+                zh-Hans) _mt_out="启动 grok 且不自动更新" ;;
+                es) _mt_out="Iniciar grok sin actualización automática" ;;
+                fr) _mt_out="Démarrer grok sans mise à jour automatique" ;;
+                de) _mt_out="grok ohne automatische Aktualisierung starten" ;;
+                ja) _mt_out="自動更新なしで grok を起動" ;;
+                ko) _mt_out="자동 업데이트 없이 grok 시작" ;;
+                *) _mt_out="Start grok without auto-update" ;;
+            esac
+            ;;
+        help_check)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="確認 grok 已登入（先執行 grok -p hello）" ;;
+                zh-Hans) _mt_out="确认 grok 已登录（先运行 grok -p hello）" ;;
+                es) _mt_out="Confirmar que grok tiene sesión (primero grok -p hello)" ;;
+                fr) _mt_out="Confirmer que grok est connecté (d'abord grok -p hello)" ;;
+                de) _mt_out="Prüfen, ob grok angemeldet ist (zuerst grok -p hello)" ;;
+                ja) _mt_out="grok がログイン済みか確認（先に grok -p hello）" ;;
+                ko) _mt_out="grok 로그인 확인 (먼저 grok -p hello)" ;;
+                *) _mt_out="Confirm grok is logged in (runs grok -p hello first)" ;;
+            esac
+            ;;
+        help_backup)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="把 ~/.grok/auth.* 推送到存放目錄" ;;
+                zh-Hans) _mt_out="把 ~/.grok/auth.* 推送到存放目录" ;;
+                es) _mt_out="Enviar ~/.grok/auth.* al directorio de depósito" ;;
+                fr) _mt_out="Envoyer ~/.grok/auth.* vers le dossier de dépôt" ;;
+                de) _mt_out="~/.grok/auth.* in das Ablageverzeichnis schieben" ;;
+                ja) _mt_out="~/.grok/auth.* を保管ディレクトリへ送る" ;;
+                ko) _mt_out="~/.grok/auth.* 를 보관 디렉터리로 보냄" ;;
+                *) _mt_out="Push ~/.grok/auth.* to the deposit directory" ;;
+            esac
+            ;;
+        help_sync)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="把存放處的 auth.* 複製到 ~/.grok（不用 sudo）" ;;
+                zh-Hans) _mt_out="把存放处的 auth.* 复制到 ~/.grok（不用 sudo）" ;;
+                es) _mt_out="Copiar el auth.* del depósito a ~/.grok (sin sudo)" ;;
+                fr) _mt_out="Copier le auth.* du dépôt dans ~/.grok (sans sudo)" ;;
+                de) _mt_out="auth.* aus der Ablage nach ~/.grok kopieren (ohne sudo)" ;;
+                ja) _mt_out="保管場所の auth.* を ~/.grok へコピー（sudo なし）" ;;
+                ko) _mt_out="보관소의 auth.* 를 ~/.grok 로 복사 (sudo 없음)" ;;
+                *) _mt_out="Copy the deposit auth.* into ~/.grok (no sudo)" ;;
+            esac
+            ;;
+        help_from)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="將遠端主機的 auth.* 複製到 ~/.grok" ;;
+                zh-Hans) _mt_out="将远程主机的 auth.* 复制到 ~/.grok" ;;
+                es) _mt_out="Copiar el auth.* de un host remoto a ~/.grok" ;;
+                fr) _mt_out="Copier le auth.* d'un hôte distant dans ~/.grok" ;;
+                de) _mt_out="auth.* eines fernen Hosts nach ~/.grok kopieren" ;;
+                ja) _mt_out="遠隔ホストの auth.* を ~/.grok へコピー" ;;
+                ko) _mt_out="원격 호스트의 auth.* 를 ~/.grok 로 복사" ;;
+                *) _mt_out="Copy a remote host's auth.* into ~/.grok" ;;
+            esac
+            ;;
+        help_to)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="將 ~/.grok/auth.* 複製到遠端登入" ;;
+                zh-Hans) _mt_out="将 ~/.grok/auth.* 复制到远程登录" ;;
+                es) _mt_out="Copiar ~/.grok/auth.* al login remoto" ;;
+                fr) _mt_out="Copier ~/.grok/auth.* vers une session distante" ;;
+                de) _mt_out="~/.grok/auth.* auf eine ferne Anmeldung kopieren" ;;
+                ja) _mt_out="~/.grok/auth.* を遠隔ログインへコピー" ;;
+                ko) _mt_out="~/.grok/auth.* 를 원격 로그인으로 복사" ;;
+                *) _mt_out="Copy ~/.grok/auth.* onto a remote login" ;;
+            esac
+            ;;
+        help_cron)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="把 backup 與 sync-auth 工作加到這個登入的 crontab" ;;
+                zh-Hans) _mt_out="把 backup 与 sync-auth 作业加到这个登录的 crontab" ;;
+                es) _mt_out="Añadir tareas backup y sync-auth al crontab de este login" ;;
+                fr) _mt_out="Ajouter les tâches backup et sync-auth au crontab de cette session" ;;
+                de) _mt_out="backup- und sync-auth-Aufträge in die Crontab dieser Anmeldung" ;;
+                ja) _mt_out="このログインの crontab に backup と sync-auth を追加" ;;
+                ko) _mt_out="이 로그인의 crontab 에 backup 과 sync-auth 작업을 추가" ;;
+                *) _mt_out="Add backup and sync-auth jobs to this login's crontab" ;;
+            esac
+            ;;
+        help_print)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="印出給管理員的 sudoers 草稿" ;;
+                zh-Hans) _mt_out="印出给管理员的 sudoers 草稿" ;;
+                es) _mt_out="Emitir un borrador sudoers para un admin" ;;
+                fr) _mt_out="Émettre un brouillon sudoers pour un admin" ;;
+                de) _mt_out="Einen sudoers-Entwurf für einen Admin ausgeben" ;;
+                ja) _mt_out="管理者向け sudoers 下書きを出力" ;;
+                ko) _mt_out="관리자용 sudoers 초안을 출력" ;;
+                *) _mt_out="Emit a sudoers draft for an admin" ;;
+            esac
+            ;;
+        help_script)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="寫出管理員安裝腳本" ;;
+                zh-Hans) _mt_out="写出管理员安装脚本" ;;
+                es) _mt_out="Escribir el script de instalación para el admin" ;;
+                fr) _mt_out="Écrire le script d'installation pour l'admin" ;;
+                de) _mt_out="Das Admin-Installationsskript schreiben" ;;
+                ja) _mt_out="管理者用の導入スクリプトを書く" ;;
+                ko) _mt_out="관리자 설치 스크립트를 작성" ;;
+                *) _mt_out="Write the admin install script" ;;
+            esac
+            ;;
+        help_remove)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="只移除 sudoers 草稿" ;;
+                zh-Hans) _mt_out="只移除 sudoers 草稿" ;;
+                es) _mt_out="Quitar solo el borrador de sudoers" ;;
+                fr) _mt_out="Retirer seulement le brouillon sudoers" ;;
+                de) _mt_out="Nur den sudoers-Entwurf entfernen" ;;
+                ja) _mt_out="sudoers 下書きだけを削除" ;;
+                ko) _mt_out="sudoers 초안만 제거" ;;
+                *) _mt_out="Remove the sudoers draft only" ;;
+            esac
+            ;;
+        help_generate)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="寫一份可閱讀的 JSON 授權" ;;
+                zh-Hans) _mt_out="写一份可阅读的 JSON 授权" ;;
+                es) _mt_out="Escribir una concesión JSON que se puede leer" ;;
+                fr) _mt_out="Écrire une autorisation JSON lisible" ;;
+                de) _mt_out="Eine lesbare JSON-Freigabe schreiben" ;;
+                ja) _mt_out="読める JSON 認可を書く" ;;
+                ko) _mt_out="읽을 수 있는 JSON 허가를 작성" ;;
+                *) _mt_out="Write a JSON grant you can read" ;;
+            esac
+            ;;
+        help_submit)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="將 JSON 授權排入 inbound" ;;
+                zh-Hans) _mt_out="将 JSON 授权排入 inbound" ;;
+                es) _mt_out="Poner la concesión JSON en la cola de entrada" ;;
+                fr) _mt_out="Mettre l'autorisation JSON dans la file entrante" ;;
+                de) _mt_out="Die JSON-Freigabe in die Eingangs-Warteschlange legen" ;;
+                ja) _mt_out="JSON 認可を受信待ちに入れる" ;;
+                ko) _mt_out="JSON 허가를 수신 대기열에 넣기" ;;
+                *) _mt_out="Queue the JSON grant inbound" ;;
+            esac
+            ;;
+        help_quiet)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="不顯示 info 與 success（錯誤仍顯示）" ;;
+                zh-Hans) _mt_out="不显示 info 与 success（错误仍显示）" ;;
+                es) _mt_out="Ocultar info y success (los errores siguen)" ;;
+                fr) _mt_out="Masquer info et success (les erreurs restent)" ;;
+                de) _mt_out="Info und Erfolg unterdrücken (Fehler bleiben)" ;;
+                ja) _mt_out="info と success を出さない（エラーは出る）" ;;
+                ko) _mt_out="info 와 success 를 숨김 (오류는 표시)" ;;
+                *) _mt_out="Suppress info and success (errors still show)" ;;
+            esac
+            ;;
+        help_json)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="機器可處理的 JSON（同時視為 --quiet）" ;;
+                zh-Hans) _mt_out="机器可处理的 JSON（同时视为 --quiet）" ;;
+                es) _mt_out="JSON para máquinas (implica --quiet)" ;;
+                fr) _mt_out="JSON pour les machines (implique --quiet)" ;;
+                de) _mt_out="JSON für Maschinen (schließt --quiet ein)" ;;
+                ja) _mt_out="機械向け JSON（--quiet を含む）" ;;
+                ko) _mt_out="기계용 JSON(--quiet 포함)" ;;
+                *) _mt_out="Machine-readable JSON (implies --quiet)" ;;
+            esac
+            ;;
+        help_force)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="強制重新安裝，或略過解除安裝確認" ;;
+                zh-Hans) _mt_out="强制重新安装，或跳过卸载确认" ;;
+                es) _mt_out="Forzar reinstalación o saltar la confirmación de uninstall" ;;
+                fr) _mt_out="Forcer la réinstallation ou sauter la confirmation de uninstall" ;;
+                de) _mt_out="Neuinstallation erzwingen oder die uninstall-Bestätigung überspringen" ;;
+                ja) _mt_out="再導入を強制するか、uninstall の確認を飛ばす" ;;
+                ko) _mt_out="다시 설치를 강제하거나 uninstall 확인을 건너뜀" ;;
+                *) _mt_out="Force reinstall or skip the uninstall confirm" ;;
+            esac
+            ;;
+        help_debug)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="除錯寫到 stderr；選單印出每個繪製步驟的經過時間" ;;
+                zh-Hans) _mt_out="调试写到 stderr；菜单印出每个绘制步骤的经过时间" ;;
+                es) _mt_out="Depuración en stderr; el menú imprime el tiempo de cada paso de pintado" ;;
+                fr) _mt_out="Débogage sur stderr ; le menu imprime le temps de chaque étape d'affichage" ;;
+                de) _mt_out="Debug auf stderr; das Menü zeigt die Dauer jedes Zeichenschritts" ;;
+                ja) _mt_out="stderr にデバッグ。メニューは各描画段階の経過時間を出す" ;;
+                ko) _mt_out="stderr 에 디버그. 메뉴는 각 그리기 단계의 경과 시간을 표시" ;;
+                *) _mt_out="Debug on stderr; the menu prints elapsed time of each paint step" ;;
+            esac
+            ;;
+        help_lang_env)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="只影響這一次執行的選單語言；不寫入檔案" ;;
+                zh-Hans) _mt_out="只影响这一次运行的菜单语言；不写入文件" ;;
+                es) _mt_out="Idioma del menú solo para esta ejecución; no escribe el archivo" ;;
+                fr) _mt_out="Langue du menu pour cette exécution seulement ; n'écrit pas le fichier" ;;
+                de) _mt_out="Menüsprache nur für diesen Lauf; schreibt die Datei nicht" ;;
+                ja) _mt_out="この実行だけのメニュー言語。ファイルには書かない" ;;
+                ko) _mt_out="이번 실행의 메뉴 언어만. 파일에는 쓰지 않음" ;;
+                *) _mt_out="Menu language for this run only; does not write the file" ;;
+            esac
+            ;;
+        about_title)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="關於 / 診斷" ;;
+                zh-Hans) _mt_out="关于 / 诊断" ;;
+                es) _mt_out="Acerca de / Diagnóstico" ;;
+                fr) _mt_out="À propos / Diagnostic" ;;
+                de) _mt_out="Über / Diagnose" ;;
+                ja) _mt_out="概要 / 診断" ;;
+                ko) _mt_out="개요 / 진단" ;;
+                *) _mt_out="About / Diagnostics" ;;
+            esac
+            ;;
+        about_installed)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="已正確安裝。" ;;
+                zh-Hans) _mt_out="已正确安装。" ;;
+                es) _mt_out="está instalado correctamente." ;;
+                fr) _mt_out="est correctement installé." ;;
+                de) _mt_out="ist ordnungsgemäß installiert." ;;
+                ja) _mt_out="は正しく導入されています。" ;;
+                ko) _mt_out="가 올바르게 설치되어 있습니다." ;;
+                *) _mt_out="is properly installed." ;;
+            esac
+            ;;
+        about_missing)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="沒有安裝在受管理的 bin 路徑。" ;;
+                zh-Hans) _mt_out="没有安装在受管理的 bin 路径。" ;;
+                es) _mt_out="NO está instalado en una ruta bin gestionada." ;;
+                fr) _mt_out="N'est PAS installé dans un chemin bin géré." ;;
+                de) _mt_out="ist NICHT in einem verwalteten Bin-Pfad installiert." ;;
+                ja) _mt_out="は管理された bin パスに導入されていません。" ;;
+                ko) _mt_out="는 관리되는 bin 경로에 설치되어 있지 않습니다." ;;
+                *) _mt_out="is NOT installed in a managed bin path." ;;
+            esac
+            ;;
+        about_recommend)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="建議：" ;;
+                zh-Hans) _mt_out="建议：" ;;
+                es) _mt_out="Recomendado:" ;;
+                fr) _mt_out="Recommandé :" ;;
+                de) _mt_out="Empfohlen:" ;;
+                ja) _mt_out="推奨:" ;;
+                ko) _mt_out="권장:" ;;
+                *) _mt_out="Recommended:" ;;
+            esac
+            ;;
+        about_global)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="全域安裝" ;;
+                zh-Hans) _mt_out="全局安装" ;;
+                es) _mt_out="Instalación global" ;;
+                fr) _mt_out="Installation globale" ;;
+                de) _mt_out="Globale Installation" ;;
+                ja) _mt_out="グローバル導入" ;;
+                ko) _mt_out="전역 설치" ;;
+                *) _mt_out="Global install" ;;
+            esac
+            ;;
+        about_local)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="本機安裝" ;;
+                zh-Hans) _mt_out="本机安装" ;;
+                es) _mt_out="Instalación local" ;;
+                fr) _mt_out="Installation locale" ;;
+                de) _mt_out="Lokale Installation" ;;
+                ja) _mt_out="ローカル導入" ;;
+                ko) _mt_out="로컬 설치" ;;
+                *) _mt_out="Local install" ;;
+            esac
+            ;;
+        about_trust)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="sudoers 信任層：" ;;
+                zh-Hans) _mt_out="sudoers 信任层：" ;;
+                es) _mt_out="Nivel de confianza sudoers:" ;;
+                fr) _mt_out="Niveau de confiance sudoers :" ;;
+                de) _mt_out="sudoers-Vertrauensstufe:" ;;
+                ja) _mt_out="sudoers 信頼段階:" ;;
+                ko) _mt_out="sudoers 신뢰 단계:" ;;
+                *) _mt_out="Sudoers trust tier:" ;;
+            esac
+            ;;
+        about_repo)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="儲存庫：" ;;
+                zh-Hans) _mt_out="存储库：" ;;
+                es) _mt_out="Repositorio:" ;;
+                fr) _mt_out="Dépôt :" ;;
+                de) _mt_out="Repository:" ;;
+                ja) _mt_out="リポジトリ:" ;;
+                ko) _mt_out="저장소:" ;;
+                *) _mt_out="Repository:" ;;
+            esac
+            ;;
+        about_channel)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="安裝頻道：" ;;
+                zh-Hans) _mt_out="安装频道：" ;;
+                es) _mt_out="Canal de instalación:" ;;
+                fr) _mt_out="Canal d'installation :" ;;
+                de) _mt_out="Installationskanal:" ;;
+                ja) _mt_out="導入チャンネル:" ;;
+                ko) _mt_out="설치 채널:" ;;
+                *) _mt_out="Install channel:" ;;
+            esac
+            ;;
+        about_channel_empty)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="（空 — 只有本機安裝）" ;;
+                zh-Hans) _mt_out="（空 — 只有本机安装）" ;;
+                es) _mt_out="(vacío — solo instalación local)" ;;
+                fr) _mt_out="(vide — installation locale seulement)" ;;
+                de) _mt_out="(leer — nur lokale Installation)" ;;
+                ja) _mt_out="（空 — ローカル導入のみ）" ;;
+                ko) _mt_out="(비어 있음 — 로컬 설치만)" ;;
+                *) _mt_out="(empty — local install only)" ;;
+            esac
+            ;;
+        about_user)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="目前使用者：" ;;
+                zh-Hans) _mt_out="当前用户：" ;;
+                es) _mt_out="Usuario actual:" ;;
+                fr) _mt_out="Utilisateur actuel :" ;;
+                de) _mt_out="Aktueller Benutzer:" ;;
+                ja) _mt_out="現在のユーザー:" ;;
+                ko) _mt_out="현재 사용자:" ;;
+                *) _mt_out="Current user:" ;;
+            esac
+            ;;
+        about_root)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="執行身分：root" ;;
+                zh-Hans) _mt_out="执行身份：root" ;;
+                es) _mt_out="Contexto de ejecución: root" ;;
+                fr) _mt_out="Contexte d'exécution : root" ;;
+                de) _mt_out="Ausführungskontext: root" ;;
+                ja) _mt_out="実行コンテキスト: root" ;;
+                ko) _mt_out="실행 컨텍스트: root" ;;
+                *) _mt_out="Execution context: root" ;;
+            esac
+            ;;
+        about_userctx)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="執行身分：一般使用者（Type 0 + 窄的 Type 1 存放）" ;;
+                zh-Hans) _mt_out="执行身份：普通用户（Type 0 + 窄的 Type 1 存放）" ;;
+                es) _mt_out="Contexto: usuario normal (Type 0 + depósito Type 1 estrecho)" ;;
+                fr) _mt_out="Contexte : utilisateur normal (Type 0 + dépôt Type 1 étroit)" ;;
+                de) _mt_out="Kontext: normaler Benutzer (Type 0 + schmale Type-1-Ablage)" ;;
+                ja) _mt_out="実行コンテキスト: 一般ユーザー（Type 0 + 狭い Type 1 の保管）" ;;
+                ko) _mt_out="실행 컨텍스트: 일반 사용자 (Type 0 + 좁은 Type 1 보관)" ;;
+                *) _mt_out="Execution context: normal user (Type 0 + narrow Type 1 deposit)" ;;
+            esac
+            ;;
+        about_shell)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="目前 shell：" ;;
+                zh-Hans) _mt_out="当前 shell：" ;;
+                es) _mt_out="Shell actual:" ;;
+                fr) _mt_out="Shell actuel :" ;;
+                de) _mt_out="Aktuelle Shell:" ;;
+                ja) _mt_out="現在のシェル:" ;;
+                ko) _mt_out="현재 셸:" ;;
+                *) _mt_out="Current shell:" ;;
+            esac
+            ;;
+        about_tty_yes)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="TTY / 互動：是" ;;
+                zh-Hans) _mt_out="TTY / 交互：是" ;;
+                es) _mt_out="TTY / interactivo: sí" ;;
+                fr) _mt_out="TTY / interactif : oui" ;;
+                de) _mt_out="TTY / interaktiv: ja" ;;
+                ja) _mt_out="TTY / 対話: はい" ;;
+                ko) _mt_out="TTY / 대화형: 예" ;;
+                *) _mt_out="TTY / Interactive: yes" ;;
+            esac
+            ;;
+        about_tty_no)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="TTY / 互動：否" ;;
+                zh-Hans) _mt_out="TTY / 交互：否" ;;
+                es) _mt_out="TTY / interactivo: no" ;;
+                fr) _mt_out="TTY / interactif : non" ;;
+                de) _mt_out="TTY / interaktiv: nein" ;;
+                ja) _mt_out="TTY / 対話: いいえ" ;;
+                ko) _mt_out="TTY / 대화형: 아니오" ;;
+                *) _mt_out="TTY / Interactive: no" ;;
+            esac
+            ;;
+        about_cache)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="使用的快取資料夾：" ;;
+                zh-Hans) _mt_out="使用的缓存文件夹：" ;;
+                es) _mt_out="Carpeta de caché en uso:" ;;
+                fr) _mt_out="Dossier de cache utilisé :" ;;
+                de) _mt_out="Verwendeter Cache-Ordner:" ;;
+                ja) _mt_out="使用中のキャッシュフォルダ:" ;;
+                ko) _mt_out="사용 중인 캐시 폴더:" ;;
+                *) _mt_out="Cache folder used:" ;;
+            esac
+            ;;
+        about_pref)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="快取資料夾（偏好）：" ;;
+                zh-Hans) _mt_out="缓存文件夹（首选）：" ;;
+                es) _mt_out="Carpeta de caché (preferida):" ;;
+                fr) _mt_out="Dossier de cache (préféré) :" ;;
+                de) _mt_out="Cache-Ordner (bevorzugt):" ;;
+                ja) _mt_out="キャッシュフォルダ（優先）:" ;;
+                ko) _mt_out="캐시 폴더 (선호):" ;;
+                *) _mt_out="Cache folder (preferred):" ;;
+            esac
+            ;;
+        about_fb1)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="快取資料夾（第 1 備援）：" ;;
+                zh-Hans) _mt_out="缓存文件夹（第 1 后备）：" ;;
+                es) _mt_out="Carpeta de caché (1.er respaldo):" ;;
+                fr) _mt_out="Dossier de cache (1er repli) :" ;;
+                de) _mt_out="Cache-Ordner (1. Ausweich):" ;;
+                ja) _mt_out="キャッシュフォルダ（第1候補）:" ;;
+                ko) _mt_out="캐시 폴더 (1차 대체):" ;;
+                *) _mt_out="Cache folder (1st fallback):" ;;
+            esac
+            ;;
+        about_fb2)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="快取資料夾（第 2 備援）：" ;;
+                zh-Hans) _mt_out="缓存文件夹（第 2 后备）：" ;;
+                es) _mt_out="Carpeta de caché (2.º respaldo):" ;;
+                fr) _mt_out="Dossier de cache (2e repli) :" ;;
+                de) _mt_out="Cache-Ordner (2. Ausweich):" ;;
+                ja) _mt_out="キャッシュフォルダ（第2候補）:" ;;
+                ko) _mt_out="캐시 폴더 (2차 대체):" ;;
+                *) _mt_out="Cache folder (2nd fallback):" ;;
+            esac
+            ;;
+        about_persist)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="持久儲存：" ;;
+                zh-Hans) _mt_out="持久存储：" ;;
+                es) _mt_out="Almacenamiento persistente:" ;;
+                fr) _mt_out="Stockage persistant :" ;;
+                de) _mt_out="Dauerhafter Speicher:" ;;
+                ja) _mt_out="永続ストレージ:" ;;
+                ko) _mt_out="영구 저장소:" ;;
+                *) _mt_out="Persistence storage:" ;;
+            esac
+            ;;
+        about_peer)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="Grok CLI（xAI）：" ;;
+                zh-Hans) _mt_out="Grok CLI（xAI）：" ;;
+                es) _mt_out="Grok CLI (xAI):" ;;
+                fr) _mt_out="Grok CLI (xAI) :" ;;
+                de) _mt_out="Grok CLI (xAI):" ;;
+                ja) _mt_out="Grok CLI（xAI）:" ;;
+                ko) _mt_out="Grok CLI (xAI):" ;;
+                *) _mt_out="Grok CLI (xAI):" ;;
+            esac
+            ;;
+        about_peer_missing)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="找不到 — ${_mt_a} setup 會安裝它" ;;
+                zh-Hans) _mt_out="找不到 — ${_mt_a} setup 会安装它" ;;
+                es) _mt_out="no encontrado — ${_mt_a} setup lo instala" ;;
+                fr) _mt_out="introuvable — ${_mt_a} setup l'installe" ;;
+                de) _mt_out="nicht gefunden — ${_mt_a} setup installiert es" ;;
+                ja) _mt_out="見つかりません — ${_mt_a} setup が導入します" ;;
+                ko) _mt_out="없음 — ${_mt_a} setup 이 설치합니다" ;;
+                *) _mt_out="not found — ${_mt_a} setup installs it" ;;
+            esac
+            ;;
+        about_home)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="Grok 家目錄：" ;;
+                zh-Hans) _mt_out="Grok 主目录：" ;;
+                es) _mt_out="Directorio grok:" ;;
+                fr) _mt_out="Dossier grok :" ;;
+                de) _mt_out="Grok-Heimat:" ;;
+                ja) _mt_out="Grok のホーム:" ;;
+                ko) _mt_out="Grok 홈:" ;;
+                *) _mt_out="Grok home:" ;;
+            esac
+            ;;
+        about_session)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="工作階段：" ;;
+                zh-Hans) _mt_out="会话：" ;;
+                es) _mt_out="Sesión:" ;;
+                fr) _mt_out="Session :" ;;
+                de) _mt_out="Sitzung:" ;;
+                ja) _mt_out="セッション:" ;;
+                ko) _mt_out="세션:" ;;
+                *) _mt_out="Session:" ;;
+            esac
+            ;;
+        about_deposit)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="存放目錄：" ;;
+                zh-Hans) _mt_out="存放目录：" ;;
+                es) _mt_out="Directorio de depósito:" ;;
+                fr) _mt_out="Dossier de dépôt :" ;;
+                de) _mt_out="Ablageverzeichnis:" ;;
+                ja) _mt_out="保管ディレクトリ:" ;;
+                ko) _mt_out="보관 디렉터리:" ;;
+                *) _mt_out="Deposit directory:" ;;
+            esac
+            ;;
+        about_sudo_deposit)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="sudo 存放：" ;;
+                zh-Hans) _mt_out="sudo 存放：" ;;
+                es) _mt_out="Depósito sudo:" ;;
+                fr) _mt_out="Dépôt sudo :" ;;
+                de) _mt_out="sudo-Ablage:" ;;
+                ja) _mt_out="sudo 保管:" ;;
+                ko) _mt_out="sudo 보관:" ;;
+                *) _mt_out="Sudo deposit:" ;;
+            esac
+            ;;
+        about_useful)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="實用指令：" ;;
+                zh-Hans) _mt_out="实用命令：" ;;
+                es) _mt_out="Comandos útiles:" ;;
+                fr) _mt_out="Commandes utiles :" ;;
+                de) _mt_out="Nützliche Befehle:" ;;
+                ja) _mt_out="便利なコマンド:" ;;
+                ko) _mt_out="유용한 명령:" ;;
+                *) _mt_out="Useful commands:" ;;
+            esac
+            ;;
+        about_full_usage)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="完整用法" ;;
+                zh-Hans) _mt_out="完整用法" ;;
+                es) _mt_out="Uso completo" ;;
+                fr) _mt_out="Utilisation complète" ;;
+                de) _mt_out="Vollständige Verwendung" ;;
+                ja) _mt_out="詳しい使い方" ;;
+                ko) _mt_out="전체 사용법" ;;
+                *) _mt_out="Full usage" ;;
+            esac
+            ;;
+        about_json_line)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="機器可處理的輸出" ;;
+                zh-Hans) _mt_out="机器可处理的输出" ;;
+                es) _mt_out="salida para máquinas" ;;
+                fr) _mt_out="sortie pour les machines" ;;
+                de) _mt_out="Ausgabe für Maschinen" ;;
+                ja) _mt_out="機械向けの出力" ;;
+                ko) _mt_out="기계용 출력" ;;
+                *) _mt_out="Machine-readable output" ;;
+            esac
+            ;;
+        lang_en_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用英文" ;;
+                zh-Hans) _mt_out="这个菜单改用英文" ;;
+                es) _mt_out="usar inglés en este menú" ;;
+                fr) _mt_out="utiliser l'anglais pour ce menu" ;;
+                de) _mt_out="Englisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューを英語にする" ;;
+                ko) _mt_out="이 메뉴를 영어로" ;;
+                *) _mt_out="use English for this menu" ;;
+            esac
+            ;;
+        lang_zh_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用繁體中文" ;;
+                zh-Hans) _mt_out="这个菜单改用繁体中文" ;;
+                es) _mt_out="usar chino tradicional en este menú" ;;
+                fr) _mt_out="utiliser le chinois traditionnel pour ce menu" ;;
+                de) _mt_out="Traditionelles Chinesisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューを繁体字中国語にする" ;;
+                ko) _mt_out="이 메뉴를 번체 중국어로" ;;
+                *) _mt_out="use Traditional Chinese for this menu" ;;
+            esac
+            ;;
+        lang_es_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用西班牙文" ;;
+                zh-Hans) _mt_out="这个菜单改用西班牙文" ;;
+                es) _mt_out="usar español en este menú" ;;
+                fr) _mt_out="utiliser l'espagnol pour ce menu" ;;
+                de) _mt_out="Spanisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューをスペイン語にする" ;;
+                ko) _mt_out="이 메뉴를 스페인어로" ;;
+                *) _mt_out="use Spanish for this menu" ;;
+            esac
+            ;;
+        lang_fr_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用法文" ;;
+                zh-Hans) _mt_out="这个菜单改用法文" ;;
+                es) _mt_out="usar francés en este menú" ;;
+                fr) _mt_out="utiliser le français pour ce menu" ;;
+                de) _mt_out="Französisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューをフランス語にする" ;;
+                ko) _mt_out="이 메뉴를 프랑스어로" ;;
+                *) _mt_out="use French for this menu" ;;
+            esac
+            ;;
+        lang_de_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用德文" ;;
+                zh-Hans) _mt_out="这个菜单改用德文" ;;
+                es) _mt_out="usar alemán en este menú" ;;
+                fr) _mt_out="utiliser l'allemand pour ce menu" ;;
+                de) _mt_out="Deutsch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューをドイツ語にする" ;;
+                ko) _mt_out="이 메뉴를 독일어로" ;;
+                *) _mt_out="use German for this menu" ;;
+            esac
+            ;;
+        lang_zh_hans_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用簡體中文" ;;
+                zh-Hans) _mt_out="这个菜单改用简体中文" ;;
+                es) _mt_out="usar chino simplificado en este menú" ;;
+                fr) _mt_out="utiliser le chinois simplifié pour ce menu" ;;
+                de) _mt_out="Vereinfachtes Chinesisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューを簡体字中国語にする" ;;
+                ko) _mt_out="이 메뉴를 간체 중국어로" ;;
+                *) _mt_out="use Simplified Chinese for this menu" ;;
+            esac
+            ;;
+        lang_ja_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用日文" ;;
+                zh-Hans) _mt_out="这个菜单改用日文" ;;
+                es) _mt_out="usar japonés en este menú" ;;
+                fr) _mt_out="utiliser le japonais pour ce menu" ;;
+                de) _mt_out="Japanisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューを日本語にする" ;;
+                ko) _mt_out="이 메뉴를 일본어로" ;;
+                *) _mt_out="use Japanese for this menu" ;;
+            esac
+            ;;
+        lang_ko_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用韓文" ;;
+                zh-Hans) _mt_out="这个菜单改用韩文" ;;
+                es) _mt_out="usar coreano en este menú" ;;
+                fr) _mt_out="utiliser le coréen pour ce menu" ;;
+                de) _mt_out="Koreanisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューを韓国語にする" ;;
+                ko) _mt_out="이 메뉴를 한국어로" ;;
+                *) _mt_out="use Korean for this menu" ;;
+            esac
+            ;;
+        *)
+            _mt_out="${_mt_key}"
+            ;;
+    esac
+    printf '%s' "${_mt_out}"
+    unset _mt_key _mt_a _mt_b _mt_lang _mt_out
+}
+
+app_help_i18n() {
+    : "${APP_NAME:=grok-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
+    out_info "${APP_NAME} — $(app_menu_text short_desc)"
+    out_empty_line
+    out_info "$(app_menu_text help_h_usage)"
+    out_plain "  ${APP_NAME} [command] [options]"
+    out_empty_line
+    out_info "$(app_menu_text help_h_life)"
+    out_plain "  install              $(app_menu_text help_install)"
+    out_plain "  uninstall            $(app_menu_text help_uninstall)"
+    out_plain "  self-uninstall       $(app_menu_text help_selfun)"
+    out_plain "  where-is-me          $(app_menu_text help_where)"
+    out_plain "  version              $(app_menu_text help_version)"
+    out_plain "  version-check        $(app_menu_text help_vercheck)"
+    out_plain "  self-update          $(app_menu_text help_selfup)"
+    out_plain "  about                $(app_menu_text help_about)"
+    out_plain "  help                 $(app_menu_text help_help)"
+    out_plain "  menu                 $(app_menu_text help_menu)"
+    out_plain "  main                 menu"
+    out_empty_line
+    out_info "$(app_menu_text help_h_test)"
+    out_plain "  rc-test              $(app_menu_text help_rc)"
+    out_empty_line
+    out_info "$(app_menu_text help_h_domain)"
+    out_plain "  setup                $(app_menu_text help_setup)"
+    out_plain "  update-grok          $(app_menu_text help_update)"
+    out_plain "  reinstall            $(app_menu_text help_reinstall)"
+    out_plain "  run                  $(app_menu_text help_run)"
+    out_plain "  check-session        $(app_menu_text help_check)"
+    out_plain "  backup               $(app_menu_text help_backup)"
+    out_plain "  sync-auth            $(app_menu_text help_sync)"
+    out_plain "  sync-auth-from-remote $(app_menu_text help_from)"
+    out_plain "  sync-auth-to-remote  $(app_menu_text help_to)"
+    out_plain "  add-crontab          $(app_menu_text help_cron)"
+    out_plain "  print-sudoers        $(app_menu_text help_print)"
+    out_plain "  print-sudoers-install-script $(app_menu_text help_script)"
+    out_plain "  remove-project-sudoers $(app_menu_text help_remove)"
+    out_plain "  generate-sudoer-request $(app_menu_text help_generate)"
+    out_plain "  submit-sudoer-request $(app_menu_text help_submit)"
+    out_empty_line
+    out_info "$(app_menu_text help_h_opt)"
+    out_plain "  --quiet, -q          $(app_menu_text help_quiet)"
+    out_plain "  --json               $(app_menu_text help_json)"
+    out_plain "  --force              $(app_menu_text help_force)"
+    out_plain "  --debug              $(app_menu_text help_debug)"
+    out_empty_line
+    out_info "$(app_menu_text help_h_env)"
+    out_plain "  SCRIPT_URL           grok-cli"
+    out_plain "  GROK_HOME            ~/.grok"
+    out_plain "  GROK_CLI_ROOT        ${GROK_CLI_ROOT}"
+    out_plain "  GROK_CLI_LANG        $(app_menu_text help_lang_env)"
+    out_plain "                       en zh-Hant es fr de zh-Hans ja ko"
+}
+
+
+# =============================================================================
+# gc_menu_lang_is_en() / gc_menu_short() / gc_menu_row_explain_i18n()
+# gc_menu_family_alias() / chrome printers
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# English menu lines stay the existing literals so an English run matches
+# the numbered-list tests. Any other APP_LANG goes through app_menu_text.
+# Leaf shorts stay the English verb. Category shorts follow APP_LANG.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-language.md
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-28
+# =============================================================================
+gc_menu_lang_is_en() {
+    case "${APP_LANG:-en}" in
+        en) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+gc_menu_short() {
+    case "${1-}" in
+        grok-auth)
+            if gc_menu_lang_is_en; then
+                printf '%s' "grok-auth"
+            else
+                app_menu_text cat_auth
+            fi
+            ;;
+        language)
+            if gc_menu_lang_is_en; then
+                printf '%s' "language"
+            else
+                app_menu_text cat_language
+            fi
+            ;;
+        self-management)
+            if gc_menu_lang_is_en; then
+                printf '%s' "self-management"
+            else
+                app_menu_text cat_self
+            fi
+            ;;
+        *)
+            printf '%s' "${1-}"
+            ;;
+    esac
+}
+
+gc_menu_row_explain_i18n() {
+    : "${GROK_CLI_ROOT:=/var/grok-cli}"
+    case "${1-}" in
+        run) app_menu_text long_run ;;
+        reinstall) app_menu_text long_reinstall ;;
+        setup) app_menu_text long_setup ;;
+        grok-auth) app_menu_text cat_auth_long ;;
+        language) app_menu_text cat_language_long ;;
+        backup) app_menu_text long_backup "${GROK_CLI_ROOT}" ;;
+        sync-auth) app_menu_text long_sync "${GROK_CLI_ROOT}" ;;
+        sync-auth-from-remote) app_menu_text long_from ;;
+        sync-auth-to-remote) app_menu_text long_to ;;
+        add-crontab) app_menu_text long_cron ;;
+        sudoers) app_menu_text cat_sudoers_long ;;
+        self-management) app_menu_text cat_self_long ;;
+        version-check) app_menu_text long_vercheck ;;
+        self-update) app_menu_text long_selfup ;;
+        self-uninstall) app_menu_text long_selfun ;;
+        where-is-me) app_menu_text long_where ;;
+        generate-sudoer-request) app_menu_text long_generate ;;
+        submit-sudoer-request) app_menu_text long_submit ;;
+        print-sudoers) app_menu_text long_print ;;
+        print-sudoers-install-script) app_menu_text long_script ;;
+        remove-project-sudoers) app_menu_text long_remove ;;
+        *) printf '%s' "" ;;
+    esac
+}
+
+gc_menu_family_alias() {
+    _fa_fam="${1-}"
+    _fa_pick="${2-}"
+    case "${_fa_fam}" in
+        grok-auth)
+            case "${_fa_pick}" in
+                grok-auth|grok\ 認證|grok\ 认证|autenticación\ grok|authentification\ grok|grok-Anmeldung|grok\ 認証|grok\ 인증)
+                    unset _fa_fam _fa_pick
+                    return 0
+                    ;;
+            esac
+            ;;
+        language)
+            case "${_fa_pick}" in
+                language|語言|语言|idioma|langue|Sprache|sprache|言語|언어)
+                    unset _fa_fam _fa_pick
+                    return 0
+                    ;;
+            esac
+            ;;
+        self-management)
+            case "${_fa_pick}" in
+                self-management|自我管理|autogestión|autogestion|Selbstverwaltung|selbstverwaltung|自己管理|자기관리)
+                    unset _fa_fam _fa_pick
+                    return 0
+                    ;;
+            esac
+            ;;
+        sudoers)
+            case "${_fa_pick}" in
+                sudoers)
+                    unset _fa_fam _fa_pick
+                    return 0
+                    ;;
+            esac
+            ;;
+    esac
+    unset _fa_fam _fa_pick
+    return 1
+}
+
+gc_menu_prompt() {
+    if gc_menu_lang_is_en; then
+        out_msg_n "Choice: "
+    else
+        out_msg_n "$(app_menu_text prompt)"
+    fi
+}
+
+gc_menu_bad() {
+    _mb_pick="${1-}"
+    _mb_hint="${2-}"
+    if gc_menu_lang_is_en; then
+        out_error "Not a menu choice '${_mb_pick}'. Type ${_mb_hint}, or a listed command name."
+    else
+        out_error "$(app_menu_text unknown "${_mb_pick}" "${_mb_hint}")"
+    fi
+    unset _mb_pick _mb_hint
+}
+
+gc_menu_print_back() {
+    if gc_menu_lang_is_en; then
+        out_menu_choice "0" "Back"
+    else
+        out_menu_choice "0" "$(app_menu_text label_back)"
+    fi
+}
+
+gc_menu_print_exit() {
+    if gc_menu_lang_is_en; then
+        out_menu_choice "9" "Exit"
+    else
+        out_menu_choice "9" "$(app_menu_text label_exit)"
+    fi
+}
+
+gc_menu_print_host_hide() {
+    if gc_host_is_normal_user_only; then
+        if gc_menu_lang_is_en; then
+            out_info "backup, sync-auth and sudoers features are not available in $(gc_host_normal_user_only_label)."
+        else
+            out_info "$(app_menu_text hidden_host "$(gc_host_normal_user_only_label)")"
+        fi
+    fi
+}
+
+gc_menu_print_login_hide() {
+    if gc_menu_lang_is_en; then
+        out_info "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+    else
+        out_info "$(app_menu_text hidden_login)"
+    fi
+}
+
+# =============================================================================
+# app_about_i18n() - Human about when APP_LANG is not English
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Called from app_about after the data is computed and after JSON / quiet
+# returns. Labels follow APP_LANG. Paths, versions, and command tokens stay
+# Latin. JSON about never reaches this function.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-language.md
+# - requirement-shell-cli-interface.md
+#
+# Last updated: 2026-09-28
+# =============================================================================
+app_about_i18n() {
+    out_info "=== ${APP_NAME} ${VERSION} - $(app_menu_text about_title) ==="
+    out_empty_line
+    if [ "${_installed}" = "true" ]; then
+        out_success "${APP_NAME} $(app_menu_text about_installed)"
+    else
+        out_warn "${APP_NAME} $(app_menu_text about_missing)"
+        out_info "   $(app_menu_text about_recommend) ${APP_NAME} install   (local copy → ${USER_BIN}/${APP_NAME})"
+    fi
+    out_empty_line
+    out_info "$(app_menu_text about_global)  (${GLOBAL_BIN}/${APP_NAME}):   ${_global_ver}"
+    out_info "$(app_menu_text about_local)   (${USER_BIN}/${APP_NAME}):    ${_local_ver}"
+    _tier=$(gc_sudoers_trust_tier)
+    out_info "$(app_menu_text about_trust) ${_tier}"
+    out_empty_line
+    out_info "$(app_menu_text about_repo)        ${REPO_USER}/${REPO_NAME}"
+    if [ -n "${SCRIPT_URL}" ]; then
+        out_info "$(app_menu_text about_channel)   ${SCRIPT_URL}"
+    else
+        out_info "$(app_menu_text about_channel)   $(app_menu_text about_channel_empty)"
+    fi
+    out_empty_line
+    out_info "$(app_menu_text about_user)      ${_user}"
+    if [ "$(id -u)" -eq 0 ]; then
+        out_success "$(app_menu_text about_root)"
+    else
+        out_info "$(app_menu_text about_userctx)"
+    fi
+    out_empty_line
+    out_info "$(app_menu_text about_shell)     ${_shell}"
+    if [ "${TTY:-0}" -eq 1 ]; then
+        out_info "$(app_menu_text about_tty_yes)"
+    else
+        out_info "$(app_menu_text about_tty_no)"
+    fi
+    out_empty_line
+    out_info "$(app_menu_text about_cache) ${EFFECTIVE_STORAGE_DIR}"
+    out_info "$(app_menu_text about_pref) ${_cache_preferred}"
+    out_info "$(app_menu_text about_fb1) ${_cache_fallback}"
+    if [ -n "${_cache_fallback_2}" ]; then
+        out_info "$(app_menu_text about_fb2) ${_cache_fallback_2}"
+    fi
+    out_info "$(app_menu_text about_persist)      ${PERSISTENT_STORAGE_DIR}"
+    out_empty_line
+    _grok_peer=$(gc_resolve_grok_peer)
+    if [ -n "${_grok_peer}" ]; then
+        out_info "$(app_menu_text about_peer)    ${_grok_peer}"
+    else
+        out_info "$(app_menu_text about_peer)    $(app_menu_text about_peer_missing "${APP_NAME}")"
+    fi
+    out_info "$(app_menu_text about_home)         $(gc_resolve_grok_home)"
+    out_info "$(app_menu_text about_session)           $(gc_session_status_word 2>/dev/null || echo missing)"
+    out_info "$(app_menu_text about_deposit) ${GROK_CLI_ROOT}"
+    out_info "$(app_menu_text about_sudo_deposit)      ${_sudo_deposit}"
+    out_info "sudoer-cli:        ${_sudoer_cli}"
+    out_info "sudoer-adm:        ${_sudoer_adm}"
+    if [ "${_sudoer_inbound}" = "not_found" ]; then
+        out_info "sudoer inbound:    not_found (preferred ${SUDOER_PUBLIC_ROOT:-/var/sudoer-cli}/sudoer-request)"
+    else
+        out_info "sudoer inbound:    ${_sudoer_inbound} (writable=${_sudoer_inbound_writable})"
+    fi
+    out_empty_line
+    out_info "$(app_menu_text about_useful)"
+    out_info "   ${APP_NAME} help            → $(app_menu_text about_full_usage)"
+    out_info "   ${APP_NAME} menu            → 6 / 61-68"
+    out_info "   ${APP_NAME} install"
+    out_info "   ${APP_NAME} print-sudoers"
+    out_info "   ${APP_NAME} generate-sudoer-request"
+    out_info "   ${APP_NAME} submit-sudoer-request"
+    out_info "   ${APP_NAME} check-session"
+    out_info "   ${APP_NAME} backup"
+    out_info "   ${APP_NAME} sync-auth"
+    out_info "   ${APP_NAME} --json          → $(app_menu_text about_json_line)"
+}
+
+# =============================================================================
+# app_default_print_language_menu() / app_default_language_loop()
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Front row 6. Rows 61-68 save one of the eight codes and return to the
+# front board. 0 / q / empty / back returns without writing. 9 / exit / quit
+# and EOF leave the program (same as the other grok submenus). A bad pick
+# out_error and reprints this layer.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-language.md
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-28
+# =============================================================================
+app_default_print_language_menu() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+    if gc_menu_lang_is_en; then
+        out_info "$(util_app_ident) — language"
+    else
+        out_info "$(util_app_ident) — $(app_menu_text cat_language)"
+    fi
+    out_menu_choice "61" "English" "$(app_menu_text lang_en_long)"
+    out_menu_choice "62" "繁體中文" "$(app_menu_text lang_zh_long)"
+    out_menu_choice "63" "Español" "$(app_menu_text lang_es_long)"
+    out_menu_choice "64" "Français" "$(app_menu_text lang_fr_long)"
+    out_menu_choice "65" "Deutsch" "$(app_menu_text lang_de_long)"
+    out_menu_choice "66" "简体中文" "$(app_menu_text lang_zh_hans_long)"
+    out_menu_choice "67" "日本語" "$(app_menu_text lang_ja_long)"
+    out_menu_choice "68" "한국어" "$(app_menu_text lang_ko_long)"
+    gc_menu_print_back
+    gc_menu_print_exit
+}
+
+app_default_language_code() {
+    case "${1-}" in
+        61|en|english|English) printf '%s' "en" ;;
+        62|zh-Hant|zh-hant|traditional-chinese|繁體中文) printf '%s' "zh-Hant" ;;
+        63|es|spanish|Español|español) printf '%s' "es" ;;
+        64|fr|french|Français|français) printf '%s' "fr" ;;
+        65|de|german|Deutsch|deutsch) printf '%s' "de" ;;
+        66|zh-Hans|zh-hans|simplified-chinese|简体中文) printf '%s' "zh-Hans" ;;
+        67|ja|japanese|日本語) printf '%s' "ja" ;;
+        68|ko|korean|한국어) printf '%s' "ko" ;;
+        *) return 1 ;;
+    esac
+}
+
+app_default_language_loop() {
+    : "${_menu_json:=0}"
+    : "${_menu_quiet:=0}"
+    while true; do
+        JSON=0
+        QUIET=0
+        export JSON QUIET
+        app_default_print_language_menu
+        gc_menu_prompt
+        _pick=""
+        if ! read -r _pick; then
+            return 0
+        fi
+        case "${_pick}" in
+            0|q|back|Back|"")
+                return 1
+                ;;
+            9|99|exit|quit|Exit|QUIT)
+                return 0
+                ;;
+        esac
+        _code=$(app_default_language_code "${_pick}" || true)
+        if [ -n "${_code}" ]; then
+            if app_lang_save "${_code}"; then
+                out_info "$(app_menu_text lang_saved)"
+            else
+                out_warn "$(app_menu_text lang_save_fail)"
+            fi
+            unset _code
+            return 1
+        fi
+        unset _code
+        gc_menu_bad "${_pick}" "61-68, 0 back, 9 to leave"
+    done
+}
+
+# =============================================================================
 # gc_menu_main_rows() - Top list as "NUMBER TOKEN" lines (fixed numbers)
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Top layer is 1 grok-auth, 7 sudoers (multi-user), 8 self-management.
-# This-login-only hosts add 2 run and omit 7 sudoers. Exit 9 is printed
-# by the caller. The top list has no Back row. Auth commands live under
-# 1 (numbers 11-16).
+# Top layer is 1 grok-auth, 6 language, 7 sudoers (multi-user),
+# 8 self-management. This-login-only hosts add 2 run and omit 7 sudoers.
+# Row 6 is on every host. Exit 9 is printed by the caller. The top list
+# has no Back row. Auth commands live under 1 (numbers 11-16).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
+# - requirement-shell-cli-language.md
 #
-# Last updated: 2026-09-26
+# Last updated: 2026-09-28
 # =============================================================================
 gc_menu_main_rows() {
     printf '%s\n' "1 grok-auth"
     if gc_host_is_normal_user_only; then
         printf '%s\n' "2 run"
-    else
+    fi
+    printf '%s\n' "6 language"
+    if ! gc_host_is_normal_user_only; then
         printf '%s\n' "7 sudoers"
     fi
     printf '%s\n' "8 self-management"
@@ -7925,13 +9786,21 @@ gc_menu_self_rows() {
 # =============================================================================
 gc_menu_row_match() {
     _m_pick="${1-}"
+    _m_found=""
     while read -r _m_num _m_tok; do
         [ -n "${_m_num}" ] || continue
-        if [ "${_m_pick}" = "${_m_num}" ] || [ "${_m_pick}" = "${_m_tok}" ]; then
-            printf '%s' "${_m_tok}"
-            return 0
+        if [ -z "${_m_found}" ]; then
+            if [ "${_m_pick}" = "${_m_num}" ] || [ "${_m_pick}" = "${_m_tok}" ]; then
+                _m_found="${_m_tok}"
+            fi
         fi
     done
+    if [ -n "${_m_found}" ]; then
+        printf '%s' "${_m_found}"
+        unset _m_pick _m_found _m_num _m_tok
+        return 0
+    fi
+    unset _m_pick _m_found _m_num _m_tok
     return 1
 }
 
@@ -7940,11 +9809,19 @@ gc_menu_row_match() {
 # =============================================================================
 gc_menu_row_explain() {
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
+    case "${APP_LANG:-en}" in
+        en) ;;
+        *)
+            gc_menu_row_explain_i18n "${1-}"
+            return
+            ;;
+    esac
     case "${1-}" in
         run) printf '%s' "Start grok without auto-update" ;;
         reinstall) printf '%s' "Remove existing grok and install again" ;;
         setup) printf '%s' "Install grok from x.ai" ;;
         grok-auth) printf '%s' "Backup, sync, crontab, setup, and reinstall" ;;
+        language) printf '%s' "display language for this menu" ;;
         backup) printf '%s' "Push ~/.grok/auth.* to ${GROK_CLI_ROOT}" ;;
         sync-auth) printf '%s' "Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok" ;;
         sync-auth-from-remote) printf '%s' "Copy a remote host's auth.* into ~/.grok" ;;
@@ -7966,10 +9843,21 @@ gc_menu_row_explain() {
 gc_menu_pick_is_family() {
     _fam="${1-}"
     _want="${2-}"
-    _hit=$(gc_menu_main_rows | gc_menu_row_match "${_want}" || true)
-    if [ "${_hit}" = "${_fam}" ]; then
+    _listed=$(gc_menu_main_rows | gc_menu_row_match "${_fam}" || true)
+    if [ "${_listed}" != "${_fam}" ]; then
+        unset _fam _want _listed
+        return 1
+    fi
+    if gc_menu_family_alias "${_fam}" "${_want}"; then
+        unset _fam _want _listed
         return 0
     fi
+    _hit=$(gc_menu_main_rows | gc_menu_row_match "${_want}" || true)
+    if [ "${_hit}" = "${_fam}" ]; then
+        unset _fam _want _listed _hit
+        return 0
+    fi
+    unset _fam _want _listed _hit
     return 1
 }
 
@@ -8004,7 +9892,11 @@ app_default_print_menu() {
     util_int_timer_debug_begin "paint"
 
     util_int_timer_debug_begin "header"
-    out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"
+    if gc_menu_lang_is_en; then
+        out_info "$(util_app_ident) — ${SHORT_DESCRIPTION}"
+    else
+        out_info "$(util_app_ident) — $(app_menu_text short_desc)"
+    fi
     util_int_timer_debug_end "header"
 
     util_int_timer_debug_begin "session"
@@ -8014,7 +9906,11 @@ app_default_print_menu() {
         if ! gc_session_uses_local_auth; then
             : "${GROK_PROMPT_TIMEOUT:=14}"
             _gpt_show=$(gc_grok_prompt_int "${GROK_PROMPT_TIMEOUT}" 14)
-            out_info "checking session (grok -p hello, timeout ${_gpt_show}s)..."
+            if gc_menu_lang_is_en; then
+                out_info "checking session (grok -p hello, timeout ${_gpt_show}s)..."
+            else
+                out_info "$(app_menu_text session_checking "${_gpt_show}")"
+            fi
             unset _gpt_show
         fi
         _st=$(gc_session_status_word) || true
@@ -8022,34 +9918,44 @@ app_default_print_menu() {
         export GC_SESSION_STATUS_CACHE
     fi
     if [ "${_st}" = "valid" ]; then
-        out_info "logged in"
+        if gc_menu_lang_is_en; then
+            out_info "logged in"
+        else
+            out_info "$(app_menu_text session_in)"
+        fi
     elif [ "${_st}" = "timeout" ]; then
-        out_info "timeout"
+        if gc_menu_lang_is_en; then
+            out_info "timeout"
+        else
+            out_info "$(app_menu_text session_timeout)"
+        fi
     else
-        out_info "logged out"
+        if gc_menu_lang_is_en; then
+            out_info "logged out"
+        else
+            out_info "$(app_menu_text session_out)"
+        fi
     fi
     util_int_timer_debug_end "session"
 
     util_int_timer_debug_begin "host"
-    if gc_host_is_normal_user_only; then
-        out_info "backup, sync-auth and sudoers features are not available in $(gc_host_normal_user_only_label)."
-    fi
+    gc_menu_print_host_hide
     util_int_timer_debug_end "host"
 
     util_int_timer_debug_begin "logged-in"
     if [ "${_st}" = "valid" ]; then
-        out_info "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+        gc_menu_print_login_hide
     fi
     util_int_timer_debug_end "logged-in"
 
     util_int_timer_debug_begin "rows"
     while read -r _n _tok; do
         [ -n "${_n}" ] || continue
-        out_menu_choice "${_n}" "${_tok}" "$(gc_menu_row_explain "${_tok}")"
+        out_menu_choice "${_n}" "$(gc_menu_short "${_tok}")" "$(gc_menu_row_explain "${_tok}")"
     done <<EOF
 $(gc_menu_main_rows)
 EOF
-    out_menu_choice "9" "Exit"
+    gc_menu_print_exit
     util_int_timer_debug_end "rows"
 
     util_int_timer_debug_end "paint"
@@ -8076,17 +9982,29 @@ app_default_print_sudoers_menu() {
     util_int_timer_debug_begin "sudoers.paint"
 
     util_int_timer_debug_begin "sudoers.header"
-    out_info "$(util_app_ident) — sudoers (grant and drafts)"
+    if gc_menu_lang_is_en; then
+        out_info "$(util_app_ident) — sudoers (grant and drafts)"
+    else
+        out_info "$(util_app_ident) — $(app_menu_text title_sudoers)"
+    fi
     util_int_timer_debug_end "sudoers.header"
 
     util_int_timer_debug_begin "sudoers.rows"
-    out_menu_choice "1" "generate-sudoer-request" "Write a JSON grant you can read"
-    out_menu_choice "2" "submit-sudoer-request" "Queue the JSON grant inbound"
-    out_menu_choice "3" "print-sudoers" "Emit sudoers draft"
-    out_menu_choice "4" "print-sudoers-install-script" "Write admin install script"
-    out_menu_choice "5" "remove-project-sudoers" "Remove sudoers draft only"
-    out_menu_choice "0" "Back"
-    out_menu_choice "9" "Exit"
+    if gc_menu_lang_is_en; then
+        out_menu_choice "1" "generate-sudoer-request" "Write a JSON grant you can read"
+        out_menu_choice "2" "submit-sudoer-request" "Queue the JSON grant inbound"
+        out_menu_choice "3" "print-sudoers" "Emit sudoers draft"
+        out_menu_choice "4" "print-sudoers-install-script" "Write admin install script"
+        out_menu_choice "5" "remove-project-sudoers" "Remove sudoers draft only"
+    else
+        out_menu_choice "1" "generate-sudoer-request" "$(app_menu_text long_generate)"
+        out_menu_choice "2" "submit-sudoer-request" "$(app_menu_text long_submit)"
+        out_menu_choice "3" "print-sudoers" "$(app_menu_text long_print)"
+        out_menu_choice "4" "print-sudoers-install-script" "$(app_menu_text long_script)"
+        out_menu_choice "5" "remove-project-sudoers" "$(app_menu_text long_remove)"
+    fi
+    gc_menu_print_back
+    gc_menu_print_exit
     util_int_timer_debug_end "sudoers.rows"
 
     util_int_timer_debug_end "sudoers.paint"
@@ -8136,21 +10054,23 @@ app_default_print_auth_menu() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
 
-    out_info "$(util_app_ident) — grok-auth"
-    if gc_host_is_normal_user_only; then
-        out_info "backup, sync-auth and sudoers features are not available in $(gc_host_normal_user_only_label)."
+    if gc_menu_lang_is_en; then
+        out_info "$(util_app_ident) — grok-auth"
+    else
+        out_info "$(util_app_ident) — $(app_menu_text cat_auth)"
     fi
+    gc_menu_print_host_hide
     if [ "${GC_SESSION_STATUS_CACHE-}" = "valid" ]; then
-        out_info "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
+        gc_menu_print_login_hide
     fi
     while read -r _n _tok; do
         [ -n "${_n}" ] || continue
-        out_menu_choice "${_n}" "${_tok}" "$(gc_menu_row_explain "${_tok}")"
+        out_menu_choice "${_n}" "$(gc_menu_short "${_tok}")" "$(gc_menu_row_explain "${_tok}")"
     done <<EOF
 $(gc_menu_auth_rows)
 EOF
-    out_menu_choice "0" "Back"
-    out_menu_choice "9" "Exit"
+    gc_menu_print_back
+    gc_menu_print_exit
 }
 
 app_default_run_auth_pick() {
@@ -8176,7 +10096,7 @@ app_default_auth_loop() {
         QUIET=0
         export JSON QUIET
         app_default_print_auth_menu
-        out_msg_n "Choice: "
+        gc_menu_prompt
         _pick=""
         if ! read -r _pick; then
             return 0
@@ -8195,7 +10115,7 @@ app_default_auth_loop() {
         if app_default_run_auth_pick "${_pick}"; then
             return 0
         fi
-        out_error "Not a menu choice '${_pick}'. Type 11-16, 0 back, 9 to leave, or a listed command name."
+        gc_menu_bad "${_pick}" "11-16, 0 back, 9 to leave"
     done
 }
 
@@ -8206,15 +10126,19 @@ app_default_print_self_menu() {
     : "${APP_NAME:=grok-cli}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
-    out_info "$(util_app_ident) — self-management"
+    if gc_menu_lang_is_en; then
+        out_info "$(util_app_ident) — self-management"
+    else
+        out_info "$(util_app_ident) — $(app_menu_text cat_self)"
+    fi
     while read -r _n _tok; do
         [ -n "${_n}" ] || continue
-        out_menu_choice "${_n}" "${_tok}" "$(gc_menu_row_explain "${_tok}")"
+        out_menu_choice "${_n}" "$(gc_menu_short "${_tok}")" "$(gc_menu_row_explain "${_tok}")"
     done <<EOF
 $(gc_menu_self_rows)
 EOF
-    out_menu_choice "0" "Back"
-    out_menu_choice "9" "Exit"
+    gc_menu_print_back
+    gc_menu_print_exit
 }
 
 app_default_run_self_pick() {
@@ -8238,7 +10162,7 @@ app_default_self_loop() {
         QUIET=0
         export JSON QUIET
         app_default_print_self_menu
-        out_msg_n "Choice: "
+        gc_menu_prompt
         _pick=""
         if ! read -r _pick; then
             return 0
@@ -8257,7 +10181,7 @@ app_default_self_loop() {
         if app_default_run_self_pick "${_pick}"; then
             return 0
         fi
-        out_error "Not a menu choice '${_pick}'. Type 91-94, 0 back, 9 to leave, or a listed command name."
+        gc_menu_bad "${_pick}" "91-94, 0 back, 9 to leave"
     done
 }
 
@@ -8324,7 +10248,7 @@ app_default_sudoers_loop() {
         QUIET=0
         export JSON QUIET
         app_default_print_sudoers_menu
-        out_msg_n "Choice: "
+        gc_menu_prompt
         _pick=""
         if ! read -r _pick; then
             return 0
@@ -8343,7 +10267,7 @@ app_default_sudoers_loop() {
         if app_default_run_sudoers_pick "${_pick}"; then
             return 0
         fi
-        out_error "Not a menu choice '${_pick}'. Type 1-5, 0 back, 9 to leave, or a listed command name."
+        gc_menu_bad "${_pick}" "1-5, 0 back, 9 to leave"
     done
 }
 
@@ -8388,7 +10312,7 @@ app_default() {
 
     while true; do
         app_default_print_menu
-        out_msg_n "Choice: "
+        gc_menu_prompt
         _pick=""
         if ! read -r _pick; then
             JSON="${_menu_json}"
@@ -8449,6 +10373,21 @@ app_default() {
             export JSON QUIET
             continue
         fi
+        if gc_menu_pick_is_family "language" "${_pick}"; then
+            JSON="${_menu_json}"
+            QUIET="${_menu_quiet}"
+            export JSON QUIET
+            if app_default_language_loop; then
+                JSON="${_menu_json}"
+                QUIET="${_menu_quiet}"
+                export JSON QUIET
+                return 0
+            fi
+            JSON=0
+            QUIET=0
+            export JSON QUIET
+            continue
+        fi
         JSON="${_menu_json}"
         QUIET="${_menu_quiet}"
         export JSON QUIET
@@ -8459,9 +10398,9 @@ app_default() {
         QUIET=0
         export JSON QUIET
         if gc_host_is_normal_user_only; then
-            out_error "Not a menu choice '${_pick}'. Type 1, 2, 8, or 9 to leave, or a listed command name."
+            gc_menu_bad "${_pick}" "1, 2, 6, 8, or 9 to leave"
         else
-            out_error "Not a menu choice '${_pick}'. Type 1, 7, 8, or 9 to leave, or a listed command name."
+            gc_menu_bad "${_pick}" "1, 6, 7, 8, or 9 to leave"
         fi
     done
 }
@@ -8486,6 +10425,14 @@ app_help() {
     if [ "${QUIET}" -eq 1 ]; then
         return 0
     fi
+
+    case "${APP_LANG:-en}" in
+        en) ;;
+        *)
+            app_help_i18n
+            return 0
+            ;;
+    esac
 
     out_info "${APP_NAME} — ${SHORT_DESCRIPTION}"
     out_plain "${DESCRIPTION}"
@@ -8573,6 +10520,7 @@ app_help() {
     out_plain "  SCRIPT_URL           grok-cli channel (default github raw src/grok-cli)"
     out_plain "  GROK_HOME            grok auth dir (default ~/.grok of invoking login)"
     out_plain "  GROK_CLI_ROOT        durable store (default /var/grok-cli)"
+    out_plain "  GROK_CLI_LANG        Menu language for this run only (en zh-Hant es fr de zh-Hans ja ko); does not write the file"
     out_plain "  GROK_CLI_CRONTAB     crontab binary (default crontab; tests inject a fake)"
     out_plain "  GROK_CLI_CRON_BACKUP backup crontab schedule (default */30 * * * *)"
     out_plain "  GROK_CLI_CRON_SYNC   sync-auth crontab schedule (default 45 * * * *)"
@@ -8628,6 +10576,7 @@ app_help() {
     out_info "Switches without a command (--debug, --quiet) still follow empty argv. ${APP_NAME} --json with no command is empty argv special case: JSON help (even on a TTY). Explicit help stays help."
     out_info "backup runs grok -p hello first, then passwordless sudo ${APP_NAME} backup (sudoer-adm)."
     out_info "sync-auth never uses sudo. Local install + sudoers is TEST MODE ONLY; prefer global."
+    out_info "Menu row 6 sets the display language (61 English through 68 Korean). GROK_CLI_LANG overrides this run and does not write the file."
 }
 
 # =============================================================================
@@ -8673,6 +10622,8 @@ app_main() {
     PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)
     export EFFECTIVE_STORAGE_DIR STORAGE_DIR PERSISTENT_STORAGE_DIR
     export TMPDIR="${EFFECTIVE_STORAGE_DIR}"
+    # Menu language once per process. A later menu pick sets APP_LANG itself.
+    app_lang_load
 
     # Empty argv = no command token after flag parse (overlay --debug/--quiet
     # follow). TTY → menu. Off-TTY → Type O ensure.

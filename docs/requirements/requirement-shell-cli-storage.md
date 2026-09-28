@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-storage.md  
-**Status**: Active (Version 1.4.0)  
+**Status**: Active (Version 1.4.1)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-storage`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -146,6 +146,7 @@ tmp="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$"
 5. **MUST NOT** store scratch/temps in persistence when a cache root is available.  
 6. Persistence **MUST** be under the invoking login’s `$HOME` (per-user). **MUST** include `${APP_NAME}`.  
 7. Preferred remote SPEC for `sync-auth-from-remote` **MUST** live here as leaf **`preferred-remote`** (mode **0600**). Semantics (load / save / TTY default) are **`requirement-grok-auth-backup`**. **MUST NOT** put that leaf in the cache folder or under `/var/grok-cli`.
+8. Menu language **MUST** live here as leaf **`language`** (one line, mode **0600**). Codes and load/save semantics are **`requirement-shell-cli-language`**. **MUST NOT** put that leaf in the cache folder or under `/var/grok-cli`. A bad first line **MUST NOT** be rewritten by the loader.
 
 ### 2.6 Wire and diagnostics
 
@@ -263,6 +264,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-9 | Skipping a cache tier prints no warning and no error. Git Bash has no 2nd fallback. Mac 2nd fallback is `${HOME}/cache/cache-${APP_NAME}-$$` |
 | AC-7 | Persistence path is `${HOME}/.local/${APP_NAME}` and the directory exists after resolve |
 | AC-8 | Preferred remote SPEC is `${HOME}/.local/${APP_NAME}/preferred-remote` (not cache, not `/var/grok-cli`) — proven with TP-GROK-CLI-41 |
+| AC-10 | Menu language leaf is `${HOME}/.local/${APP_NAME}/language` (mode 0600; not cache, not `/var/grok-cli`) — proven with TP-CLI-32 |
 
 ---
 
@@ -286,6 +288,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-CLI-06** | `tests/test_cli.sh` | **have** — about JSON cache + persistence fields + human labels |
 | **TP-CLI-12** | same | **have** — Linux preferred `/dev/shm/cache/cache-${APP_NAME}-${login}-$$`; 1st `/tmp/cache/...`; 2nd `${HOME}/.cache/cache-${APP_NAME}-$$`; Git Bash and Mac chains; silent skip of preferred; persistence `${HOME}/.local/${APP_NAME}`; live dir exists; not `/dev/shm/${APP_NAME}-${login}` |
 | **TP-GROK-CLI-41** | `tests/test_domain_grok_cli.sh` | **have** — preferred-remote leaf under persistence, not cache |
+| **TP-CLI-32** | `tests/test_cli.sh` | **have** — language leaf under persistence, mode 0600, not cache |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -301,9 +304,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-04 | Active 1.2.1 | Termux: cache/`tmp`/`shm` may be `noexec` — not a smoke path (point `requirement-shell-termux-coding`) |
 | 2026-09-07 | Active 1.3.0 | Persistence leaf `preferred-remote` for sync-auth-from-remote preferred SPEC |
 | 2026-09-27 | Active 1.4.0 | Per-login per-process cache leaves. Linux shm → tmp → `${HOME}/.cache`. Git Bash tmp → AppData Local Temp. Mac tmp → Library/Caches → `${HOME}/cache`. Silent tier miss. `about` prints used / preferred / 1st / 2nd |
+| 2026-09-28 | Active 1.4.1 | Persistence leaf `language` for the menu language (`requirement-shell-cli-language`) |
 
 ---
 
-**Last Updated**: 2026-09-27  
+**Last Updated**: 2026-09-28  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
