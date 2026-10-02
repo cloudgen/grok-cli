@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.42] - 2026-10-02
+
+### Changed
+
+- **Menu language.** Front row **5** opens **51** English, **52** 简体中文, **53** 繁體中文, **54** Español, **55** العربية, **56** Français, **57** Português, **58** Русский, **59** Deutsch, **60** 日本語, **61** 한국어, **62** Nederlands, **63** Ελληνικά. **50** and **64–69** stay reserved and are not printed. Front **6** is not a row. The choice is saved at `~/.local/grok-cli/language` (mode 0600) and the next run opens in that language. `GROK_CLI_LANG` overrides one run and does not write the file. Human `help` and human `about` follow the code. Leaf command names, JSON, and argv `version` stay English. `language` is not a shell command. Row **5** is on every host, including Termux, Git Bash, and Windows cmd. Law: `requirement-shell-cli-language` **1.1.0** · `requirement-shell-cli-default-interaction` **2.22.0** · `requirement-shell-cli-storage` **1.4.1** · `requirement-shell-cli-interface` **2.15.3**. Suite **TP-CLI-32** · **TP-CLI-13** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-30**.
+
 ## [1.8.41] - 2026-09-28
 
 ### Added

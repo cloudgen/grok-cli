@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.41  
-**Last plan update:** 2026-09-28  
-**Last suite run:** PASS=941 FAIL=71 SKIP=0 (2026-09-28; 1.8.41 menu language). Language rows passed. The fails are the live-probe PTY class already present on 1.8.40, and Termux fixture setup blocked by safe-rm.
+**Product VERSION:** 1.8.42  
+**Last plan update:** 2026-10-02  
+**Last suite run:** PASS=998 FAIL=56 SKIP=0 (2026-10-02; 1.8.42 menu language front **5** / **51–63**). Language rows **TP-CLI-13** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-30** · **TP-CLI-32** passed. The 56 fails are **TP-VCLI-19** through **TP-VCLI-36** (Termux/proot grok place and Windows `.exe` place). That class was already failing on 1.8.41 (then PASS=941 FAIL=71).
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -19,7 +19,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Active REQ samples do not freeze a session login | have | TP-CLI-18 |
 | version / help / about human + JSON | have | TP-CLI-02..06 |
 | Empty argv: TTY menu; off-TTY Type O ensure (not help); overlay `--debug` follows 0-argv | have | TP-CLI-07 · TP-CLI-29 · TP-ONL-01 |
-| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help; front **6** language) | have | TP-CLI-13 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-30 · TP-CLI-32 |
+| Numbered menu verb `menu`/`main` (case 3; TTY empty argv shares handler; off-TTY `menu` = help; front **5** language, **51–63**) | have | TP-CLI-13 · TP-CLI-17 · TP-CLI-19 · TP-CLI-20 · TP-CLI-21 · TP-CLI-22 · TP-CLI-23 · TP-CLI-30 · TP-CLI-32 |
 | `--debug` menu elapsed of each paint step (internal-timer) | have | TP-CLI-25 · TP-CLI-26 · TP-CLI-27 · TP-CLI-28 |
 | Unknown + quiet + set -u HOME | have | TP-CLI-08..11 |
 | Cache folder + persistence storage | have | TP-CLI-12 |
@@ -73,8 +73,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-26 | `menu` without `--debug` has no menu-step elapsed lines | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-27 | `--json --debug version` stdout stays JSON (no `[DEBUG]`) | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-interface · requirement-shell-output-requirements | **have** |
 | TP-CLI-28 | Ship unit has `util_int_timer_*`; AC-6 double-start fail-closed; invalid stage names rejected; help lists `--debug`; help has no timer `start` verb | `tests/test_cli.sh` | requirement-shell-internal-volatile-timer · requirement-shell-cli-interface | **have** |
-| TP-CLI-30 | Invalid TTY menu choice at any layer retries that layer (`out_error` + reprint; unused front integer **4** and unknown name; sudoers submenu unused **6** stays on that list; not unknown argv). Top list has no Back, so **0** there retries; submenu **0** is still Back. Portable proof mold names this **TP-CLI-19**; this product already assigned **TP-CLI-19** to this-login-only host menu | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
-| TP-CLI-32 | Menu language: front **6** lists **61–68**; save writes `${HOME}/.local/${APP_NAME}/language` mode 0600; Back does not write; next run uses the file; `GROK_CLI_LANG` overrides without writing; human help and about follow the code; English menu stays the existing literals | `tests/test_cli.sh` | requirement-shell-cli-language · requirement-shell-cli-default-interaction · requirement-shell-cli-storage | **have** |
+| TP-CLI-30 | Invalid TTY menu choice at any layer retries that layer (`out_error` + reprint; unused front integer **4** and unknown name; sudoers submenu unused **6** stays on that list; Termux unused front integer is **6**; not unknown argv). Top list has no Back, so **0** there retries; submenu **0** is still Back. Portable proof mold names this **TP-CLI-19**; this product already assigned **TP-CLI-19** to this-login-only host menu | `tests/test_cli.sh` | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-32 | Menu language: front **5** lists **51–63**; **50** and **64–69** are not printed; front **6** warns and does not write; save writes `${HOME}/.local/${APP_NAME}/language` mode 0600; Back does not write; next run uses the file; `GROK_CLI_LANG` overrides without writing; human help and about follow the code; English menu stays the existing literals | `tests/test_cli.sh` | requirement-shell-cli-language · requirement-shell-cli-default-interaction · requirement-shell-cli-storage | **have** |
 | TP-CLI-31 | TTY main list includes `reinstall` (multi-user **5**; this-login-only **2**); `setup` and `update-grok` stay off | `tests/test_cli.sh` | requirement-shell-cli-default-interaction · requirement-grok-setup | **have** |
 
 ### TP-LC (local lifecycle)

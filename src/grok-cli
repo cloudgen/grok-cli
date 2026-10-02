@@ -22,7 +22,7 @@
 # - requirement-shell-self-management.md
 # - requirement-shell-automatic-checksum.md
 # - requirement-shell-cli-default-interaction.md  (menu/main numbered list)
-# - requirement-shell-cli-language.md  (menu language: en zh-Hant es fr de zh-Hans ja ko)
+# - requirement-shell-cli-language.md  (menu language: en zh-Hans zh-Hant es ar fr pt ru de ja ko nl el)
 # - requirement-shell-local-self-management.md
 # - requirement-shell-cli-storage.md
 # - requirement-shell-idempotency.md
@@ -45,7 +45,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.41"
+# VERSION: hard-assign VERSION="1.8.42"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -61,8 +61,8 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.41"
-: "${VERSION:=1.8.40}"
+VERSION="1.8.42"
+: "${VERSION:=1.8.42}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 : "${REPO_USER:=cloudgen}"
@@ -7881,7 +7881,7 @@ gc_host_normal_user_only_label() {
 #
 # GENERAL PURPOSE:
 # Menu language for the numbered list, human help, and human about.
-# Codes: en, zh-Hant, es, fr, de, zh-Hans, ja, ko. Default is English.
+# Codes: en, zh-Hans, zh-Hant, es, ar, fr, pt, ru, de, ja, ko, nl, el.
 # The leaf is ${PERSISTENT_STORAGE_DIR}/language (mode 0600).
 # GROK_CLI_LANG wins at process start and does not write the file.
 # One load at the start of app_main. A later pick sets APP_LANG itself.
@@ -7893,7 +7893,7 @@ gc_host_normal_user_only_label() {
 # - requirement-shell-cli-storage.md
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-28
+# Last updated: 2026-10-02
 # =============================================================================
 app_lang_load() {
     APP_LANG=en
@@ -7906,11 +7906,11 @@ app_lang_load() {
         _ll_line=$(head -n 1 "${_ll_path}" 2>/dev/null || true)
         _ll_line=$(printf '%s' "${_ll_line}" | tr -d '\r')
         case "${_ll_line}" in
-            en|zh-Hant|es|fr|de|zh-Hans|ja|ko) APP_LANG="${_ll_line}" ;;
+            en|zh-Hans|zh-Hant|es|ar|fr|pt|ru|de|ja|ko|nl|el) APP_LANG="${_ll_line}" ;;
         esac
     fi
     case "${GROK_CLI_LANG-}" in
-        en|zh-Hant|es|fr|de|zh-Hans|ja|ko) APP_LANG="${GROK_CLI_LANG}" ;;
+        en|zh-Hans|zh-Hant|es|ar|fr|pt|ru|de|ja|ko|nl|el) APP_LANG="${GROK_CLI_LANG}" ;;
     esac
     export APP_LANG
     unset _ll_path _ll_line
@@ -7919,7 +7919,7 @@ app_lang_load() {
 app_lang_save() {
     _ls_code=${1-}
     case "${_ls_code}" in
-        en|zh-Hant|es|fr|de|zh-Hans|ja|ko) ;;
+        en|zh-Hans|zh-Hant|es|ar|fr|pt|ru|de|ja|ko|nl|el) ;;
         *)
             unset _ls_code
             return 1
@@ -7947,7 +7947,7 @@ app_menu_text() {
     _mt_b=${3-}
     _mt_lang=${APP_LANG:-en}
     case "${_mt_lang}" in
-        zh-Hant|zh-Hans|es|fr|de|ja|ko) ;;
+        zh-Hans|zh-Hant|es|ar|fr|pt|ru|de|ja|ko|nl|el) ;;
         *) _mt_lang=en ;;
     esac
     _mt_out=""
@@ -7961,6 +7961,11 @@ app_menu_text() {
                 de) _mt_out="Alternativer Online-Installer für xAI grok" ;;
                 ja) _mt_out="xAI grok の代替オンラインインストーラ" ;;
                 ko) _mt_out="xAI grok 대체 온라인 설치 프로그램" ;;
+                ar) _mt_out="مثبت بديل عبر الشبكة لـ xAI grok" ;;
+                pt) _mt_out="Instalador online alternativo para xAI grok" ;;
+                ru) _mt_out="Альтернативный сетевой установщик xAI grok" ;;
+                nl) _mt_out="Alternatieve online installer voor xAI grok" ;;
+                el) _mt_out="Εναλλακτικός online εγκαταστάτης για το xAI grok" ;;
                 *) _mt_out="Alternative online installer for xAI grok" ;;
             esac
             ;;
@@ -7973,6 +7978,11 @@ app_menu_text() {
                 de) _mt_out="angemeldet" ;;
                 ja) _mt_out="ログイン済み" ;;
                 ko) _mt_out="로그인됨" ;;
+                ar) _mt_out="تم تسجيل الدخول" ;;
+                pt) _mt_out="sessão iniciada" ;;
+                ru) _mt_out="вход выполнен" ;;
+                nl) _mt_out="ingelogd" ;;
+                el) _mt_out="συνδεδεμένος" ;;
                 *) _mt_out="logged in" ;;
             esac
             ;;
@@ -7985,6 +7995,11 @@ app_menu_text() {
                 de) _mt_out="abgemeldet" ;;
                 ja) _mt_out="未ログイン" ;;
                 ko) _mt_out="로그아웃됨" ;;
+                ar) _mt_out="تم تسجيل الخروج" ;;
+                pt) _mt_out="sessão terminada" ;;
+                ru) _mt_out="выход выполнен" ;;
+                nl) _mt_out="uitgelogd" ;;
+                el) _mt_out="αποσυνδεδεμένος" ;;
                 *) _mt_out="logged out" ;;
             esac
             ;;
@@ -7997,6 +8012,11 @@ app_menu_text() {
                 de) _mt_out="Zeitüberschreitung" ;;
                 ja) _mt_out="タイムアウト" ;;
                 ko) _mt_out="시간 초과" ;;
+                ar) _mt_out="انتهت المهلة" ;;
+                pt) _mt_out="tempo esgotado" ;;
+                ru) _mt_out="время вышло" ;;
+                nl) _mt_out="tijd verstreken" ;;
+                el) _mt_out="λήξη χρόνου" ;;
                 *) _mt_out="timeout" ;;
             esac
             ;;
@@ -8009,6 +8029,11 @@ app_menu_text() {
                 de) _mt_out="Sitzung wird geprüft (grok -p hello, Zeitlimit ${_mt_a}s)..." ;;
                 ja) _mt_out="セッションを確認しています（grok -p hello、制限 ${_mt_a} 秒）..." ;;
                 ko) _mt_out="세션을 확인하는 중 (grok -p hello, 제한 ${_mt_a}초)..." ;;
+                ar) _mt_out="جارٍ فحص الجلسة (grok -p hello، المهلة ${_mt_a} ث)..." ;;
+                pt) _mt_out="a verificar a sessão (grok -p hello, limite ${_mt_a}s)..." ;;
+                ru) _mt_out="проверка сеанса (grok -p hello, предел ${_mt_a} с)..." ;;
+                nl) _mt_out="sessie controleren (grok -p hello, limiet ${_mt_a}s)..." ;;
+                el) _mt_out="έλεγχος συνεδρίας (grok -p hello, όριο ${_mt_a}s)..." ;;
                 *) _mt_out="checking session (grok -p hello, timeout ${_mt_a}s)..." ;;
             esac
             ;;
@@ -8021,6 +8046,11 @@ app_menu_text() {
                 de) _mt_out="backup, sync-auth und sudoers sind in ${_mt_a} nicht verfügbar." ;;
                 ja) _mt_out="backup、sync-auth、sudoers は ${_mt_a} では使えません。" ;;
                 ko) _mt_out="backup, sync-auth, sudoers 기능은 ${_mt_a} 에서 사용할 수 없습니다." ;;
+                ar) _mt_out="ميزات backup وsync-auth وsudoers غير متاحة في ${_mt_a}." ;;
+                pt) _mt_out="as funções backup, sync-auth e sudoers não estão disponíveis em ${_mt_a}." ;;
+                ru) _mt_out="функции backup, sync-auth и sudoers недоступны в ${_mt_a}." ;;
+                nl) _mt_out="backup, sync-auth en sudoers zijn niet beschikbaar in ${_mt_a}." ;;
+                el) _mt_out="οι λειτουργίες backup, sync-auth και sudoers δεν είναι διαθέσιμες στο ${_mt_a}." ;;
                 *) _mt_out="backup, sync-auth and sudoers features are not available in ${_mt_a}." ;;
             esac
             ;;
@@ -8033,6 +8063,11 @@ app_menu_text() {
                 de) _mt_out="sync-auth und sync-auth-from-remote sind bei angemeldeter Sitzung nicht verfügbar." ;;
                 ja) _mt_out="ログイン済みの環境では sync-auth と sync-auth-from-remote は使えません。" ;;
                 ko) _mt_out="로그인된 환경에서는 sync-auth 와 sync-auth-from-remote 를 사용할 수 없습니다." ;;
+                ar) _mt_out="ميزتا sync-auth وsync-auth-from-remote غير متاحتين عند تسجيل الدخول." ;;
+                pt) _mt_out="sync-auth e sync-auth-from-remote não estão disponíveis com a sessão iniciada." ;;
+                ru) _mt_out="sync-auth и sync-auth-from-remote недоступны при выполненном входе." ;;
+                nl) _mt_out="sync-auth en sync-auth-from-remote zijn niet beschikbaar bij een ingelogde sessie." ;;
+                el) _mt_out="τα sync-auth και sync-auth-from-remote δεν είναι διαθέσιμα όταν η συνεδρία είναι συνδεδεμένη." ;;
                 *) _mt_out="sync-auth and sync-auth-from-remote features are not available for logged-in environment." ;;
             esac
             ;;
@@ -8045,6 +8080,11 @@ app_menu_text() {
                 de) _mt_out="grok-Anmeldung" ;;
                 ja) _mt_out="grok 認証" ;;
                 ko) _mt_out="grok 인증" ;;
+                ar) _mt_out="مصادقة grok" ;;
+                pt) _mt_out="autenticação grok" ;;
+                ru) _mt_out="вход grok" ;;
+                nl) _mt_out="grok-aanmelding" ;;
+                el) _mt_out="σύνδεση grok" ;;
                 *) _mt_out="grok-auth" ;;
             esac
             ;;
@@ -8057,6 +8097,11 @@ app_menu_text() {
                 de) _mt_out="Sicherung, Abgleich, Crontab, Einrichtung und Neuinstallation" ;;
                 ja) _mt_out="バックアップ、同期、crontab、導入、再導入" ;;
                 ko) _mt_out="백업, 동기화, crontab, 설치, 다시 설치" ;;
+                ar) _mt_out="نسخ احتياطي ومزامنة وcrontab وتثبيت وإعادة تثبيت" ;;
+                pt) _mt_out="Cópia, sincronização, crontab, instalação e reinstalação" ;;
+                ru) _mt_out="Копия, синхронизация, crontab, установка и переустановка" ;;
+                nl) _mt_out="Reservekopie, afstemming, crontab, installatie en herinstallatie" ;;
+                el) _mt_out="Αντίγραφο, συγχρονισμός, crontab, εγκατάσταση και επανεγκατάσταση" ;;
                 *) _mt_out="Backup, sync, crontab, setup, and reinstall" ;;
             esac
             ;;
@@ -8069,6 +8114,11 @@ app_menu_text() {
                 de) _mt_out="Sprache" ;;
                 ja) _mt_out="言語" ;;
                 ko) _mt_out="언어" ;;
+                ar) _mt_out="لغة" ;;
+                pt) _mt_out="idioma" ;;
+                ru) _mt_out="язык" ;;
+                nl) _mt_out="taal" ;;
+                el) _mt_out="γλώσσα" ;;
                 *) _mt_out="language" ;;
             esac
             ;;
@@ -8081,6 +8131,11 @@ app_menu_text() {
                 de) _mt_out="Anzeigesprache für dieses Menü" ;;
                 ja) _mt_out="このメニューの表示言語" ;;
                 ko) _mt_out="이 메뉴의 표시 언어" ;;
+                ar) _mt_out="لغة العرض لهذه القائمة" ;;
+                pt) _mt_out="idioma de exibição deste menu" ;;
+                ru) _mt_out="язык отображения этого меню" ;;
+                nl) _mt_out="weergavetaal van dit menu" ;;
+                el) _mt_out="γλώσσα εμφάνισης αυτού του μενού" ;;
                 *) _mt_out="display language for this menu" ;;
             esac
             ;;
@@ -8093,6 +8148,11 @@ app_menu_text() {
                 de) _mt_out="Selbstverwaltung" ;;
                 ja) _mt_out="自己管理" ;;
                 ko) _mt_out="자기관리" ;;
+                ar) _mt_out="إدارة-ذاتية" ;;
+                pt) _mt_out="autogestão" ;;
+                ru) _mt_out="самоуправление" ;;
+                nl) _mt_out="zelfbeheer" ;;
+                el) _mt_out="αυτοδιαχείριση" ;;
                 *) _mt_out="self-management" ;;
             esac
             ;;
@@ -8105,6 +8165,11 @@ app_menu_text() {
                 de) _mt_out="grok-cli prüfen, aktualisieren oder entfernen" ;;
                 ja) _mt_out="grok-cli の確認、更新、削除" ;;
                 ko) _mt_out="grok-cli 확인, 업데이트 또는 제거" ;;
+                ar) _mt_out="فحص grok-cli أو تحديثه أو إزالته" ;;
+                pt) _mt_out="Verificar, atualizar ou remover o grok-cli" ;;
+                ru) _mt_out="Проверить, обновить или удалить grok-cli" ;;
+                nl) _mt_out="grok-cli controleren, bijwerken of verwijderen" ;;
+                el) _mt_out="Έλεγχος, ενημέρωση ή αφαίρεση του grok-cli" ;;
                 *) _mt_out="Check, update, or remove grok-cli" ;;
             esac
             ;;
@@ -8117,6 +8182,11 @@ app_menu_text() {
                 de) _mt_out="Freigabe und Entwürfe" ;;
                 ja) _mt_out="認可と下書き" ;;
                 ko) _mt_out="허가와 초안" ;;
+                ar) _mt_out="منح ومسودات" ;;
+                pt) _mt_out="Concessão e rascunhos" ;;
+                ru) _mt_out="Разрешение и черновики" ;;
+                nl) _mt_out="Toestemming en concepten" ;;
+                el) _mt_out="Άδεια και πρόχειρα" ;;
                 *) _mt_out="Grant and drafts" ;;
             esac
             ;;
@@ -8129,6 +8199,11 @@ app_menu_text() {
                 de) _mt_out="grok ohne automatische Aktualisierung starten" ;;
                 ja) _mt_out="自動更新なしで grok を起動" ;;
                 ko) _mt_out="자동 업데이트 없이 grok 시작" ;;
+                ar) _mt_out="تشغيل grok دون تحديث تلقائي" ;;
+                pt) _mt_out="Iniciar o grok sem atualização automática" ;;
+                ru) _mt_out="Запустить grok без автообновления" ;;
+                nl) _mt_out="grok starten zonder automatische update" ;;
+                el) _mt_out="Εκκίνηση του grok χωρίς αυτόματη ενημέρωση" ;;
                 *) _mt_out="Start grok without auto-update" ;;
             esac
             ;;
@@ -8141,6 +8216,11 @@ app_menu_text() {
                 de) _mt_out="Vorhandenes grok entfernen und erneut installieren" ;;
                 ja) _mt_out="既存の grok を削除して入れ直す" ;;
                 ko) _mt_out="기존 grok 를 지우고 다시 설치" ;;
+                ar) _mt_out="إزالة grok الحالي وتثبيته من جديد" ;;
+                pt) _mt_out="Remover o grok existente e instalar de novo" ;;
+                ru) _mt_out="Удалить текущий grok и установить снова" ;;
+                nl) _mt_out="Bestaande grok verwijderen en opnieuw installeren" ;;
+                el) _mt_out="Αφαίρεση του υπάρχοντος grok και νέα εγκατάσταση" ;;
                 *) _mt_out="Remove existing grok and install again" ;;
             esac
             ;;
@@ -8153,6 +8233,11 @@ app_menu_text() {
                 de) _mt_out="grok von x.ai installieren" ;;
                 ja) _mt_out="x.ai から grok を導入" ;;
                 ko) _mt_out="x.ai 에서 grok 설치" ;;
+                ar) _mt_out="تثبيت grok من x.ai" ;;
+                pt) _mt_out="Instalar o grok a partir de x.ai" ;;
+                ru) _mt_out="Установить grok с x.ai" ;;
+                nl) _mt_out="grok installeren vanaf x.ai" ;;
+                el) _mt_out="Εγκατάσταση του grok από το x.ai" ;;
                 *) _mt_out="Install grok from x.ai" ;;
             esac
             ;;
@@ -8165,6 +8250,11 @@ app_menu_text() {
                 de) _mt_out="~/.grok/auth.* nach ${_mt_a} schieben" ;;
                 ja) _mt_out="~/.grok/auth.* を ${_mt_a} へ送る" ;;
                 ko) _mt_out="~/.grok/auth.* 를 ${_mt_a} 로 보냄" ;;
+                ar) _mt_out="إرسال ~/.grok/auth.* إلى ${_mt_a}" ;;
+                pt) _mt_out="Enviar ~/.grok/auth.* para ${_mt_a}" ;;
+                ru) _mt_out="Отправить ~/.grok/auth.* в ${_mt_a}" ;;
+                nl) _mt_out="~/.grok/auth.* naar ${_mt_a} sturen" ;;
+                el) _mt_out="Αποστολή του ~/.grok/auth.* στο ${_mt_a}" ;;
                 *) _mt_out="Push ~/.grok/auth.* to ${_mt_a}" ;;
             esac
             ;;
@@ -8177,6 +8267,11 @@ app_menu_text() {
                 de) _mt_out="${_mt_a}/auth.* nach ~/.grok kopieren" ;;
                 ja) _mt_out="${_mt_a}/auth.* を ~/.grok へコピー" ;;
                 ko) _mt_out="${_mt_a}/auth.* 를 ~/.grok 로 복사" ;;
+                ar) _mt_out="نسخ ${_mt_a}/auth.* إلى ~/.grok" ;;
+                pt) _mt_out="Copiar ${_mt_a}/auth.* para ~/.grok" ;;
+                ru) _mt_out="Скопировать ${_mt_a}/auth.* в ~/.grok" ;;
+                nl) _mt_out="${_mt_a}/auth.* naar ~/.grok kopiëren" ;;
+                el) _mt_out="Αντιγραφή του ${_mt_a}/auth.* στο ~/.grok" ;;
                 *) _mt_out="Copy ${_mt_a}/auth.* into ~/.grok" ;;
             esac
             ;;
@@ -8189,6 +8284,11 @@ app_menu_text() {
                 de) _mt_out="auth.* eines fernen Hosts nach ~/.grok kopieren" ;;
                 ja) _mt_out="遠隔ホストの auth.* を ~/.grok へコピー" ;;
                 ko) _mt_out="원격 호스트의 auth.* 를 ~/.grok 로 복사" ;;
+                ar) _mt_out="نسخ auth.* من مضيف بعيد إلى ~/.grok" ;;
+                pt) _mt_out="Copiar o auth.* de um anfitrião remoto para ~/.grok" ;;
+                ru) _mt_out="Скопировать auth.* удалённого узла в ~/.grok" ;;
+                nl) _mt_out="auth.* van een externe host naar ~/.grok kopiëren" ;;
+                el) _mt_out="Αντιγραφή του auth.* απομακρυσμένου υπολογιστή στο ~/.grok" ;;
                 *) _mt_out="Copy a remote host's auth.* into ~/.grok" ;;
             esac
             ;;
@@ -8201,6 +8301,11 @@ app_menu_text() {
                 de) _mt_out="~/.grok/auth.* auf einen fernen Host kopieren" ;;
                 ja) _mt_out="~/.grok/auth.* を遠隔ホストへコピー" ;;
                 ko) _mt_out="~/.grok/auth.* 를 원격 호스트로 복사" ;;
+                ar) _mt_out="نسخ ~/.grok/auth.* إلى مضيف بعيد" ;;
+                pt) _mt_out="Copiar ~/.grok/auth.* para um anfitrião remoto" ;;
+                ru) _mt_out="Скопировать ~/.grok/auth.* на удалённый узел" ;;
+                nl) _mt_out="~/.grok/auth.* naar een externe host kopiëren" ;;
+                el) _mt_out="Αντιγραφή του ~/.grok/auth.* σε απομακρυσμένο υπολογιστή" ;;
                 *) _mt_out="Copy ~/.grok/auth.* onto a remote host" ;;
             esac
             ;;
@@ -8213,6 +8318,11 @@ app_menu_text() {
                 de) _mt_out="backup- und sync-auth-Aufträge in die Crontab dieser Anmeldung" ;;
                 ja) _mt_out="このログインの crontab に backup と sync-auth を追加" ;;
                 ko) _mt_out="이 로그인의 crontab 에 backup 과 sync-auth 작업을 추가" ;;
+                ar) _mt_out="إضافة مهمتي backup وsync-auth إلى crontab لهذا الدخول" ;;
+                pt) _mt_out="Adicionar tarefas backup e sync-auth ao crontab deste login" ;;
+                ru) _mt_out="Добавить задания backup и sync-auth в crontab этого входа" ;;
+                nl) _mt_out="backup- en sync-auth-taken aan de crontab van deze login toevoegen" ;;
+                el) _mt_out="Προσθήκη εργασιών backup και sync-auth στο crontab αυτής της σύνδεσης" ;;
                 *) _mt_out="Add backup and sync-auth jobs to this login's crontab" ;;
             esac
             ;;
@@ -8225,6 +8335,11 @@ app_menu_text() {
                 de) _mt_out="Lokale Version mit dem Kanal vergleichen" ;;
                 ja) _mt_out="ローカル版とチャンネルを比較" ;;
                 ko) _mt_out="로컬 버전과 채널을 비교" ;;
+                ar) _mt_out="مقارنة الإصدار المحلي بالقناة" ;;
+                pt) _mt_out="Comparar a versão local com o canal" ;;
+                ru) _mt_out="Сравнить локальную версию с каналом" ;;
+                nl) _mt_out="Lokale versie met het kanaal vergelijken" ;;
+                el) _mt_out="Σύγκριση τοπικής έκδοσης με το κανάλι" ;;
                 *) _mt_out="Compare local version with the channel" ;;
             esac
             ;;
@@ -8237,6 +8352,11 @@ app_menu_text() {
                 de) _mt_out="grok-cli erneut vom Kanal herunterladen" ;;
                 ja) _mt_out="チャンネルから grok-cli を再取得" ;;
                 ko) _mt_out="채널에서 grok-cli 를 다시 받기" ;;
+                ar) _mt_out="إعادة تنزيل grok-cli من القناة" ;;
+                pt) _mt_out="Voltar a obter o grok-cli a partir do canal" ;;
+                ru) _mt_out="Заново загрузить grok-cli из канала" ;;
+                nl) _mt_out="grok-cli opnieuw van het kanaal ophalen" ;;
+                el) _mt_out="Νέα λήψη του grok-cli από το κανάλι" ;;
                 *) _mt_out="Re-download grok-cli from the channel" ;;
             esac
             ;;
@@ -8249,6 +8369,11 @@ app_menu_text() {
                 de) _mt_out="grok-cli entfernen" ;;
                 ja) _mt_out="grok-cli を削除" ;;
                 ko) _mt_out="grok-cli 제거" ;;
+                ar) _mt_out="إزالة grok-cli" ;;
+                pt) _mt_out="Remover o grok-cli" ;;
+                ru) _mt_out="Удалить grok-cli" ;;
+                nl) _mt_out="grok-cli verwijderen" ;;
+                el) _mt_out="Αφαίρεση του grok-cli" ;;
                 *) _mt_out="Remove grok-cli" ;;
             esac
             ;;
@@ -8261,6 +8386,11 @@ app_menu_text() {
                 de) _mt_out="Lauf- und Installationspfade anzeigen" ;;
                 ja) _mt_out="実行中のパスとインストール先を表示" ;;
                 ko) _mt_out="실행 경로와 설치 경로를 표시" ;;
+                ar) _mt_out="إظهار مساري التشغيل والتثبيت" ;;
+                pt) _mt_out="Mostrar os caminhos de execução e de instalação" ;;
+                ru) _mt_out="Показать пути запуска и установки" ;;
+                nl) _mt_out="Uitvoer- en installatiepaden tonen" ;;
+                el) _mt_out="Εμφάνιση διαδρομών εκτέλεσης και εγκατάστασης" ;;
                 *) _mt_out="Show running and install paths" ;;
             esac
             ;;
@@ -8273,6 +8403,11 @@ app_menu_text() {
                 de) _mt_out="Eine lesbare JSON-Freigabe schreiben" ;;
                 ja) _mt_out="読める JSON 認可を書く" ;;
                 ko) _mt_out="읽을 수 있는 JSON 허가를 작성" ;;
+                ar) _mt_out="كتابة منحة JSON يمكن قراءتها" ;;
+                pt) _mt_out="Escrever uma concessão JSON legível" ;;
+                ru) _mt_out="Записать читаемый JSON-грант" ;;
+                nl) _mt_out="Een leesbare JSON-toestemming schrijven" ;;
+                el) _mt_out="Εγγραφή μιας αναγνώσιμης άδειας JSON" ;;
                 *) _mt_out="Write a JSON grant you can read" ;;
             esac
             ;;
@@ -8285,6 +8420,11 @@ app_menu_text() {
                 de) _mt_out="Die JSON-Freigabe in die Eingangs-Warteschlange legen" ;;
                 ja) _mt_out="JSON 認可を受信待ちに入れる" ;;
                 ko) _mt_out="JSON 허가를 수신 대기열에 넣기" ;;
+                ar) _mt_out="وضع منحة JSON في طابور الوارد" ;;
+                pt) _mt_out="Colocar a concessão JSON na fila de entrada" ;;
+                ru) _mt_out="Поставить JSON-грант во входящую очередь" ;;
+                nl) _mt_out="De JSON-toestemming in de inkomende wachtrij zetten" ;;
+                el) _mt_out="Τοποθέτηση της άδειας JSON στην εισερχόμενη ουρά" ;;
                 *) _mt_out="Queue the JSON grant inbound" ;;
             esac
             ;;
@@ -8297,6 +8437,11 @@ app_menu_text() {
                 de) _mt_out="sudoers-Entwurf ausgeben" ;;
                 ja) _mt_out="sudoers 下書きを出力" ;;
                 ko) _mt_out="sudoers 초안을 출력" ;;
+                ar) _mt_out="إخراج مسودة sudoers" ;;
+                pt) _mt_out="Emitir o rascunho sudoers" ;;
+                ru) _mt_out="Вывести черновик sudoers" ;;
+                nl) _mt_out="sudoers-concept afdrukken" ;;
+                el) _mt_out="Εκπομπή πρόχειρου sudoers" ;;
                 *) _mt_out="Emit sudoers draft" ;;
             esac
             ;;
@@ -8309,6 +8454,11 @@ app_menu_text() {
                 de) _mt_out="Admin-Installationsskript schreiben" ;;
                 ja) _mt_out="管理者用の導入スクリプトを書く" ;;
                 ko) _mt_out="관리자 설치 스크립트를 작성" ;;
+                ar) _mt_out="كتابة سكربت التثبيت للمسؤول" ;;
+                pt) _mt_out="Escrever o script de instalação do administrador" ;;
+                ru) _mt_out="Записать скрипт установки для администратора" ;;
+                nl) _mt_out="Installatiescript voor de beheerder schrijven" ;;
+                el) _mt_out="Εγγραφή σεναρίου εγκατάστασης για τον διαχειριστή" ;;
                 *) _mt_out="Write admin install script" ;;
             esac
             ;;
@@ -8321,6 +8471,11 @@ app_menu_text() {
                 de) _mt_out="Nur den sudoers-Entwurf entfernen" ;;
                 ja) _mt_out="sudoers 下書きだけを削除" ;;
                 ko) _mt_out="sudoers 초안만 제거" ;;
+                ar) _mt_out="إزالة مسودة sudoers فقط" ;;
+                pt) _mt_out="Remover só o rascunho sudoers" ;;
+                ru) _mt_out="Удалить только черновик sudoers" ;;
+                nl) _mt_out="Alleen het sudoers-concept verwijderen" ;;
+                el) _mt_out="Αφαίρεση μόνο του πρόχειρου sudoers" ;;
                 *) _mt_out="Remove sudoers draft only" ;;
             esac
             ;;
@@ -8333,6 +8488,11 @@ app_menu_text() {
                 de) _mt_out="Zurück" ;;
                 ja) _mt_out="戻る" ;;
                 ko) _mt_out="뒤로" ;;
+                ar) _mt_out="رجوع" ;;
+                pt) _mt_out="Voltar" ;;
+                ru) _mt_out="Назад" ;;
+                nl) _mt_out="Terug" ;;
+                el) _mt_out="Πίσω" ;;
                 *) _mt_out="Back" ;;
             esac
             ;;
@@ -8345,6 +8505,11 @@ app_menu_text() {
                 de) _mt_out="Beenden" ;;
                 ja) _mt_out="終了" ;;
                 ko) _mt_out="종료" ;;
+                ar) _mt_out="خروج" ;;
+                pt) _mt_out="Sair" ;;
+                ru) _mt_out="Выход" ;;
+                nl) _mt_out="Afsluiten" ;;
+                el) _mt_out="Έξοδος" ;;
                 *) _mt_out="Exit" ;;
             esac
             ;;
@@ -8357,6 +8522,11 @@ app_menu_text() {
                 de) _mt_out="Auswahl: " ;;
                 ja) _mt_out="選択: " ;;
                 ko) _mt_out="선택: " ;;
+                ar) _mt_out="الاختيار: " ;;
+                pt) _mt_out="Escolha: " ;;
+                ru) _mt_out="Выбор: " ;;
+                nl) _mt_out="Keuze: " ;;
+                el) _mt_out="Επιλογή: " ;;
                 *) _mt_out="Choice: " ;;
             esac
             ;;
@@ -8369,6 +8539,11 @@ app_menu_text() {
                 de) _mt_out="Keine Menüauswahl '${_mt_a}'. Geben Sie ${_mt_b} ein, oder einen aufgeführten Befehlsnamen." ;;
                 ja) _mt_out="メニューの選択ではありません '${_mt_a}'。${_mt_b} を入力するか、一覧のコマンド名を入力してください。" ;;
                 ko) _mt_out="메뉴 선택이 아닙니다 '${_mt_a}'. ${_mt_b} 를 입력하거나 목록의 명령 이름을 입력하세요." ;;
+                ar) _mt_out="ليس خيار قائمة '${_mt_a}'. أدخل ${_mt_b}، أو اسم أمر من القائمة." ;;
+                pt) _mt_out="Não é uma opção do menu '${_mt_a}'. Digite ${_mt_b}, ou um nome de comando da lista." ;;
+                ru) _mt_out="Не пункт меню '${_mt_a}'. Введите ${_mt_b} или имя команды из списка." ;;
+                nl) _mt_out="Geen menukeuze '${_mt_a}'. Typ ${_mt_b}, of een opdrachtnaam uit de lijst." ;;
+                el) _mt_out="Δεν είναι επιλογή μενού '${_mt_a}'. Πληκτρολογήστε ${_mt_b}, ή ένα όνομα εντολής από τη λίστα." ;;
                 *) _mt_out="Not a menu choice '${_mt_a}'. Type ${_mt_b}, or a listed command name." ;;
             esac
             ;;
@@ -8381,6 +8556,11 @@ app_menu_text() {
                 de) _mt_out="Die Menüsprache ist Deutsch" ;;
                 ja) _mt_out="メニューの言語は日本語" ;;
                 ko) _mt_out="메뉴 언어는 한국어" ;;
+                ar) _mt_out="لغة القائمة هي العربية" ;;
+                pt) _mt_out="O idioma do menu é português" ;;
+                ru) _mt_out="Язык меню — русский" ;;
+                nl) _mt_out="Menutaal is Nederlands" ;;
+                el) _mt_out="Η γλώσσα του μενού είναι ελληνικά" ;;
                 *) _mt_out="Menu language is English" ;;
             esac
             ;;
@@ -8393,6 +8573,11 @@ app_menu_text() {
                 de) _mt_out="Die Menüsprache konnte nicht gespeichert werden" ;;
                 ja) _mt_out="メニューの言語を保存できませんでした" ;;
                 ko) _mt_out="메뉴 언어를 저장하지 못했습니다" ;;
+                ar) _mt_out="تعذر حفظ لغة القائمة" ;;
+                pt) _mt_out="Não foi possível guardar o idioma do menu" ;;
+                ru) _mt_out="Не удалось сохранить язык меню" ;;
+                nl) _mt_out="De menutaal kon niet worden opgeslagen" ;;
+                el) _mt_out="Δεν ήταν δυνατή η αποθήκευση της γλώσσας του μενού" ;;
                 *) _mt_out="Could not save the menu language" ;;
             esac
             ;;
@@ -8405,6 +8590,11 @@ app_menu_text() {
                 de) _mt_out="sudoers (Freigabe und Entwürfe)" ;;
                 ja) _mt_out="sudoers（認可と下書き）" ;;
                 ko) _mt_out="sudoers(허가와 초안)" ;;
+                ar) _mt_out="sudoers (منح ومسودات)" ;;
+                pt) _mt_out="sudoers (concessão e rascunhos)" ;;
+                ru) _mt_out="sudoers (разрешение и черновики)" ;;
+                nl) _mt_out="sudoers (toestemming en concepten)" ;;
+                el) _mt_out="sudoers (άδεια και πρόχειρα)" ;;
                 *) _mt_out="sudoers (grant and drafts)" ;;
             esac
             ;;
@@ -8417,6 +8607,11 @@ app_menu_text() {
                 de) _mt_out="Verwendung:" ;;
                 ja) _mt_out="使い方:" ;;
                 ko) _mt_out="사용법:" ;;
+                ar) _mt_out="الاستخدام:" ;;
+                pt) _mt_out="Utilização:" ;;
+                ru) _mt_out="Использование:" ;;
+                nl) _mt_out="Gebruik:" ;;
+                el) _mt_out="Χρήση:" ;;
                 *) _mt_out="Usage:" ;;
             esac
             ;;
@@ -8429,6 +8624,11 @@ app_menu_text() {
                 de) _mt_out="Lebenszyklus (Type 0 — lokal selbstverwaltet):" ;;
                 ja) _mt_out="ライフサイクル（Type 0 — このログインで自己管理）:" ;;
                 ko) _mt_out="수명 주기 (Type 0 — 이 로그인에서 자체 관리):" ;;
+                ar) _mt_out="دورة الحياة (Type 0 — إدارة محلية):" ;;
+                pt) _mt_out="Ciclo de vida (Type 0 — autogerido local):" ;;
+                ru) _mt_out="Жизненный цикл (Type 0 — локальное самоуправление):" ;;
+                nl) _mt_out="Levenscyclus (Type 0 — lokaal zelfbeheerd):" ;;
+                el) _mt_out="Κύκλος ζωής (Type 0 — τοπική αυτοδιαχείριση):" ;;
                 *) _mt_out="Lifecycle (Type 0 — local self-managed):" ;;
             esac
             ;;
@@ -8441,6 +8641,11 @@ app_menu_text() {
                 de) _mt_out="Testzweck (nur lokaler Ordner — nicht install):" ;;
                 ja) _mt_out="テスト用（ローカルの試しフォルダだけ — install ではない）:" ;;
                 ko) _mt_out="테스트용 (로컬 폴더만 — install 아님):" ;;
+                ar) _mt_out="غرض الاختبار (مجلد محلي فقط — ليس install):" ;;
+                pt) _mt_out="Testes (só pasta local — não é install):" ;;
+                ru) _mt_out="Для теста (только локальная папка — не install):" ;;
+                nl) _mt_out="Testdoel (alleen lokale map — niet install):" ;;
+                el) _mt_out="Δοκιμή (μόνο τοπικός φάκελος — όχι install):" ;;
                 *) _mt_out="Test-purpose (local fixture only — not install):" ;;
             esac
             ;;
@@ -8453,6 +8658,11 @@ app_menu_text() {
                 de) _mt_out="Domäne (Type 0 Sitzung/Abgleich + Type 1 Auth-Ablage):" ;;
                 ja) _mt_out="領域（Type 0 のセッション／同期 + Type 1 の認証の置き場）:" ;;
                 ko) _mt_out="도메인 (Type 0 세션/동기화 + Type 1 인증 보관):" ;;
+                ar) _mt_out="المجال (جلسة/مزامنة Type 0 + إيداع مصادقة Type 1):" ;;
+                pt) _mt_out="Domínio (sessão/sync Type 0 + depósito de auth Type 1):" ;;
+                ru) _mt_out="Область (сеанс/синхронизация Type 0 + хранилище auth Type 1):" ;;
+                nl) _mt_out="Domein (Type 0 sessie/sync + Type 1 auth-opslag):" ;;
+                el) _mt_out="Πεδίο (συνεδρία/sync Type 0 + αποθήκη auth Type 1):" ;;
                 *) _mt_out="Domain (Type 0 session/sync + Type 1 auth deposit):" ;;
             esac
             ;;
@@ -8465,6 +8675,11 @@ app_menu_text() {
                 de) _mt_out="Globale Optionen:" ;;
                 ja) _mt_out="共通オプション:" ;;
                 ko) _mt_out="공통 옵션:" ;;
+                ar) _mt_out="خيارات عامة:" ;;
+                pt) _mt_out="Opções globais:" ;;
+                ru) _mt_out="Общие параметры:" ;;
+                nl) _mt_out="Globale opties:" ;;
+                el) _mt_out="Καθολικές επιλογές:" ;;
                 *) _mt_out="Global Options:" ;;
             esac
             ;;
@@ -8477,6 +8692,11 @@ app_menu_text() {
                 de) _mt_out="Umgebung:" ;;
                 ja) _mt_out="環境変数:" ;;
                 ko) _mt_out="환경 변수:" ;;
+                ar) _mt_out="البيئة:" ;;
+                pt) _mt_out="Ambiente:" ;;
+                ru) _mt_out="Окружение:" ;;
+                nl) _mt_out="Omgeving:" ;;
+                el) _mt_out="Περιβάλλον:" ;;
                 *) _mt_out="Environment:" ;;
             esac
             ;;
@@ -8489,6 +8709,11 @@ app_menu_text() {
                 de) _mt_out="grok-cli installieren (root in den globalen Bin, Nutzer nach ~/.local/bin)" ;;
                 ja) _mt_out="grok-cli を導入（root はグローバル、利用者は ~/.local/bin）" ;;
                 ko) _mt_out="grok-cli 설치 (root 는 전역 bin, 사용자는 ~/.local/bin)" ;;
+                ar) _mt_out="تثبيت grok-cli (الجذر إلى المجلد العام، المستخدم إلى ~/.local/bin)" ;;
+                pt) _mt_out="Instalar o grok-cli (root no bin global, utilizador em ~/.local/bin)" ;;
+                ru) _mt_out="Установить grok-cli (root — в общий bin, пользователь — в ~/.local/bin)" ;;
+                nl) _mt_out="grok-cli installeren (root naar de globale bin, gebruiker naar ~/.local/bin)" ;;
+                el) _mt_out="Εγκατάσταση του grok-cli (root στο καθολικό bin, χρήστης στο ~/.local/bin)" ;;
                 *) _mt_out="Install grok-cli (root to the global bin, user to ~/.local/bin)" ;;
             esac
             ;;
@@ -8501,6 +8726,11 @@ app_menu_text() {
                 de) _mt_out="Verwaltete Binärdatei entfernen (bestätigen oder --force); nicht sudoers" ;;
                 ja) _mt_out="管理対象の実行ファイルを削除（確認または --force）。sudoers ではない" ;;
                 ko) _mt_out="관리되는 실행 파일을 제거 (확인 또는 --force). sudoers 아님" ;;
+                ar) _mt_out="إزالة الملف المُدار (تأكيد أو --force)؛ ليس sudoers" ;;
+                pt) _mt_out="Remover o binário gerido (confirmar ou --force); não é sudoers" ;;
+                ru) _mt_out="Удалить управляемый файл (подтверждение или --force); не sudoers" ;;
+                nl) _mt_out="Het beheerde bestand verwijderen (bevestigen of --force); niet sudoers" ;;
+                el) _mt_out="Αφαίρεση του διαχειριζόμενου αρχείου (επιβεβαίωση ή --force)· όχι sudoers" ;;
                 *) _mt_out="Remove the managed binary (confirm or --force); not sudoers" ;;
             esac
             ;;
@@ -8513,6 +8743,11 @@ app_menu_text() {
                 de) _mt_out="Dieselbe Entfernung wie uninstall (Kanalname)" ;;
                 ja) _mt_out="uninstall と同じ削除（チャンネル名）" ;;
                 ko) _mt_out="uninstall 과 같은 제거 (채널 이름)" ;;
+                ar) _mt_out="نفس الإزالة مثل uninstall (اسم القناة)" ;;
+                pt) _mt_out="A mesma remoção que uninstall (nome do canal)" ;;
+                ru) _mt_out="То же удаление, что uninstall (имя канала)" ;;
+                nl) _mt_out="Dezelfde verwijdering als uninstall (kanaalnaam)" ;;
+                el) _mt_out="Η ίδια αφαίρεση με το uninstall (όνομα καναλιού)" ;;
                 *) _mt_out="Same remove as uninstall (channel name)" ;;
             esac
             ;;
@@ -8525,6 +8760,11 @@ app_menu_text() {
                 de) _mt_out="Lauf- und Installationspfade anzeigen" ;;
                 ja) _mt_out="実行中のパスとインストール先を表示" ;;
                 ko) _mt_out="실행 경로와 설치 경로를 표시" ;;
+                ar) _mt_out="إظهار مساري التشغيل والتثبيت" ;;
+                pt) _mt_out="Mostrar os caminhos de execução e de instalação" ;;
+                ru) _mt_out="Показать пути запуска и установки" ;;
+                nl) _mt_out="Uitvoer- en installatiepaden tonen" ;;
+                el) _mt_out="Εμφάνιση διαδρομών εκτέλεσης και εγκατάστασης" ;;
                 *) _mt_out="Show running and install paths" ;;
             esac
             ;;
@@ -8537,6 +8777,11 @@ app_menu_text() {
                 de) _mt_out="Lokale Version anzeigen" ;;
                 ja) _mt_out="ローカルの版を表示" ;;
                 ko) _mt_out="로컬 버전 표시" ;;
+                ar) _mt_out="إظهار الإصدار المحلي" ;;
+                pt) _mt_out="Mostrar a versão local" ;;
+                ru) _mt_out="Показать локальную версию" ;;
+                nl) _mt_out="Lokale versie tonen" ;;
+                el) _mt_out="Εμφάνιση τοπικής έκδοσης" ;;
                 *) _mt_out="Show local version" ;;
             esac
             ;;
@@ -8549,6 +8794,11 @@ app_menu_text() {
                 de) _mt_out="Lokale und ferne VERSION auf SCRIPT_URL vergleichen" ;;
                 ja) _mt_out="SCRIPT_URL の遠隔 VERSION とローカルを比較" ;;
                 ko) _mt_out="SCRIPT_URL 의 원격 VERSION 과 로컬을 비교" ;;
+                ar) _mt_out="مقارنة VERSION المحلي بالبعيد على SCRIPT_URL" ;;
+                pt) _mt_out="Comparar VERSION local e remoto em SCRIPT_URL" ;;
+                ru) _mt_out="Сравнить локальный и удалённый VERSION на SCRIPT_URL" ;;
+                nl) _mt_out="Lokale en externe VERSION op SCRIPT_URL vergelijken" ;;
+                el) _mt_out="Σύγκριση τοπικού και απομακρυσμένου VERSION στο SCRIPT_URL" ;;
                 *) _mt_out="Compare local vs remote VERSION on SCRIPT_URL" ;;
             esac
             ;;
@@ -8561,6 +8811,11 @@ app_menu_text() {
                 de) _mt_out="grok-cli erneut von SCRIPT_URL holen (nicht grok)" ;;
                 ja) _mt_out="SCRIPT_URL から grok-cli を再取得（grok ではない）" ;;
                 ko) _mt_out="SCRIPT_URL 에서 grok-cli 를 다시 받기 (grok 아님)" ;;
+                ar) _mt_out="إعادة تنزيل grok-cli من SCRIPT_URL (ليس grok)" ;;
+                pt) _mt_out="Voltar a obter o grok-cli de SCRIPT_URL (não o grok)" ;;
+                ru) _mt_out="Заново загрузить grok-cli с SCRIPT_URL (не grok)" ;;
+                nl) _mt_out="grok-cli opnieuw van SCRIPT_URL ophalen (niet grok)" ;;
+                el) _mt_out="Νέα λήψη του grok-cli από το SCRIPT_URL (όχι το grok)" ;;
                 *) _mt_out="Re-download grok-cli from SCRIPT_URL (not grok)" ;;
             esac
             ;;
@@ -8573,6 +8828,11 @@ app_menu_text() {
                 de) _mt_out="Diagnose anzeigen (einschließlich sudoers-Vertrauensstufe)" ;;
                 ja) _mt_out="診断を表示（sudoers の信頼段階を含む）" ;;
                 ko) _mt_out="진단 표시 (sudoers 신뢰 단계 포함)" ;;
+                ar) _mt_out="إظهار التشخيص (بما فيه مستوى ثقة sudoers)" ;;
+                pt) _mt_out="Mostrar diagnósticos (inclui o nível de confiança sudoers)" ;;
+                ru) _mt_out="Показать диагностику (включая уровень доверия sudoers)" ;;
+                nl) _mt_out="Diagnose tonen (inclusief sudoers-vertrouwensniveau)" ;;
+                el) _mt_out="Εμφάνιση διαγνωστικών (συμπεριλαμβάνεται το επίπεδο εμπιστοσύνης sudoers)" ;;
                 *) _mt_out="Show diagnostics (incl. sudoers trust tier)" ;;
             esac
             ;;
@@ -8585,19 +8845,29 @@ app_menu_text() {
                 de) _mt_out="Diese Hilfe anzeigen" ;;
                 ja) _mt_out="この説明を表示" ;;
                 ko) _mt_out="이 도움말 표시" ;;
+                ar) _mt_out="إظهار هذه المساعدة" ;;
+                pt) _mt_out="Mostrar esta ajuda" ;;
+                ru) _mt_out="Показать эту справку" ;;
+                nl) _mt_out="Deze hulp tonen" ;;
+                el) _mt_out="Εμφάνιση αυτής της βοήθειας" ;;
                 *) _mt_out="Show this help" ;;
             esac
             ;;
         help_menu)
             case "${_mt_lang}" in
-                zh-Hant) _mt_out="終端機上是編號清單；不是終端機則為說明。第 6 列設定語言。" ;;
-                zh-Hans) _mt_out="终端上是编号清单；不是终端则为说明。第 6 行设定语言。" ;;
-                es) _mt_out="Lista numerada en un terminal; ayuda fuera de un terminal. La fila 6 fija el idioma." ;;
-                fr) _mt_out="Liste numérotée sur un terminal ; aide hors terminal. La ligne 6 fixe la langue." ;;
-                de) _mt_out="Nummerierte Liste an einem Terminal; Hilfe ohne Terminal. Zeile 6 setzt die Sprache." ;;
-                ja) _mt_out="端末では番号リスト。端末でなければ説明。6 行目が言語。" ;;
-                ko) _mt_out="터미널에서는 번호 목록. 터미널이 아니면 도움말. 6번이 언어." ;;
-                *) _mt_out="Numbered list on a terminal; help off a terminal. Row 6 sets the language." ;;
+                zh-Hant) _mt_out="終端機上是編號清單；不是終端機則為說明。第 5 列設定語言。" ;;
+                zh-Hans) _mt_out="终端上是编号清单；不是终端则为说明。第 5 行设定语言。" ;;
+                es) _mt_out="Lista numerada en un terminal; ayuda fuera de un terminal. La fila 5 fija el idioma." ;;
+                fr) _mt_out="Liste numérotée sur un terminal ; aide hors terminal. La ligne 5 fixe la langue." ;;
+                de) _mt_out="Nummerierte Liste an einem Terminal; Hilfe ohne Terminal. Zeile 5 setzt die Sprache." ;;
+                ja) _mt_out="端末では番号リスト。端末でなければ説明。5 行目が言語。" ;;
+                ko) _mt_out="터미널에서는 번호 목록. 터미널이 아니면 도움말. 5번이 언어." ;;
+                ar) _mt_out="قائمة مرقمة على طرفية؛ مساعدة خارج الطرفية. الصف 5 يضبط اللغة." ;;
+                pt) _mt_out="Lista numerada num terminal; ajuda fora de um terminal. A linha 5 define o idioma." ;;
+                ru) _mt_out="Нумерованный список на терминале; справка вне терминала. Строка 5 задаёт язык." ;;
+                nl) _mt_out="Genummerde lijst op een terminal; hulp buiten een terminal. Rij 5 zet de taal." ;;
+                el) _mt_out="Αριθμημένη λίστα σε τερματικό· βοήθεια εκτός τερματικού. Η γραμμή 5 ορίζει τη γλώσσα." ;;
+                *) _mt_out="Numbered list on a terminal; help off a terminal. Row 5 sets the language." ;;
             esac
             ;;
         help_rc)
@@ -8609,6 +8879,11 @@ app_menu_text() {
                 de) _mt_out="PATH oder profile in einem --root-Tempordner anlegen oder ändern" ;;
                 ja) _mt_out="--root の一時フォルダで PATH または profile を作成・変更" ;;
                 ko) _mt_out="--root 임시 폴더에서 PATH 또는 profile 을 만들거나 수정" ;;
+                ar) _mt_out="إنشاء PATH أو profile أو تعديلهما في مجلد مؤقت --root" ;;
+                pt) _mt_out="Criar ou modificar PATH ou profile numa pasta temporária --root" ;;
+                ru) _mt_out="Создать или изменить PATH или profile во временной папке --root" ;;
+                nl) _mt_out="PATH of profile maken of wijzigen in een tijdelijke --root-map" ;;
+                el) _mt_out="Δημιουργία ή αλλαγή PATH ή profile σε προσωρινό φάκελο --root" ;;
                 *) _mt_out="Create or modify PATH or profile in a --root temp folder" ;;
             esac
             ;;
@@ -8621,6 +8896,11 @@ app_menu_text() {
                 de) _mt_out="grok von x.ai installieren" ;;
                 ja) _mt_out="x.ai から grok を導入" ;;
                 ko) _mt_out="x.ai 에서 grok 설치" ;;
+                ar) _mt_out="تثبيت grok من x.ai" ;;
+                pt) _mt_out="Instalar o grok a partir de x.ai" ;;
+                ru) _mt_out="Установить grok с x.ai" ;;
+                nl) _mt_out="grok installeren vanaf x.ai" ;;
+                el) _mt_out="Εγκατάσταση του grok από το x.ai" ;;
                 *) _mt_out="Install grok from x.ai" ;;
             esac
             ;;
@@ -8633,6 +8913,11 @@ app_menu_text() {
                 de) _mt_out="grok von x.ai aktualisieren (nicht grok-cli)" ;;
                 ja) _mt_out="x.ai から grok を更新（grok-cli ではない）" ;;
                 ko) _mt_out="x.ai 에서 grok 업데이트 (grok-cli 아님)" ;;
+                ar) _mt_out="تحديث grok من x.ai (ليس grok-cli)" ;;
+                pt) _mt_out="Atualizar o grok a partir de x.ai (não o grok-cli)" ;;
+                ru) _mt_out="Обновить grok с x.ai (не grok-cli)" ;;
+                nl) _mt_out="grok bijwerken vanaf x.ai (niet grok-cli)" ;;
+                el) _mt_out="Ενημέρωση του grok από το x.ai (όχι το grok-cli)" ;;
                 *) _mt_out="Update grok from x.ai (not grok-cli)" ;;
             esac
             ;;
@@ -8645,6 +8930,11 @@ app_menu_text() {
                 de) _mt_out="Vorhandenes grok entfernen und erneut installieren (auth.* bleibt)" ;;
                 ja) _mt_out="既存の grok を削除して入れ直す（auth.* は残す）" ;;
                 ko) _mt_out="기존 grok 를 지우고 다시 설치 (auth.* 유지)" ;;
+                ar) _mt_out="إزالة grok الحالي وتثبيته من جديد (يبقي auth.*)" ;;
+                pt) _mt_out="Remover o grok existente e instalar de novo (mantém auth.*)" ;;
+                ru) _mt_out="Удалить текущий grok и установить снова (сохраняет auth.*)" ;;
+                nl) _mt_out="Bestaande grok verwijderen en opnieuw installeren (houdt auth.*)" ;;
+                el) _mt_out="Αφαίρεση του υπάρχοντος grok και νέα εγκατάσταση (κρατά το auth.*)" ;;
                 *) _mt_out="Remove existing grok and install again (keeps auth.*)" ;;
             esac
             ;;
@@ -8657,6 +8947,11 @@ app_menu_text() {
                 de) _mt_out="grok ohne automatische Aktualisierung starten" ;;
                 ja) _mt_out="自動更新なしで grok を起動" ;;
                 ko) _mt_out="자동 업데이트 없이 grok 시작" ;;
+                ar) _mt_out="تشغيل grok دون تحديث تلقائي" ;;
+                pt) _mt_out="Iniciar o grok sem atualização automática" ;;
+                ru) _mt_out="Запустить grok без автообновления" ;;
+                nl) _mt_out="grok starten zonder automatische update" ;;
+                el) _mt_out="Εκκίνηση του grok χωρίς αυτόματη ενημέρωση" ;;
                 *) _mt_out="Start grok without auto-update" ;;
             esac
             ;;
@@ -8669,6 +8964,11 @@ app_menu_text() {
                 de) _mt_out="Prüfen, ob grok angemeldet ist (zuerst grok -p hello)" ;;
                 ja) _mt_out="grok がログイン済みか確認（先に grok -p hello）" ;;
                 ko) _mt_out="grok 로그인 확인 (먼저 grok -p hello)" ;;
+                ar) _mt_out="تأكيد أن grok مسجل الدخول (يشغّل grok -p hello أولاً)" ;;
+                pt) _mt_out="Confirmar que o grok tem sessão (executa grok -p hello primeiro)" ;;
+                ru) _mt_out="Подтвердить вход grok (сначала запускает grok -p hello)" ;;
+                nl) _mt_out="Bevestigen dat grok is ingelogd (voert eerst grok -p hello uit)" ;;
+                el) _mt_out="Επιβεβαίωση ότι το grok είναι συνδεδεμένο (τρέχει πρώτα grok -p hello)" ;;
                 *) _mt_out="Confirm grok is logged in (runs grok -p hello first)" ;;
             esac
             ;;
@@ -8681,6 +8981,11 @@ app_menu_text() {
                 de) _mt_out="~/.grok/auth.* in das Ablageverzeichnis schieben" ;;
                 ja) _mt_out="~/.grok/auth.* を保管ディレクトリへ送る" ;;
                 ko) _mt_out="~/.grok/auth.* 를 보관 디렉터리로 보냄" ;;
+                ar) _mt_out="إرسال ~/.grok/auth.* إلى مجلد الإيداع" ;;
+                pt) _mt_out="Enviar ~/.grok/auth.* para o diretório de depósito" ;;
+                ru) _mt_out="Отправить ~/.grok/auth.* в каталог хранения" ;;
+                nl) _mt_out="~/.grok/auth.* naar de opslagmap sturen" ;;
+                el) _mt_out="Αποστολή του ~/.grok/auth.* στον φάκελο αποθήκευσης" ;;
                 *) _mt_out="Push ~/.grok/auth.* to the deposit directory" ;;
             esac
             ;;
@@ -8693,6 +8998,11 @@ app_menu_text() {
                 de) _mt_out="auth.* aus der Ablage nach ~/.grok kopieren (ohne sudo)" ;;
                 ja) _mt_out="保管場所の auth.* を ~/.grok へコピー（sudo なし）" ;;
                 ko) _mt_out="보관소의 auth.* 를 ~/.grok 로 복사 (sudo 없음)" ;;
+                ar) _mt_out="نسخ auth.* من الإيداع إلى ~/.grok (بدون sudo)" ;;
+                pt) _mt_out="Copiar o auth.* do depósito para ~/.grok (sem sudo)" ;;
+                ru) _mt_out="Скопировать auth.* из хранилища в ~/.grok (без sudo)" ;;
+                nl) _mt_out="auth.* uit de opslag naar ~/.grok kopiëren (geen sudo)" ;;
+                el) _mt_out="Αντιγραφή του auth.* της αποθήκης στο ~/.grok (χωρίς sudo)" ;;
                 *) _mt_out="Copy the deposit auth.* into ~/.grok (no sudo)" ;;
             esac
             ;;
@@ -8705,6 +9015,11 @@ app_menu_text() {
                 de) _mt_out="auth.* eines fernen Hosts nach ~/.grok kopieren" ;;
                 ja) _mt_out="遠隔ホストの auth.* を ~/.grok へコピー" ;;
                 ko) _mt_out="원격 호스트의 auth.* 를 ~/.grok 로 복사" ;;
+                ar) _mt_out="نسخ auth.* من مضيف بعيد إلى ~/.grok" ;;
+                pt) _mt_out="Copiar o auth.* de um anfitrião remoto para ~/.grok" ;;
+                ru) _mt_out="Скопировать auth.* удалённого узла в ~/.grok" ;;
+                nl) _mt_out="auth.* van een externe host naar ~/.grok kopiëren" ;;
+                el) _mt_out="Αντιγραφή του auth.* απομακρυσμένου υπολογιστή στο ~/.grok" ;;
                 *) _mt_out="Copy a remote host's auth.* into ~/.grok" ;;
             esac
             ;;
@@ -8717,6 +9032,11 @@ app_menu_text() {
                 de) _mt_out="~/.grok/auth.* auf eine ferne Anmeldung kopieren" ;;
                 ja) _mt_out="~/.grok/auth.* を遠隔ログインへコピー" ;;
                 ko) _mt_out="~/.grok/auth.* 를 원격 로그인으로 복사" ;;
+                ar) _mt_out="نسخ ~/.grok/auth.* إلى دخول بعيد" ;;
+                pt) _mt_out="Copiar ~/.grok/auth.* para um login remoto" ;;
+                ru) _mt_out="Скопировать ~/.grok/auth.* на удалённый вход" ;;
+                nl) _mt_out="~/.grok/auth.* naar een externe login kopiëren" ;;
+                el) _mt_out="Αντιγραφή του ~/.grok/auth.* σε απομακρυσμένη σύνδεση" ;;
                 *) _mt_out="Copy ~/.grok/auth.* onto a remote login" ;;
             esac
             ;;
@@ -8729,6 +9049,11 @@ app_menu_text() {
                 de) _mt_out="backup- und sync-auth-Aufträge in die Crontab dieser Anmeldung" ;;
                 ja) _mt_out="このログインの crontab に backup と sync-auth を追加" ;;
                 ko) _mt_out="이 로그인의 crontab 에 backup 과 sync-auth 작업을 추가" ;;
+                ar) _mt_out="إضافة مهمتي backup وsync-auth إلى crontab لهذا الدخول" ;;
+                pt) _mt_out="Adicionar tarefas backup e sync-auth ao crontab deste login" ;;
+                ru) _mt_out="Добавить задания backup и sync-auth в crontab этого входа" ;;
+                nl) _mt_out="backup- en sync-auth-taken aan de crontab van deze login toevoegen" ;;
+                el) _mt_out="Προσθήκη εργασιών backup και sync-auth στο crontab αυτής της σύνδεσης" ;;
                 *) _mt_out="Add backup and sync-auth jobs to this login's crontab" ;;
             esac
             ;;
@@ -8741,6 +9066,11 @@ app_menu_text() {
                 de) _mt_out="Einen sudoers-Entwurf für einen Admin ausgeben" ;;
                 ja) _mt_out="管理者向け sudoers 下書きを出力" ;;
                 ko) _mt_out="관리자용 sudoers 초안을 출력" ;;
+                ar) _mt_out="إخراج مسودة sudoers لمسؤول" ;;
+                pt) _mt_out="Emitir um rascunho sudoers para um administrador" ;;
+                ru) _mt_out="Вывести черновик sudoers для администратора" ;;
+                nl) _mt_out="Een sudoers-concept voor een beheerder afdrukken" ;;
+                el) _mt_out="Εκπομπή πρόχειρου sudoers για διαχειριστή" ;;
                 *) _mt_out="Emit a sudoers draft for an admin" ;;
             esac
             ;;
@@ -8753,6 +9083,11 @@ app_menu_text() {
                 de) _mt_out="Das Admin-Installationsskript schreiben" ;;
                 ja) _mt_out="管理者用の導入スクリプトを書く" ;;
                 ko) _mt_out="관리자 설치 스크립트를 작성" ;;
+                ar) _mt_out="كتابة سكربت التثبيت للمسؤول" ;;
+                pt) _mt_out="Escrever o script de instalação do administrador" ;;
+                ru) _mt_out="Записать скрипт установки для администратора" ;;
+                nl) _mt_out="Het installatiescript voor de beheerder schrijven" ;;
+                el) _mt_out="Εγγραφή του σεναρίου εγκατάστασης του διαχειριστή" ;;
                 *) _mt_out="Write the admin install script" ;;
             esac
             ;;
@@ -8765,6 +9100,11 @@ app_menu_text() {
                 de) _mt_out="Nur den sudoers-Entwurf entfernen" ;;
                 ja) _mt_out="sudoers 下書きだけを削除" ;;
                 ko) _mt_out="sudoers 초안만 제거" ;;
+                ar) _mt_out="إزالة مسودة sudoers فقط" ;;
+                pt) _mt_out="Remover só o rascunho sudoers" ;;
+                ru) _mt_out="Удалить только черновик sudoers" ;;
+                nl) _mt_out="Alleen het sudoers-concept verwijderen" ;;
+                el) _mt_out="Αφαίρεση μόνο του πρόχειρου sudoers" ;;
                 *) _mt_out="Remove the sudoers draft only" ;;
             esac
             ;;
@@ -8777,6 +9117,11 @@ app_menu_text() {
                 de) _mt_out="Eine lesbare JSON-Freigabe schreiben" ;;
                 ja) _mt_out="読める JSON 認可を書く" ;;
                 ko) _mt_out="읽을 수 있는 JSON 허가를 작성" ;;
+                ar) _mt_out="كتابة منحة JSON يمكن قراءتها" ;;
+                pt) _mt_out="Escrever uma concessão JSON legível" ;;
+                ru) _mt_out="Записать читаемый JSON-грант" ;;
+                nl) _mt_out="Een leesbare JSON-toestemming schrijven" ;;
+                el) _mt_out="Εγγραφή μιας αναγνώσιμης άδειας JSON" ;;
                 *) _mt_out="Write a JSON grant you can read" ;;
             esac
             ;;
@@ -8789,6 +9134,11 @@ app_menu_text() {
                 de) _mt_out="Die JSON-Freigabe in die Eingangs-Warteschlange legen" ;;
                 ja) _mt_out="JSON 認可を受信待ちに入れる" ;;
                 ko) _mt_out="JSON 허가를 수신 대기열에 넣기" ;;
+                ar) _mt_out="وضع منحة JSON في طابور الوارد" ;;
+                pt) _mt_out="Colocar a concessão JSON na fila de entrada" ;;
+                ru) _mt_out="Поставить JSON-грант во входящую очередь" ;;
+                nl) _mt_out="De JSON-toestemming in de inkomende wachtrij zetten" ;;
+                el) _mt_out="Τοποθέτηση της άδειας JSON στην εισερχόμενη ουρά" ;;
                 *) _mt_out="Queue the JSON grant inbound" ;;
             esac
             ;;
@@ -8801,6 +9151,11 @@ app_menu_text() {
                 de) _mt_out="Info und Erfolg unterdrücken (Fehler bleiben)" ;;
                 ja) _mt_out="info と success を出さない（エラーは出る）" ;;
                 ko) _mt_out="info 와 success 를 숨김 (오류는 표시)" ;;
+                ar) _mt_out="إخفاء المعلومات والنجاح (الأخطاء تبقى ظاهرة)" ;;
+                pt) _mt_out="Ocultar informação e sucesso (os erros continuam visíveis)" ;;
+                ru) _mt_out="Скрыть сведения и успех (ошибки остаются)" ;;
+                nl) _mt_out="Info en succes onderdrukken (fouten blijven zichtbaar)" ;;
+                el) _mt_out="Απόκρυψη πληροφοριών και επιτυχίας (τα σφάλματα μένουν ορατά)" ;;
                 *) _mt_out="Suppress info and success (errors still show)" ;;
             esac
             ;;
@@ -8813,6 +9168,11 @@ app_menu_text() {
                 de) _mt_out="JSON für Maschinen (schließt --quiet ein)" ;;
                 ja) _mt_out="機械向け JSON（--quiet を含む）" ;;
                 ko) _mt_out="기계용 JSON(--quiet 포함)" ;;
+                ar) _mt_out="JSON للآلة (يعني --quiet)" ;;
+                pt) _mt_out="JSON para máquinas (implica --quiet)" ;;
+                ru) _mt_out="JSON для машины (подразумевает --quiet)" ;;
+                nl) _mt_out="JSON voor machines (impliceert --quiet)" ;;
+                el) _mt_out="JSON για μηχανές (συνεπάγεται --quiet)" ;;
                 *) _mt_out="Machine-readable JSON (implies --quiet)" ;;
             esac
             ;;
@@ -8825,6 +9185,11 @@ app_menu_text() {
                 de) _mt_out="Neuinstallation erzwingen oder die uninstall-Bestätigung überspringen" ;;
                 ja) _mt_out="再導入を強制するか、uninstall の確認を飛ばす" ;;
                 ko) _mt_out="다시 설치를 강제하거나 uninstall 확인을 건너뜀" ;;
+                ar) _mt_out="فرض إعادة التثبيت أو تخطي تأكيد الإزالة" ;;
+                pt) _mt_out="Forçar reinstalação ou saltar a confirmação de uninstall" ;;
+                ru) _mt_out="Принудительная переустановка или пропуск подтверждения uninstall" ;;
+                nl) _mt_out="Herinstallatie forceren of de uninstall-bevestiging overslaan" ;;
+                el) _mt_out="Εξαναγκασμός επανεγκατάστασης ή παράλειψη επιβεβαίωσης uninstall" ;;
                 *) _mt_out="Force reinstall or skip the uninstall confirm" ;;
             esac
             ;;
@@ -8837,6 +9202,11 @@ app_menu_text() {
                 de) _mt_out="Debug auf stderr; das Menü zeigt die Dauer jedes Zeichenschritts" ;;
                 ja) _mt_out="stderr にデバッグ。メニューは各描画段階の経過時間を出す" ;;
                 ko) _mt_out="stderr 에 디버그. 메뉴는 각 그리기 단계의 경과 시간을 표시" ;;
+                ar) _mt_out="تصحيح على stderr؛ القائمة تطبع زمن كل خطوة رسم" ;;
+                pt) _mt_out="Depuração em stderr; o menu imprime o tempo de cada passo de pintura" ;;
+                ru) _mt_out="Отладка в stderr; меню печатает время каждого шага отрисовки" ;;
+                nl) _mt_out="Debug op stderr; het menu toont de duur van elke tekenstap" ;;
+                el) _mt_out="Εντοπισμός στο stderr· το μενού τυπώνει τον χρόνο κάθε βήματος σχεδίασης" ;;
                 *) _mt_out="Debug on stderr; the menu prints elapsed time of each paint step" ;;
             esac
             ;;
@@ -8849,6 +9219,11 @@ app_menu_text() {
                 de) _mt_out="Menüsprache nur für diesen Lauf; schreibt die Datei nicht" ;;
                 ja) _mt_out="この実行だけのメニュー言語。ファイルには書かない" ;;
                 ko) _mt_out="이번 실행의 메뉴 언어만. 파일에는 쓰지 않음" ;;
+                ar) _mt_out="لغة القائمة لهذا التشغيل فقط؛ لا يكتب الملف" ;;
+                pt) _mt_out="Idioma do menu só nesta execução; não escreve o ficheiro" ;;
+                ru) _mt_out="Язык меню только для этого запуска; файл не пишется" ;;
+                nl) _mt_out="Menutaal alleen voor deze run; schrijft het bestand niet" ;;
+                el) _mt_out="Γλώσσα μενού μόνο για αυτή την εκτέλεση· δεν γράφει το αρχείο" ;;
                 *) _mt_out="Menu language for this run only; does not write the file" ;;
             esac
             ;;
@@ -8861,6 +9236,11 @@ app_menu_text() {
                 de) _mt_out="Über / Diagnose" ;;
                 ja) _mt_out="概要 / 診断" ;;
                 ko) _mt_out="개요 / 진단" ;;
+                ar) _mt_out="نبذة / تشخيص" ;;
+                pt) _mt_out="Sobre / Diagnóstico" ;;
+                ru) _mt_out="О программе / Диагностика" ;;
+                nl) _mt_out="Over / Diagnose" ;;
+                el) _mt_out="Σχετικά / Διαγνωστικά" ;;
                 *) _mt_out="About / Diagnostics" ;;
             esac
             ;;
@@ -8873,6 +9253,11 @@ app_menu_text() {
                 de) _mt_out="ist ordnungsgemäß installiert." ;;
                 ja) _mt_out="は正しく導入されています。" ;;
                 ko) _mt_out="가 올바르게 설치되어 있습니다." ;;
+                ar) _mt_out="مثبت بشكل صحيح." ;;
+                pt) _mt_out="está corretamente instalado." ;;
+                ru) _mt_out="установлен правильно." ;;
+                nl) _mt_out="is correct geïnstalleerd." ;;
+                el) _mt_out="είναι σωστά εγκατεστημένο." ;;
                 *) _mt_out="is properly installed." ;;
             esac
             ;;
@@ -8885,6 +9270,11 @@ app_menu_text() {
                 de) _mt_out="ist NICHT in einem verwalteten Bin-Pfad installiert." ;;
                 ja) _mt_out="は管理された bin パスに導入されていません。" ;;
                 ko) _mt_out="는 관리되는 bin 경로에 설치되어 있지 않습니다." ;;
+                ar) _mt_out="غير مثبت في مسار bin مُدار." ;;
+                pt) _mt_out="NÃO está instalado num caminho bin gerido." ;;
+                ru) _mt_out="НЕ установлен в управляемом пути bin." ;;
+                nl) _mt_out="is NIET geïnstalleerd in een beheerd bin-pad." ;;
+                el) _mt_out="ΔΕΝ είναι εγκατεστημένο σε διαχειριζόμενη διαδρομή bin." ;;
                 *) _mt_out="is NOT installed in a managed bin path." ;;
             esac
             ;;
@@ -8897,6 +9287,11 @@ app_menu_text() {
                 de) _mt_out="Empfohlen:" ;;
                 ja) _mt_out="推奨:" ;;
                 ko) _mt_out="권장:" ;;
+                ar) _mt_out="موصى به:" ;;
+                pt) _mt_out="Recomendado:" ;;
+                ru) _mt_out="Рекомендуется:" ;;
+                nl) _mt_out="Aanbevolen:" ;;
+                el) _mt_out="Συνιστάται:" ;;
                 *) _mt_out="Recommended:" ;;
             esac
             ;;
@@ -8909,6 +9304,11 @@ app_menu_text() {
                 de) _mt_out="Globale Installation" ;;
                 ja) _mt_out="グローバル導入" ;;
                 ko) _mt_out="전역 설치" ;;
+                ar) _mt_out="تثبيت عام" ;;
+                pt) _mt_out="Instalação global" ;;
+                ru) _mt_out="Общая установка" ;;
+                nl) _mt_out="Globale installatie" ;;
+                el) _mt_out="Καθολική εγκατάσταση" ;;
                 *) _mt_out="Global install" ;;
             esac
             ;;
@@ -8921,6 +9321,11 @@ app_menu_text() {
                 de) _mt_out="Lokale Installation" ;;
                 ja) _mt_out="ローカル導入" ;;
                 ko) _mt_out="로컬 설치" ;;
+                ar) _mt_out="تثبيت محلي" ;;
+                pt) _mt_out="Instalação local" ;;
+                ru) _mt_out="Локальная установка" ;;
+                nl) _mt_out="Lokale installatie" ;;
+                el) _mt_out="Τοπική εγκατάσταση" ;;
                 *) _mt_out="Local install" ;;
             esac
             ;;
@@ -8933,6 +9338,11 @@ app_menu_text() {
                 de) _mt_out="sudoers-Vertrauensstufe:" ;;
                 ja) _mt_out="sudoers 信頼段階:" ;;
                 ko) _mt_out="sudoers 신뢰 단계:" ;;
+                ar) _mt_out="مستوى ثقة sudoers:" ;;
+                pt) _mt_out="Nível de confiança sudoers:" ;;
+                ru) _mt_out="Уровень доверия sudoers:" ;;
+                nl) _mt_out="Sudoers-vertrouwensniveau:" ;;
+                el) _mt_out="Επίπεδο εμπιστοσύνης sudoers:" ;;
                 *) _mt_out="Sudoers trust tier:" ;;
             esac
             ;;
@@ -8945,6 +9355,11 @@ app_menu_text() {
                 de) _mt_out="Repository:" ;;
                 ja) _mt_out="リポジトリ:" ;;
                 ko) _mt_out="저장소:" ;;
+                ar) _mt_out="المستودع:" ;;
+                pt) _mt_out="Repositório:" ;;
+                ru) _mt_out="Репозиторий:" ;;
+                nl) _mt_out="Repository:" ;;
+                el) _mt_out="Αποθετήριο:" ;;
                 *) _mt_out="Repository:" ;;
             esac
             ;;
@@ -8957,6 +9372,11 @@ app_menu_text() {
                 de) _mt_out="Installationskanal:" ;;
                 ja) _mt_out="導入チャンネル:" ;;
                 ko) _mt_out="설치 채널:" ;;
+                ar) _mt_out="قناة التثبيت:" ;;
+                pt) _mt_out="Canal de instalação:" ;;
+                ru) _mt_out="Канал установки:" ;;
+                nl) _mt_out="Installatiekanaal:" ;;
+                el) _mt_out="Κανάλι εγκατάστασης:" ;;
                 *) _mt_out="Install channel:" ;;
             esac
             ;;
@@ -8969,6 +9389,11 @@ app_menu_text() {
                 de) _mt_out="(leer — nur lokale Installation)" ;;
                 ja) _mt_out="（空 — ローカル導入のみ）" ;;
                 ko) _mt_out="(비어 있음 — 로컬 설치만)" ;;
+                ar) _mt_out="(فارغ — تثبيت محلي فقط)" ;;
+                pt) _mt_out="(vazio — só instalação local)" ;;
+                ru) _mt_out="(пусто — только локальная установка)" ;;
+                nl) _mt_out="(leeg — alleen lokale installatie)" ;;
+                el) _mt_out="(κενό — μόνο τοπική εγκατάσταση)" ;;
                 *) _mt_out="(empty — local install only)" ;;
             esac
             ;;
@@ -8981,6 +9406,11 @@ app_menu_text() {
                 de) _mt_out="Aktueller Benutzer:" ;;
                 ja) _mt_out="現在のユーザー:" ;;
                 ko) _mt_out="현재 사용자:" ;;
+                ar) _mt_out="المستخدم الحالي:" ;;
+                pt) _mt_out="Utilizador atual:" ;;
+                ru) _mt_out="Текущий пользователь:" ;;
+                nl) _mt_out="Huidige gebruiker:" ;;
+                el) _mt_out="Τρέχων χρήστης:" ;;
                 *) _mt_out="Current user:" ;;
             esac
             ;;
@@ -8993,6 +9423,11 @@ app_menu_text() {
                 de) _mt_out="Ausführungskontext: root" ;;
                 ja) _mt_out="実行コンテキスト: root" ;;
                 ko) _mt_out="실행 컨텍스트: root" ;;
+                ar) _mt_out="سياق التنفيذ: root" ;;
+                pt) _mt_out="Contexto de execução: root" ;;
+                ru) _mt_out="Контекст выполнения: root" ;;
+                nl) _mt_out="Uitvoercontext: root" ;;
+                el) _mt_out="Πλαίσιο εκτέλεσης: root" ;;
                 *) _mt_out="Execution context: root" ;;
             esac
             ;;
@@ -9005,6 +9440,11 @@ app_menu_text() {
                 de) _mt_out="Kontext: normaler Benutzer (Type 0 + schmale Type-1-Ablage)" ;;
                 ja) _mt_out="実行コンテキスト: 一般ユーザー（Type 0 + 狭い Type 1 の保管）" ;;
                 ko) _mt_out="실행 컨텍스트: 일반 사용자 (Type 0 + 좁은 Type 1 보관)" ;;
+                ar) _mt_out="سياق التنفيذ: مستخدم عادي (Type 0 + إيداع Type 1 ضيق)" ;;
+                pt) _mt_out="Contexto de execução: utilizador normal (Type 0 + depósito Type 1 estreito)" ;;
+                ru) _mt_out="Контекст выполнения: обычный пользователь (Type 0 + узкое хранилище Type 1)" ;;
+                nl) _mt_out="Uitvoercontext: normale gebruiker (Type 0 + smalle Type 1-opslag)" ;;
+                el) _mt_out="Πλαίσιο εκτέλεσης: κανονικός χρήστης (Type 0 + στενή αποθήκη Type 1)" ;;
                 *) _mt_out="Execution context: normal user (Type 0 + narrow Type 1 deposit)" ;;
             esac
             ;;
@@ -9017,6 +9457,11 @@ app_menu_text() {
                 de) _mt_out="Aktuelle Shell:" ;;
                 ja) _mt_out="現在のシェル:" ;;
                 ko) _mt_out="현재 셸:" ;;
+                ar) _mt_out="الصدفة الحالية:" ;;
+                pt) _mt_out="Shell atual:" ;;
+                ru) _mt_out="Текущая оболочка:" ;;
+                nl) _mt_out="Huidige shell:" ;;
+                el) _mt_out="Τρέχον κέλυφος:" ;;
                 *) _mt_out="Current shell:" ;;
             esac
             ;;
@@ -9029,6 +9474,11 @@ app_menu_text() {
                 de) _mt_out="TTY / interaktiv: ja" ;;
                 ja) _mt_out="TTY / 対話: はい" ;;
                 ko) _mt_out="TTY / 대화형: 예" ;;
+                ar) _mt_out="TTY / تفاعلي: نعم" ;;
+                pt) _mt_out="TTY / Interativo: sim" ;;
+                ru) _mt_out="TTY / интерактивно: да" ;;
+                nl) _mt_out="TTY / Interactief: ja" ;;
+                el) _mt_out="TTY / Διαδραστικό: ναι" ;;
                 *) _mt_out="TTY / Interactive: yes" ;;
             esac
             ;;
@@ -9041,6 +9491,11 @@ app_menu_text() {
                 de) _mt_out="TTY / interaktiv: nein" ;;
                 ja) _mt_out="TTY / 対話: いいえ" ;;
                 ko) _mt_out="TTY / 대화형: 아니오" ;;
+                ar) _mt_out="TTY / تفاعلي: لا" ;;
+                pt) _mt_out="TTY / Interativo: não" ;;
+                ru) _mt_out="TTY / интерактивно: нет" ;;
+                nl) _mt_out="TTY / Interactief: nee" ;;
+                el) _mt_out="TTY / Διαδραστικό: όχι" ;;
                 *) _mt_out="TTY / Interactive: no" ;;
             esac
             ;;
@@ -9053,6 +9508,11 @@ app_menu_text() {
                 de) _mt_out="Verwendeter Cache-Ordner:" ;;
                 ja) _mt_out="使用中のキャッシュフォルダ:" ;;
                 ko) _mt_out="사용 중인 캐시 폴더:" ;;
+                ar) _mt_out="مجلد الذاكرة المؤقتة المستخدم:" ;;
+                pt) _mt_out="Pasta de cache em uso:" ;;
+                ru) _mt_out="Используемая папка кэша:" ;;
+                nl) _mt_out="Gebruikte cachemap:" ;;
+                el) _mt_out="Φάκελος cache σε χρήση:" ;;
                 *) _mt_out="Cache folder used:" ;;
             esac
             ;;
@@ -9065,6 +9525,11 @@ app_menu_text() {
                 de) _mt_out="Cache-Ordner (bevorzugt):" ;;
                 ja) _mt_out="キャッシュフォルダ（優先）:" ;;
                 ko) _mt_out="캐시 폴더 (선호):" ;;
+                ar) _mt_out="مجلد الذاكرة المؤقتة (المفضل):" ;;
+                pt) _mt_out="Pasta de cache (preferida):" ;;
+                ru) _mt_out="Папка кэша (предпочтительная):" ;;
+                nl) _mt_out="Cachemap (voorkeur):" ;;
+                el) _mt_out="Φάκελος cache (προτιμώμενος):" ;;
                 *) _mt_out="Cache folder (preferred):" ;;
             esac
             ;;
@@ -9077,6 +9542,11 @@ app_menu_text() {
                 de) _mt_out="Cache-Ordner (1. Ausweich):" ;;
                 ja) _mt_out="キャッシュフォルダ（第1候補）:" ;;
                 ko) _mt_out="캐시 폴더 (1차 대체):" ;;
+                ar) _mt_out="مجلد الذاكرة المؤقتة (البديل الأول):" ;;
+                pt) _mt_out="Pasta de cache (1.º recurso):" ;;
+                ru) _mt_out="Папка кэша (1-й запасной):" ;;
+                nl) _mt_out="Cachemap (1e terugval):" ;;
+                el) _mt_out="Φάκελος cache (1η εφεδρική):" ;;
                 *) _mt_out="Cache folder (1st fallback):" ;;
             esac
             ;;
@@ -9089,6 +9559,11 @@ app_menu_text() {
                 de) _mt_out="Cache-Ordner (2. Ausweich):" ;;
                 ja) _mt_out="キャッシュフォルダ（第2候補）:" ;;
                 ko) _mt_out="캐시 폴더 (2차 대체):" ;;
+                ar) _mt_out="مجلد الذاكرة المؤقتة (البديل الثاني):" ;;
+                pt) _mt_out="Pasta de cache (2.º recurso):" ;;
+                ru) _mt_out="Папка кэша (2-й запасной):" ;;
+                nl) _mt_out="Cachemap (2e terugval):" ;;
+                el) _mt_out="Φάκελος cache (2η εφεδρική):" ;;
                 *) _mt_out="Cache folder (2nd fallback):" ;;
             esac
             ;;
@@ -9101,6 +9576,11 @@ app_menu_text() {
                 de) _mt_out="Dauerhafter Speicher:" ;;
                 ja) _mt_out="永続ストレージ:" ;;
                 ko) _mt_out="영구 저장소:" ;;
+                ar) _mt_out="تخزين دائم:" ;;
+                pt) _mt_out="Armazenamento persistente:" ;;
+                ru) _mt_out="Постоянное хранилище:" ;;
+                nl) _mt_out="Blijvende opslag:" ;;
+                el) _mt_out="Μόνιμη αποθήκευση:" ;;
                 *) _mt_out="Persistence storage:" ;;
             esac
             ;;
@@ -9113,6 +9593,11 @@ app_menu_text() {
                 de) _mt_out="Grok CLI (xAI):" ;;
                 ja) _mt_out="Grok CLI（xAI）:" ;;
                 ko) _mt_out="Grok CLI (xAI):" ;;
+                ar) _mt_out="Grok CLI (xAI):" ;;
+                pt) _mt_out="Grok CLI (xAI):" ;;
+                ru) _mt_out="Grok CLI (xAI):" ;;
+                nl) _mt_out="Grok CLI (xAI):" ;;
+                el) _mt_out="Grok CLI (xAI):" ;;
                 *) _mt_out="Grok CLI (xAI):" ;;
             esac
             ;;
@@ -9125,6 +9610,11 @@ app_menu_text() {
                 de) _mt_out="nicht gefunden — ${_mt_a} setup installiert es" ;;
                 ja) _mt_out="見つかりません — ${_mt_a} setup が導入します" ;;
                 ko) _mt_out="없음 — ${_mt_a} setup 이 설치합니다" ;;
+                ar) _mt_out="غير موجود — ${_mt_a} setup يثبته" ;;
+                pt) _mt_out="não encontrado — ${_mt_a} setup instala-o" ;;
+                ru) _mt_out="не найден — ${_mt_a} setup устанавливает его" ;;
+                nl) _mt_out="niet gevonden — ${_mt_a} setup installeert het" ;;
+                el) _mt_out="δεν βρέθηκε — το ${_mt_a} setup το εγκαθιστά" ;;
                 *) _mt_out="not found — ${_mt_a} setup installs it" ;;
             esac
             ;;
@@ -9137,6 +9627,11 @@ app_menu_text() {
                 de) _mt_out="Grok-Heimat:" ;;
                 ja) _mt_out="Grok のホーム:" ;;
                 ko) _mt_out="Grok 홈:" ;;
+                ar) _mt_out="منزل Grok:" ;;
+                pt) _mt_out="Pasta do Grok:" ;;
+                ru) _mt_out="Дом Grok:" ;;
+                nl) _mt_out="Grok-map:" ;;
+                el) _mt_out="Αρχική Grok:" ;;
                 *) _mt_out="Grok home:" ;;
             esac
             ;;
@@ -9149,6 +9644,11 @@ app_menu_text() {
                 de) _mt_out="Sitzung:" ;;
                 ja) _mt_out="セッション:" ;;
                 ko) _mt_out="세션:" ;;
+                ar) _mt_out="الجلسة:" ;;
+                pt) _mt_out="Sessão:" ;;
+                ru) _mt_out="Сеанс:" ;;
+                nl) _mt_out="Sessie:" ;;
+                el) _mt_out="Συνεδρία:" ;;
                 *) _mt_out="Session:" ;;
             esac
             ;;
@@ -9161,6 +9661,11 @@ app_menu_text() {
                 de) _mt_out="Ablageverzeichnis:" ;;
                 ja) _mt_out="保管ディレクトリ:" ;;
                 ko) _mt_out="보관 디렉터리:" ;;
+                ar) _mt_out="مجلد الإيداع:" ;;
+                pt) _mt_out="Diretório de depósito:" ;;
+                ru) _mt_out="Каталог хранения:" ;;
+                nl) _mt_out="Opslagmap:" ;;
+                el) _mt_out="Φάκελος αποθήκευσης:" ;;
                 *) _mt_out="Deposit directory:" ;;
             esac
             ;;
@@ -9173,6 +9678,11 @@ app_menu_text() {
                 de) _mt_out="sudo-Ablage:" ;;
                 ja) _mt_out="sudo 保管:" ;;
                 ko) _mt_out="sudo 보관:" ;;
+                ar) _mt_out="إيداع sudo:" ;;
+                pt) _mt_out="Depósito sudo:" ;;
+                ru) _mt_out="Хранилище sudo:" ;;
+                nl) _mt_out="Sudo-opslag:" ;;
+                el) _mt_out="Αποθήκη sudo:" ;;
                 *) _mt_out="Sudo deposit:" ;;
             esac
             ;;
@@ -9185,6 +9695,11 @@ app_menu_text() {
                 de) _mt_out="Nützliche Befehle:" ;;
                 ja) _mt_out="便利なコマンド:" ;;
                 ko) _mt_out="유용한 명령:" ;;
+                ar) _mt_out="أوامر مفيدة:" ;;
+                pt) _mt_out="Comandos úteis:" ;;
+                ru) _mt_out="Полезные команды:" ;;
+                nl) _mt_out="Nuttige opdrachten:" ;;
+                el) _mt_out="Χρήσιμες εντολές:" ;;
                 *) _mt_out="Useful commands:" ;;
             esac
             ;;
@@ -9197,6 +9712,11 @@ app_menu_text() {
                 de) _mt_out="Vollständige Verwendung" ;;
                 ja) _mt_out="詳しい使い方" ;;
                 ko) _mt_out="전체 사용법" ;;
+                ar) _mt_out="الاستخدام الكامل" ;;
+                pt) _mt_out="Utilização completa" ;;
+                ru) _mt_out="Полное использование" ;;
+                nl) _mt_out="Volledig gebruik" ;;
+                el) _mt_out="Πλήρης χρήση" ;;
                 *) _mt_out="Full usage" ;;
             esac
             ;;
@@ -9209,6 +9729,11 @@ app_menu_text() {
                 de) _mt_out="Ausgabe für Maschinen" ;;
                 ja) _mt_out="機械向けの出力" ;;
                 ko) _mt_out="기계용 출력" ;;
+                ar) _mt_out="مخرجات للآلة" ;;
+                pt) _mt_out="saída para máquinas" ;;
+                ru) _mt_out="вывод для машины" ;;
+                nl) _mt_out="uitvoer voor machines" ;;
+                el) _mt_out="έξοδος για μηχανές" ;;
                 *) _mt_out="Machine-readable output" ;;
             esac
             ;;
@@ -9221,6 +9746,11 @@ app_menu_text() {
                 de) _mt_out="Englisch für dieses Menü verwenden" ;;
                 ja) _mt_out="このメニューを英語にする" ;;
                 ko) _mt_out="이 메뉴를 영어로" ;;
+                ar) _mt_out="استخدم الإنجليزية لهذه القائمة" ;;
+                pt) _mt_out="usar inglês neste menu" ;;
+                ru) _mt_out="использовать английский для этого меню" ;;
+                nl) _mt_out="Engels voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση αγγλικών για αυτό το μενού" ;;
                 *) _mt_out="use English for this menu" ;;
             esac
             ;;
@@ -9233,6 +9763,11 @@ app_menu_text() {
                 de) _mt_out="Traditionelles Chinesisch für dieses Menü verwenden" ;;
                 ja) _mt_out="このメニューを繁体字中国語にする" ;;
                 ko) _mt_out="이 메뉴를 번체 중국어로" ;;
+                ar) _mt_out="استخدم الصينية التقليدية لهذه القائمة" ;;
+                pt) _mt_out="usar chinês tradicional neste menu" ;;
+                ru) _mt_out="использовать традиционный китайский для этого меню" ;;
+                nl) _mt_out="Traditioneel Chinees voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση παραδοσιακών κινεζικών για αυτό το μενού" ;;
                 *) _mt_out="use Traditional Chinese for this menu" ;;
             esac
             ;;
@@ -9245,6 +9780,11 @@ app_menu_text() {
                 de) _mt_out="Spanisch für dieses Menü verwenden" ;;
                 ja) _mt_out="このメニューをスペイン語にする" ;;
                 ko) _mt_out="이 메뉴를 스페인어로" ;;
+                ar) _mt_out="استخدم الإسبانية لهذه القائمة" ;;
+                pt) _mt_out="usar espanhol neste menu" ;;
+                ru) _mt_out="использовать испанский для этого меню" ;;
+                nl) _mt_out="Spaans voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση ισπανικών για αυτό το μενού" ;;
                 *) _mt_out="use Spanish for this menu" ;;
             esac
             ;;
@@ -9257,6 +9797,11 @@ app_menu_text() {
                 de) _mt_out="Französisch für dieses Menü verwenden" ;;
                 ja) _mt_out="このメニューをフランス語にする" ;;
                 ko) _mt_out="이 메뉴를 프랑스어로" ;;
+                ar) _mt_out="استخدم الفرنسية لهذه القائمة" ;;
+                pt) _mt_out="usar francês neste menu" ;;
+                ru) _mt_out="использовать французский для этого меню" ;;
+                nl) _mt_out="Frans voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση γαλλικών για αυτό το μενού" ;;
                 *) _mt_out="use French for this menu" ;;
             esac
             ;;
@@ -9269,6 +9814,11 @@ app_menu_text() {
                 de) _mt_out="Deutsch für dieses Menü verwenden" ;;
                 ja) _mt_out="このメニューをドイツ語にする" ;;
                 ko) _mt_out="이 메뉴를 독일어로" ;;
+                ar) _mt_out="استخدم الألمانية لهذه القائمة" ;;
+                pt) _mt_out="usar alemão neste menu" ;;
+                ru) _mt_out="использовать немецкий для этого меню" ;;
+                nl) _mt_out="Duits voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση γερμανικών για αυτό το μενού" ;;
                 *) _mt_out="use German for this menu" ;;
             esac
             ;;
@@ -9281,6 +9831,11 @@ app_menu_text() {
                 de) _mt_out="Vereinfachtes Chinesisch für dieses Menü verwenden" ;;
                 ja) _mt_out="このメニューを簡体字中国語にする" ;;
                 ko) _mt_out="이 메뉴를 간체 중국어로" ;;
+                ar) _mt_out="استخدم الصينية المبسطة لهذه القائمة" ;;
+                pt) _mt_out="usar chinês simplificado neste menu" ;;
+                ru) _mt_out="использовать упрощённый китайский для этого меню" ;;
+                nl) _mt_out="Vereenvoudigd Chinees voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση απλοποιημένων κινεζικών για αυτό το μενού" ;;
                 *) _mt_out="use Simplified Chinese for this menu" ;;
             esac
             ;;
@@ -9293,6 +9848,11 @@ app_menu_text() {
                 de) _mt_out="Japanisch für dieses Menü verwenden" ;;
                 ja) _mt_out="このメニューを日本語にする" ;;
                 ko) _mt_out="이 메뉴를 일본어로" ;;
+                ar) _mt_out="استخدم اليابانية لهذه القائمة" ;;
+                pt) _mt_out="usar japonês neste menu" ;;
+                ru) _mt_out="использовать японский для этого меню" ;;
+                nl) _mt_out="Japans voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση ιαπωνικών για αυτό το μενού" ;;
                 *) _mt_out="use Japanese for this menu" ;;
             esac
             ;;
@@ -9305,7 +9865,97 @@ app_menu_text() {
                 de) _mt_out="Koreanisch für dieses Menü verwenden" ;;
                 ja) _mt_out="このメニューを韓国語にする" ;;
                 ko) _mt_out="이 메뉴를 한국어로" ;;
+                ar) _mt_out="استخدم الكورية لهذه القائمة" ;;
+                pt) _mt_out="usar coreano neste menu" ;;
+                ru) _mt_out="использовать корейский для этого меню" ;;
+                nl) _mt_out="Koreaans voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση κορεατικών για αυτό το μενού" ;;
                 *) _mt_out="use Korean for this menu" ;;
+            esac
+            ;;
+        lang_ar_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用阿拉伯文" ;;
+                zh-Hans) _mt_out="这个菜单改用阿拉伯文" ;;
+                es) _mt_out="usar árabe en este menú" ;;
+                fr) _mt_out="utiliser l'arabe pour ce menu" ;;
+                de) _mt_out="Arabisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューをアラビア語にする" ;;
+                ko) _mt_out="이 메뉴를 아랍어로" ;;
+                ar) _mt_out="استخدم العربية لهذه القائمة" ;;
+                pt) _mt_out="usar árabe neste menu" ;;
+                ru) _mt_out="использовать арабский для этого меню" ;;
+                nl) _mt_out="Arabisch voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση αραβικών για αυτό το μενού" ;;
+                *) _mt_out="use Arabic for this menu" ;;
+            esac
+            ;;
+        lang_pt_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用葡萄牙文" ;;
+                zh-Hans) _mt_out="这个菜单改用葡萄牙文" ;;
+                es) _mt_out="usar portugués en este menú" ;;
+                fr) _mt_out="utiliser le portugais pour ce menu" ;;
+                de) _mt_out="Portugiesisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューをポルトガル語にする" ;;
+                ko) _mt_out="이 메뉴를 포르투갈어로" ;;
+                ar) _mt_out="استخدم البرتغالية لهذه القائمة" ;;
+                pt) _mt_out="usar português neste menu" ;;
+                ru) _mt_out="использовать португальский для этого меню" ;;
+                nl) _mt_out="Portugees voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση πορτογαλικών για αυτό το μενού" ;;
+                *) _mt_out="use Portuguese for this menu" ;;
+            esac
+            ;;
+        lang_ru_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用俄文" ;;
+                zh-Hans) _mt_out="这个菜单改用俄文" ;;
+                es) _mt_out="usar ruso en este menú" ;;
+                fr) _mt_out="utiliser le russe pour ce menu" ;;
+                de) _mt_out="Russisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューをロシア語にする" ;;
+                ko) _mt_out="이 메뉴를 러시아어로" ;;
+                ar) _mt_out="استخدم الروسية لهذه القائمة" ;;
+                pt) _mt_out="usar russo neste menu" ;;
+                ru) _mt_out="использовать русский для этого меню" ;;
+                nl) _mt_out="Russisch voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση ρωσικών για αυτό το μενού" ;;
+                *) _mt_out="use Russian for this menu" ;;
+            esac
+            ;;
+        lang_nl_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用荷蘭文" ;;
+                zh-Hans) _mt_out="这个菜单改用荷兰文" ;;
+                es) _mt_out="usar neerlandés en este menú" ;;
+                fr) _mt_out="utiliser le néerlandais pour ce menu" ;;
+                de) _mt_out="Niederländisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューをオランダ語にする" ;;
+                ko) _mt_out="이 메뉴를 네덜란드어로" ;;
+                ar) _mt_out="استخدم الهولندية لهذه القائمة" ;;
+                pt) _mt_out="usar neerlandês neste menu" ;;
+                ru) _mt_out="использовать нидерландский для этого меню" ;;
+                nl) _mt_out="Nederlands voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση ολλανδικών για αυτό το μενού" ;;
+                *) _mt_out="use Dutch for this menu" ;;
+            esac
+            ;;
+        lang_el_long)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="這個選單改用希臘文" ;;
+                zh-Hans) _mt_out="这个菜单改用希腊文" ;;
+                es) _mt_out="usar griego en este menú" ;;
+                fr) _mt_out="utiliser le grec pour ce menu" ;;
+                de) _mt_out="Griechisch für dieses Menü verwenden" ;;
+                ja) _mt_out="このメニューをギリシャ語にする" ;;
+                ko) _mt_out="이 메뉴를 그리스어로" ;;
+                ar) _mt_out="استخدم اليونانية لهذه القائمة" ;;
+                pt) _mt_out="usar grego neste menu" ;;
+                ru) _mt_out="использовать греческий для этого меню" ;;
+                nl) _mt_out="Grieks voor dit menu gebruiken" ;;
+                el) _mt_out="χρήση ελληνικών για αυτό το μενού" ;;
+                *) _mt_out="use Greek for this menu" ;;
             esac
             ;;
         *)
@@ -9369,7 +10019,7 @@ app_help_i18n() {
     out_plain "  GROK_HOME            ~/.grok"
     out_plain "  GROK_CLI_ROOT        ${GROK_CLI_ROOT}"
     out_plain "  GROK_CLI_LANG        $(app_menu_text help_lang_env)"
-    out_plain "                       en zh-Hant es fr de zh-Hans ja ko"
+    out_plain "                       en zh-Hans zh-Hant es ar fr pt ru de ja ko nl el"
 }
 
 
@@ -9459,7 +10109,7 @@ gc_menu_family_alias() {
     case "${_fa_fam}" in
         grok-auth)
             case "${_fa_pick}" in
-                grok-auth|grok\ 認證|grok\ 认证|autenticación\ grok|authentification\ grok|grok-Anmeldung|grok\ 認証|grok\ 인증)
+                grok-auth|grok\ 認證|grok\ 认证|autenticación\ grok|authentification\ grok|grok-Anmeldung|grok\ 認証|grok\ 인증|مصادقة\ grok|autenticação\ grok|вход\ grok|grok-aanmelding|σύνδεση\ grok)
                     unset _fa_fam _fa_pick
                     return 0
                     ;;
@@ -9467,7 +10117,7 @@ gc_menu_family_alias() {
             ;;
         language)
             case "${_fa_pick}" in
-                language|語言|语言|idioma|langue|Sprache|sprache|言語|언어)
+                language|語言|语言|idioma|langue|Sprache|sprache|言語|언어|لغة|язык|taal|γλώσσα)
                     unset _fa_fam _fa_pick
                     return 0
                     ;;
@@ -9475,7 +10125,7 @@ gc_menu_family_alias() {
             ;;
         self-management)
             case "${_fa_pick}" in
-                self-management|自我管理|autogestión|autogestion|Selbstverwaltung|selbstverwaltung|自己管理|자기관리)
+                self-management|自我管理|autogestión|autogestion|Selbstverwaltung|selbstverwaltung|自己管理|자기관리|إدارة-ذاتية|autogestão|самоуправление|zelfbeheer|αυτοδιαχείριση)
                     unset _fa_fam _fa_pick
                     return 0
                     ;;
@@ -9626,7 +10276,7 @@ app_about_i18n() {
     out_empty_line
     out_info "$(app_menu_text about_useful)"
     out_info "   ${APP_NAME} help            → $(app_menu_text about_full_usage)"
-    out_info "   ${APP_NAME} menu            → 6 / 61-68"
+    out_info "   ${APP_NAME} menu            → 5 / 51-63"
     out_info "   ${APP_NAME} install"
     out_info "   ${APP_NAME} print-sudoers"
     out_info "   ${APP_NAME} generate-sudoer-request"
@@ -9642,7 +10292,7 @@ app_about_i18n() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Front row 6. Rows 61-68 save one of the eight codes and return to the
+# Front row 5. Rows 51-63 save one of the thirteen codes and return to the
 # front board. 0 / q / empty / back returns without writing. 9 / exit / quit
 # and EOF leave the program (same as the other grok submenus). A bad pick
 # out_error and reprints this layer.
@@ -9651,7 +10301,7 @@ app_about_i18n() {
 # - requirement-shell-cli-language.md
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-28
+# Last updated: 2026-10-02
 # =============================================================================
 app_default_print_language_menu() {
     : "${APP_NAME:=grok-cli}"
@@ -9662,28 +10312,38 @@ app_default_print_language_menu() {
     else
         out_info "$(util_app_ident) — $(app_menu_text cat_language)"
     fi
-    out_menu_choice "61" "English" "$(app_menu_text lang_en_long)"
-    out_menu_choice "62" "繁體中文" "$(app_menu_text lang_zh_long)"
-    out_menu_choice "63" "Español" "$(app_menu_text lang_es_long)"
-    out_menu_choice "64" "Français" "$(app_menu_text lang_fr_long)"
-    out_menu_choice "65" "Deutsch" "$(app_menu_text lang_de_long)"
-    out_menu_choice "66" "简体中文" "$(app_menu_text lang_zh_hans_long)"
-    out_menu_choice "67" "日本語" "$(app_menu_text lang_ja_long)"
-    out_menu_choice "68" "한국어" "$(app_menu_text lang_ko_long)"
+    out_menu_choice "51" "English" "$(app_menu_text lang_en_long)"
+    out_menu_choice "52" "简体中文" "$(app_menu_text lang_zh_hans_long)"
+    out_menu_choice "53" "繁體中文" "$(app_menu_text lang_zh_long)"
+    out_menu_choice "54" "Español" "$(app_menu_text lang_es_long)"
+    out_menu_choice "55" "العربية" "$(app_menu_text lang_ar_long)"
+    out_menu_choice "56" "Français" "$(app_menu_text lang_fr_long)"
+    out_menu_choice "57" "Português" "$(app_menu_text lang_pt_long)"
+    out_menu_choice "58" "Русский" "$(app_menu_text lang_ru_long)"
+    out_menu_choice "59" "Deutsch" "$(app_menu_text lang_de_long)"
+    out_menu_choice "60" "日本語" "$(app_menu_text lang_ja_long)"
+    out_menu_choice "61" "한국어" "$(app_menu_text lang_ko_long)"
+    out_menu_choice "62" "Nederlands" "$(app_menu_text lang_nl_long)"
+    out_menu_choice "63" "Ελληνικά" "$(app_menu_text lang_el_long)"
     gc_menu_print_back
     gc_menu_print_exit
 }
 
 app_default_language_code() {
     case "${1-}" in
-        61|en|english|English) printf '%s' "en" ;;
-        62|zh-Hant|zh-hant|traditional-chinese|繁體中文) printf '%s' "zh-Hant" ;;
-        63|es|spanish|Español|español) printf '%s' "es" ;;
-        64|fr|french|Français|français) printf '%s' "fr" ;;
-        65|de|german|Deutsch|deutsch) printf '%s' "de" ;;
-        66|zh-Hans|zh-hans|simplified-chinese|简体中文) printf '%s' "zh-Hans" ;;
-        67|ja|japanese|日本語) printf '%s' "ja" ;;
-        68|ko|korean|한국어) printf '%s' "ko" ;;
+        51|en|english|English) printf '%s' "en" ;;
+        52|zh-Hans|zh-hans|simplified-chinese|简体中文) printf '%s' "zh-Hans" ;;
+        53|zh-Hant|zh-hant|traditional-chinese|繁體中文) printf '%s' "zh-Hant" ;;
+        54|es|spanish|Español|español) printf '%s' "es" ;;
+        55|ar|arabic|العربية|عربي) printf '%s' "ar" ;;
+        56|fr|french|Français|français) printf '%s' "fr" ;;
+        57|pt|portuguese|Português|português|portugues) printf '%s' "pt" ;;
+        58|ru|russian|Русский|русский) printf '%s' "ru" ;;
+        59|de|german|Deutsch|deutsch) printf '%s' "de" ;;
+        60|ja|japanese|日本語) printf '%s' "ja" ;;
+        61|ko|korean|한국어) printf '%s' "ko" ;;
+        62|nl|dutch|Nederlands|nederlands) printf '%s' "nl" ;;
+        63|el|greek|Ελληνικά|ελληνικά) printf '%s' "el" ;;
         *) return 1 ;;
     esac
 }
@@ -9720,7 +10380,7 @@ app_default_language_loop() {
             return 1
         fi
         unset _code
-        gc_menu_bad "${_pick}" "61-68, 0 back, 9 to leave"
+        gc_menu_bad "${_pick}" "51-63, 0 back, 9 to leave"
     done
 }
 
@@ -9729,23 +10389,23 @@ app_default_language_loop() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Top layer is 1 grok-auth, 6 language, 7 sudoers (multi-user),
+# Top layer is 1 grok-auth, 5 language, 7 sudoers (multi-user),
 # 8 self-management. This-login-only hosts add 2 run and omit 7 sudoers.
-# Row 6 is on every host. Exit 9 is printed by the caller. The top list
+# Row 5 is on every host. Front 6 is not a row. Exit 9 is printed by the caller. The top list
 # has no Back row. Auth commands live under 1 (numbers 11-16).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 # - requirement-shell-cli-language.md
 #
-# Last updated: 2026-09-28
+# Last updated: 2026-10-02
 # =============================================================================
 gc_menu_main_rows() {
     printf '%s\n' "1 grok-auth"
     if gc_host_is_normal_user_only; then
         printf '%s\n' "2 run"
     fi
-    printf '%s\n' "6 language"
+    printf '%s\n' "5 language"
     if ! gc_host_is_normal_user_only; then
         printf '%s\n' "7 sudoers"
     fi
@@ -10398,9 +11058,9 @@ app_default() {
         QUIET=0
         export JSON QUIET
         if gc_host_is_normal_user_only; then
-            gc_menu_bad "${_pick}" "1, 2, 6, 8, or 9 to leave"
+            gc_menu_bad "${_pick}" "1, 2, 5, 8, or 9 to leave"
         else
-            gc_menu_bad "${_pick}" "1, 6, 7, 8, or 9 to leave"
+            gc_menu_bad "${_pick}" "1, 5, 7, 8, or 9 to leave"
         fi
     done
 }
@@ -10520,7 +11180,7 @@ app_help() {
     out_plain "  SCRIPT_URL           grok-cli channel (default github raw src/grok-cli)"
     out_plain "  GROK_HOME            grok auth dir (default ~/.grok of invoking login)"
     out_plain "  GROK_CLI_ROOT        durable store (default /var/grok-cli)"
-    out_plain "  GROK_CLI_LANG        Menu language for this run only (en zh-Hant es fr de zh-Hans ja ko); does not write the file"
+    out_plain "  GROK_CLI_LANG        Menu language for this run only (en zh-Hans zh-Hant es ar fr pt ru de ja ko nl el); does not write the file"
     out_plain "  GROK_CLI_CRONTAB     crontab binary (default crontab; tests inject a fake)"
     out_plain "  GROK_CLI_CRON_BACKUP backup crontab schedule (default */30 * * * *)"
     out_plain "  GROK_CLI_CRON_SYNC   sync-auth crontab schedule (default 45 * * * *)"
@@ -10576,7 +11236,7 @@ app_help() {
     out_info "Switches without a command (--debug, --quiet) still follow empty argv. ${APP_NAME} --json with no command is empty argv special case: JSON help (even on a TTY). Explicit help stays help."
     out_info "backup runs grok -p hello first, then passwordless sudo ${APP_NAME} backup (sudoer-adm)."
     out_info "sync-auth never uses sudo. Local install + sudoers is TEST MODE ONLY; prefer global."
-    out_info "Menu row 6 sets the display language (61 English through 68 Korean). GROK_CLI_LANG overrides this run and does not write the file."
+    out_info "Menu row 5 sets the display language (51 English through 63 Greek). GROK_CLI_LANG overrides this run and does not write the file."
 }
 
 # =============================================================================

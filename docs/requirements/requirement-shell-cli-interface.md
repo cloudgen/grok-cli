@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.15.2)  
+**Status**: Active (Version 2.15.3)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -104,7 +104,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
 | `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY; **Cache folder used**, **Cache folder (preferred)**, **Cache folder (1st fallback)**, **Cache folder (2nd fallback)** when that host has one (`requirement-shell-cli-storage`); **Persistence storage** `${HOME}/.local/${APP_NAME}`; grok home, session, deposit dir; **no** channel one-liner. Human labels follow the menu language. JSON stays English |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode. Human text follows the menu language. JSON stays English |
-| `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Front **6** sets the menu language (`requirement-shell-cli-language`). `language` is **not** an argv verb. `GROK_CLI_LANG` overrides this process and does not write the file. Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
+| `menu` | Type 0 | `app_default` | Numbered list (`requirement-shell-cli-default-interaction`). Front **5** sets the menu language (`requirement-shell-cli-language` **1.1.0**: block **50–69**, assigned **51–63**). Front **6** is not a row. `language` is **not** an argv verb. `GROK_CLI_LANG` overrides this process and does not write the file. Interactive: **ignore `--json`**. Non-interactive: help, following `--json`. |
 | `main` | Type 0 | `app_default` (alias) | Same as `menu` |
 | `setup` | Type 0 | `gc_setup` (domain) | Perform the studied xAI grok procedure (platform, channel pointer, artifact, `~/.grok` place) so peer `grok` is installed; **MUST NOT** fetch or exec `install.sh`; skip if grok already **runs on this host** unless `--force` **or** a TTY reinstall pick. On a TTY, already-installed grok **MUST** offer keep / reinstall / Exit (`requirement-grok-setup` 9b). `--json` / off-TTY **MUST NOT** prompt. Stale session PATH is not an error. **MUST NOT** install grok-cli |
 | `update-grok` | Type 0 | `gc_update_grok` (domain) | Refresh peer `grok` from the xAI channel + artifact (same place path as `setup --force`). **MUST NOT** exec grok auto-update. **MUST NOT** update grok-cli (`self-update` stays that). Missing grok → Next `{{APP_NAME}} setup`. Dual mention `requirement-grok-setup` · `requirement-domain-grok-cli`. **INC-20260910-002** |
@@ -311,9 +311,10 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-22 | Active 2.15.0 | `rc-test --file ash`; ash PATH on `.profile` (dual mention `requirement-shell-alpine` 1.0.0) |
 | 2026-09-27 | Active 2.15.1 | `about` cache lines follow `requirement-shell-cli-storage` 1.4.0 (used / preferred / 1st / 2nd) |
 | 2026-09-28 | Active 2.15.2 | `language` is menu-only (front **6**), not an argv verb. Human `help` and human `about` follow `requirement-shell-cli-language`. JSON stays English |
+| 2026-10-02 | Active 2.15.3 | Menu language is front **5** / block **50–69** assigned **51–63** (dual mention `requirement-shell-cli-language` 1.1.0). 2.15.2 was front **6** / **61–68**. |
 
 ---
 
-**Last Updated**: 2026-09-28 (2.15.2 — menu language is not an argv verb)  
+**Last Updated**: 2026-10-02 (2.15.3 — front **5** / **51–63**; 2.15.2 was front **6** / **61–68**)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

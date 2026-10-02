@@ -346,7 +346,8 @@ run_test_cli() {
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="99" ci_pty_capture "${SCRIPT}" menu)
         assert_not_contains "TP-CLI-13 TTY menu no check-session row" "$_out" "check-session:"
         assert_contains "TP-CLI-13 TTY menu grok-auth first" "$_out" "1. grok-auth:"
-        assert_contains "TP-CLI-13 TTY menu language is 6" "$_out" "6. language:"
+        assert_contains "TP-CLI-13 TTY menu language is 5" "$_out" "5. language:"
+        assert_not_contains "TP-CLI-13 TTY menu has no row 6 language" "$_out" "6. language:"
         assert_contains "TP-CLI-13 TTY menu sudoers is 8" "$_out" "7. sudoers:"
         assert_contains "TP-CLI-13 TTY menu self-management is 9" "$_out" "8. self-management:"
         assert_not_contains "TP-CLI-13 TTY top hides auth rows" "$_out" "11. backup:"
@@ -469,7 +470,8 @@ AUTH
         assert_not_contains "TP-CLI-19 Termux no sudoers row" "$_out" "sudoers:"
         assert_contains "TP-CLI-19 Termux row 1 is grok-auth" "$_out" "1. grok-auth:"
         assert_contains "TP-CLI-19 Termux row 2 is run" "$_out" "2. run:"
-        assert_contains "TP-CLI-19 Termux row 6 is language" "$_out" "6. language:"
+        assert_contains "TP-CLI-19 Termux row 5 is language" "$_out" "5. language:"
+        assert_not_contains "TP-CLI-19 Termux has no row 6 language" "$_out" "6. language:"
         assert_contains "TP-CLI-19 Termux row 9 is self-management" "$_out" "8. self-management:"
         assert_contains "TP-CLI-19 Termux Exit 0" "$_out" "9. Exit"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
@@ -485,11 +487,20 @@ AUTH
         assert_contains "TP-CLI-19 Termux auth reinstall is 16" "$_out" "16. reinstall:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
-            PTY_IN="5
+            PTY_IN="6
 9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-19 Termux pick 5 is not a menu choice" "$_out" "Not a menu choice"
-        assert_not_contains "TP-CLI-19 Termux pick 5 does not open sudoers" "$_out" \
+        assert_contains "TP-CLI-19 Termux pick 6 is not a menu choice" "$_out" "Not a menu choice"
+        assert_not_contains "TP-CLI-19 Termux pick 6 does not open language" "$_out" \
+            "51. English:"
+        assert_not_contains "TP-CLI-19 Termux pick 6 does not open sudoers" "$_out" \
             "1. generate-sudoer-request:"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
+            PTY_IN="5
+0
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-19 Termux pick 5 opens language" "$_out" "51. English:"
+        assert_not_contains "TP-CLI-19 Termux pick 5 is a menu choice" "$_out" "Not a menu choice"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             MSYSTEM="MINGW64" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-19 Git Bash not-available line" "$_out" \
@@ -497,6 +508,7 @@ AUTH
         assert_not_contains "TP-CLI-19 Git Bash no backup row" "$_out" "11. backup:"
         assert_contains "TP-CLI-19 Git Bash row 1 is grok-auth" "$_out" "1. grok-auth:"
         assert_contains "TP-CLI-19 Git Bash row 2 is run" "$_out" "2. run:"
+        assert_contains "TP-CLI-19 Git Bash row 5 is language" "$_out" "5. language:"
         assert_contains "TP-CLI-19 Git Bash row 9 is self-management" "$_out" "8. self-management:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             OS="Windows_NT" PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
@@ -505,6 +517,7 @@ AUTH
         assert_not_contains "TP-CLI-19 Windows cmd no backup row" "$_out" "11. backup:"
         assert_contains "TP-CLI-19 Windows cmd row 1 is grok-auth" "$_out" "1. grok-auth:"
         assert_contains "TP-CLI-19 Windows cmd row 2 is run" "$_out" "2. run:"
+        assert_contains "TP-CLI-19 Windows cmd row 5 is language" "$_out" "5. language:"
         assert_contains "TP-CLI-19 Windows cmd row 9 is self-management" "$_out" "8. self-management:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
@@ -551,12 +564,12 @@ AUTH
             "sync-auth-from-remote:"
         assert_contains "TP-CLI-20 multi-user Exit 9" "$_out" "9. Exit"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
-            PTY_IN="6
+            PTY_IN="5
 9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-20 pick 6 opens language" "$_out" "61. English:"
-        assert_contains "TP-CLI-20 pick 6 lists Korean" "$_out" "68. 한국어:"
-        assert_not_contains "TP-CLI-20 pick 6 is a menu choice" "$_out" "Not a menu choice"
-        assert_not_contains "TP-CLI-20 pick 6 does not open sudoers" "$_out" \
+        assert_contains "TP-CLI-20 pick 5 opens language" "$_out" "51. English:"
+        assert_contains "TP-CLI-20 pick 5 lists Greek" "$_out" "63. Ελληνικά:"
+        assert_not_contains "TP-CLI-20 pick 5 is a menu choice" "$_out" "Not a menu choice"
+        assert_not_contains "TP-CLI-20 pick 5 does not open sudoers" "$_out" \
             "1. generate-sudoer-request:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             PTY_IN="7
@@ -587,6 +600,7 @@ AUTH
         assert_contains "TP-CLI-20 Termux logged-in line after host line" "${_after}" \
             "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
         assert_contains "TP-CLI-20 Termux grok-auth is 1" "$_out" "1. grok-auth:"
+        assert_contains "TP-CLI-20 Termux language is 5" "$_out" "5. language:"
         assert_contains "TP-CLI-20 Termux run is 2" "$_out" "2. run:"
         assert_contains "TP-CLI-20 Termux self-management is 9" "$_out" "8. self-management:"
         assert_not_contains "TP-CLI-20 Termux no from-remote row" "$_out" \
@@ -639,23 +653,37 @@ AUTH
         t_skip "TP-CLI-31 Termux reinstall row (no python3 for PTY)"
     fi
 
-    # TP-CLI-32: menu language (eight codes). Front 6, save, override, help/about.
+    # TP-CLI-32: menu language (thirteen codes). Front 5 / 51-63, save, override, help/about.
     if command -v python3 >/dev/null 2>&1; then
         ci_isolated_env
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
-            PTY_IN="6
+            PTY_IN="5
 0
 9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-32 language row 61" "$_out" "61. English:"
-        assert_contains "TP-CLI-32 language row 62" "$_out" "62. 繁體中文:"
-        assert_contains "TP-CLI-32 language row 63" "$_out" "63. Español:"
-        assert_contains "TP-CLI-32 language row 64" "$_out" "64. Français:"
-        assert_contains "TP-CLI-32 language row 65" "$_out" "65. Deutsch:"
-        assert_contains "TP-CLI-32 language row 66" "$_out" "66. 简体中文:"
-        assert_contains "TP-CLI-32 language row 67" "$_out" "67. 日本語:"
-        assert_contains "TP-CLI-32 language row 68" "$_out" "68. 한국어:"
+        assert_contains "TP-CLI-32 front row is 5" "$_out" "5. language:"
+        assert_not_contains "TP-CLI-32 front has no row 6" "$_out" "6. language:"
+        assert_contains "TP-CLI-32 language row 51" "$_out" "51. English:"
+        assert_contains "TP-CLI-32 language row 52" "$_out" "52. 简体中文:"
+        assert_contains "TP-CLI-32 language row 53" "$_out" "53. 繁體中文:"
+        assert_contains "TP-CLI-32 language row 54" "$_out" "54. Español:"
+        assert_contains "TP-CLI-32 language row 55" "$_out" "55. العربية:"
+        assert_contains "TP-CLI-32 language row 56" "$_out" "56. Français:"
+        assert_contains "TP-CLI-32 language row 57" "$_out" "57. Português:"
+        assert_contains "TP-CLI-32 language row 58" "$_out" "58. Русский:"
+        assert_contains "TP-CLI-32 language row 59" "$_out" "59. Deutsch:"
+        assert_contains "TP-CLI-32 language row 60" "$_out" "60. 日本語:"
+        assert_contains "TP-CLI-32 language row 61" "$_out" "61. 한국어:"
+        assert_contains "TP-CLI-32 language row 62" "$_out" "62. Nederlands:"
+        assert_contains "TP-CLI-32 language row 63" "$_out" "63. Ελληνικά:"
         assert_contains "TP-CLI-32 English long" "$_out" "use English for this menu"
-        assert_contains "TP-CLI-32 Korean long" "$_out" "use Korean for this menu"
+        assert_contains "TP-CLI-32 Arabic long" "$_out" "use Arabic for this menu"
+        assert_contains "TP-CLI-32 Portuguese long" "$_out" "use Portuguese for this menu"
+        assert_contains "TP-CLI-32 Russian long" "$_out" "use Russian for this menu"
+        assert_contains "TP-CLI-32 Dutch long" "$_out" "use Dutch for this menu"
+        assert_contains "TP-CLI-32 Greek long" "$_out" "use Greek for this menu"
+        assert_not_contains "TP-CLI-32 reserved 50 is not printed" "$_out" "50. "
+        assert_not_contains "TP-CLI-32 reserved 64 is not printed" "$_out" "64. "
+        assert_not_contains "TP-CLI-32 reserved 69 is not printed" "$_out" "69. "
         assert_not_contains "TP-CLI-32 Back does not error" "$_out" "Not a menu choice"
         if [ -f "${CI_HOME}/.local/${APP_NAME}/language" ]; then
             t_fail "TP-CLI-32 Back wrote the language file"
@@ -665,10 +693,40 @@ AUTH
 
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             PTY_IN="6
-62
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-32 front 6 is not a menu choice" "$_out" "Not a menu choice '6'"
+        assert_contains "TP-CLI-32 front 6 hint lists row 5" "$_out" "1, 5, 7, 8, or 9 to leave"
+        assert_not_contains "TP-CLI-32 front 6 hint does not list row 6" "$_out" "1, 6, 7, 8"
+        assert_not_contains "TP-CLI-32 front 6 does not open the board" "$_out" "51. English:"
+        if [ -f "${CI_HOME}/.local/${APP_NAME}/language" ]; then
+            t_fail "TP-CLI-32 front 6 wrote the language file"
+        else
+            t_pass "TP-CLI-32 front 6 did not write the language file"
+        fi
+
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            PTY_IN="5
+50
+64
+69
+0
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-32 reserved 50 warns" "$_out" "Not a menu choice '50'"
+        assert_contains "TP-CLI-32 reserved 64 warns" "$_out" "Not a menu choice '64'"
+        assert_contains "TP-CLI-32 reserved 69 warns" "$_out" "Not a menu choice '69'"
+        assert_contains "TP-CLI-32 reserved reprint still lists 51" "$_out" "51. English:"
+        if [ -f "${CI_HOME}/.local/${APP_NAME}/language" ]; then
+            t_fail "TP-CLI-32 reserved picks wrote the language file"
+        else
+            t_pass "TP-CLI-32 reserved picks did not write the language file"
+        fi
+
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            PTY_IN="5
+53
 9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-32 saved Traditional Chinese" "$_out" "選單語言是繁體中文"
-        assert_contains "TP-CLI-32 front redraws in Traditional Chinese" "$_out" "6. 語言:"
+        assert_contains "TP-CLI-32 front redraws in Traditional Chinese" "$_out" "5. 語言:"
         _langf="${CI_HOME}/.local/${APP_NAME}/language"
         assert_eq "TP-CLI-32 language file is zh-Hant" "zh-Hant" "$(head -n 1 "${_langf}")"
         _mode=$(stat -c '%a' "${_langf}" 2>/dev/null || stat -f '%OLp' "${_langf}")
@@ -676,13 +734,29 @@ AUTH
 
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-32 next run keeps Traditional Chinese" "$_out" "6. 語言:"
-        assert_not_contains "TP-CLI-32 next run is not the English short" "$_out" "6. language:"
+        assert_contains "TP-CLI-32 next run keeps Traditional Chinese" "$_out" "5. 語言:"
+        assert_not_contains "TP-CLI-32 next run is not the English short" "$_out" "5. language:"
 
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_CLI_LANG=ja \
             PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-32 GROK_CLI_LANG ja" "$_out" "6. 言語:"
+        assert_contains "TP-CLI-32 GROK_CLI_LANG ja" "$_out" "5. 言語:"
         assert_eq "TP-CLI-32 override does not rewrite the file" "zh-Hant" "$(head -n 1 "${_langf}")"
+
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            PTY_IN="5
+63
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-32 saved Greek" "$_out" "Η γλώσσα του μενού είναι ελληνικά"
+        assert_contains "TP-CLI-32 front redraws in Greek" "$_out" "5. γλώσσα:"
+        assert_eq "TP-CLI-32 language file is el" "el" "$(head -n 1 "${_langf}")"
+
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
+            PTY_IN="5
+arabic
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-32 saved Arabic" "$_out" "لغة القائمة هي العربية"
+        assert_contains "TP-CLI-32 front redraws in Arabic" "$_out" "5. لغة:"
+        assert_eq "TP-CLI-32 language file is ar" "ar" "$(head -n 1 "${_langf}")"
 
         _help=$(HOME="${CI_HOME}" GROK_CLI_LANG=ja sh "${SCRIPT}" help 2>/dev/null)
         assert_contains "TP-CLI-32 ja help heading" "${_help}" "使い方:"
@@ -694,6 +768,13 @@ AUTH
         _json=$(HOME="${CI_HOME}" GROK_CLI_LANG=ja sh "${SCRIPT}" --json about 2>/dev/null)
         assert_contains "TP-CLI-32 json about stays English keys" "${_json}" '"cache_used"'
         assert_not_contains "TP-CLI-32 json about has no Japanese title" "${_json}" "概要"
+        _help_el=$(HOME="${CI_HOME}" GROK_CLI_LANG=el sh "${SCRIPT}" help 2>/dev/null)
+        assert_contains "TP-CLI-32 el help heading" "${_help_el}" "Χρήση:"
+        _help_en=$(HOME="${CI_HOME}" GROK_CLI_LANG=en sh "${SCRIPT}" help 2>/dev/null)
+        assert_contains "TP-CLI-32 en help lists thirteen codes" "${_help_en}" \
+            "en zh-Hans zh-Hant es ar fr pt ru de ja ko nl el"
+        assert_contains "TP-CLI-32 en help names row 5" "${_help_en}" \
+            "Menu row 5 sets the display language (51 English through 63 Greek)."
 
         _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" language 2>&1 >/dev/null)
         assert_eq "TP-CLI-32 language is not an argv verb" 1 "$?"
@@ -702,7 +783,7 @@ AUTH
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_CLI_LANG=en \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
             PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-32 Termux still lists language" "$_out" "6. language:"
+        assert_contains "TP-CLI-32 Termux still lists language" "$_out" "5. language:"
         ci_cleanup_env
     else
         t_skip "TP-CLI-32 language board (no python3 for PTY)"
@@ -814,20 +895,22 @@ AUTH
         ci_fake_grok_ok
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
-            PTY_IN="5
+            PTY_IN="6
 9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-30 Termux logged-in unused 5 is ERROR" "$_out" "[ERROR]"
-        assert_contains "TP-CLI-30 Termux logged-in unused 5 names pick" "$_out" "Not a menu choice '5'"
-        assert_not_contains "TP-CLI-30 Termux logged-in unused 5 does not open sudoers" "$_out" \
+        assert_contains "TP-CLI-30 Termux logged-in unused 6 is ERROR" "$_out" "[ERROR]"
+        assert_contains "TP-CLI-30 Termux logged-in unused 6 names pick" "$_out" "Not a menu choice '6'"
+        assert_not_contains "TP-CLI-30 Termux logged-in unused 6 does not open language" "$_out" \
+            "51. English:"
+        assert_not_contains "TP-CLI-30 Termux logged-in unused 6 does not open sudoers" "$_out" \
             "1. generate-sudoer-request:"
         _nchoice=$(printf '%s\n' "$_out" | tr -d '\r' | grep -c 'Choice:' || true)
-        assert_eq "TP-CLI-30 Termux logged-in unused 5 reprints Choice" "2" "${_nchoice}"
+        assert_eq "TP-CLI-30 Termux logged-in unused 6 reprints Choice" "2" "${_nchoice}"
         ci_cleanup_env
     else
         t_skip "TP-CLI-30 main unused 4 (no python3 for PTY)"
         t_skip "TP-CLI-30 main unknown name (no python3 for PTY)"
         t_skip "TP-CLI-30 sudoers submenu unused 6 (no python3 for PTY)"
-        t_skip "TP-CLI-30 Termux logged-in unused 5 (no python3 for PTY)"
+        t_skip "TP-CLI-30 Termux logged-in unused 6 (no python3 for PTY)"
     fi
 
     # TP-CLI-23: ship unit always bounds the probe (timeout -k + watchdog).
