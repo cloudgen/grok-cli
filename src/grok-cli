@@ -46,7 +46,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.47"
+# VERSION: hard-assign VERSION="1.8.48"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -60,9 +60,9 @@ APP_NAME="grok-cli"
 : "${APP_NAME:=grok-cli}"
 : "${APP_DESC:=Alternative online installer for xAI grok}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
+: "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, sync-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.47"
+VERSION="1.8.48"
 : "${VERSION:=1.8.43}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
@@ -6122,6 +6122,270 @@ gc_sync_auth_to_remote() {
 }
 
 # =============================================================================
+# gc_sync_to_count_ok() / gc_sync_to_user_ok() / gc_sync_to_host_ok()
+# gc_sync_to_auth_name_ok() - Class B: sync-to-remote operand checks
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Count is 1-32 with no leading zero. User is a login name. Host is IPv4
+# or a domain. Auth basenames stay inside auth.* with no shell characters.
+#
+# ALIGNMENT:
+# - requirement-grok-auth-backup.md
+#
+# Last updated: 2026-11-17
+# =============================================================================
+gc_sync_to_count_ok() {
+    _c="${1-}"
+    case "${_c}" in
+        ''|*[!0-9]*|0*) return 1 ;;
+    esac
+    if [ "${#_c}" -gt 2 ]; then
+        return 1
+    fi
+    if [ "${_c}" -lt 1 ] || [ "${_c}" -gt 32 ]; then
+        return 1
+    fi
+    return 0
+}
+
+gc_sync_to_user_ok() {
+    _u="${1-}"
+    [ -n "${_u}" ] || return 1
+    case "${_u}" in
+        *[!A-Za-z0-9_.-]*) return 1 ;;
+        [A-Za-z_]*|[0-9]*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+gc_sync_to_host_ok() {
+    _hh="${1-}"
+    case "${_hh}" in
+        ''|*[';|&$`()<>\\/ '*]*|*'*'*|*\[*|*\]*|-*|.*|*@*) return 1 ;;
+    esac
+    if gc_host_is_ipv4 "${_hh}"; then
+        return 0
+    fi
+    if gc_host_is_dns "${_hh}"; then
+        return 0
+    fi
+    return 1
+}
+
+gc_sync_to_auth_name_ok() {
+    _bn="${1-}"
+    case "${_bn}" in
+        auth.[A-Za-z0-9_.-]*) ;;
+        *) return 1 ;;
+    esac
+    case "${_bn}" in
+        *[!A-Za-z0-9_.-]*) return 1 ;;
+    esac
+    if [ "${_bn}" = "auth." ]; then
+        return 1
+    fi
+    return 0
+}
+
+# =============================================================================
+# gc_sync_to_remote() - Type 0: ask a numbered list, push auth.* to each ~/.grok
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Confirm this login's ~/.grok exists and holds auth.json, then take a
+# number of remote hosts and, for each, a remote host and a remote user.
+# Upload every regular auth.* file onto that login's ~/.grok. ssh + scp
+# BatchMode, no sudo, remote mode 0600. A valid local session does NOT
+# skip this verb. --json and --quiet do not prompt. Tests inject
+# GROK_CLI_SSH and GROK_CLI_SCP. Operands: N HOST USER [HOST USER ...]
+# with N from 1 to 32. Does not write preferred-remote or /var/grok-cli.
+#
+# ALIGNMENT:
+# - requirement-grok-auth-backup.md
+# - requirement-shell-cli-interface.md
+# - requirement-shell-cli-default-interaction.md
+# - requirement-operator-readable-error.md
+#
+# Last updated: 2026-11-17
+# =============================================================================
+gc_sync_to_remote() {
+    : "${APP_NAME:=grok-cli}"
+    : "${JSON:=0}"
+    : "${TTY:=0}"
+    : "${HOME:=/tmp}"
+
+    _src=$(gc_resolve_grok_home)
+    if [ ! -d "${_src}" ]; then
+        out_die "Cannot sync-to-remote: ${_src} does not exist. Next: grok login, then ${APP_NAME} sync-to-remote"
+    fi
+    _auth="${_src}/auth.json"
+    if [ ! -f "${_auth}" ] || [ ! -s "${_auth}" ] || [ -L "${_auth}" ]; then
+        out_die "Cannot sync-to-remote: no auth.json under ${_src}. Next: grok login, then ${APP_NAME} sync-to-remote"
+    fi
+    _list=$(gc_list_auth_files "${_src}") || _list=""
+    if [ -z "${_list}" ]; then
+        out_die "Cannot sync-to-remote: no auth.* under ${_src}. Next: grok login, then ${APP_NAME} sync-to-remote"
+    fi
+
+    _raw="${1-}"
+    _raw_probe=$(printf '%s' "${_raw}" | tr -d '[:space:]')
+    _targets=""
+    _nhosts=0
+    if [ -z "${_raw_probe}" ]; then
+        if [ "${TTY}" -eq 1 ] && [ "${JSON}" -ne 1 ] && [ "${QUIET:-0}" -ne 1 ]; then
+            prompt_ask "Number of remote hosts" ""
+            _count="${PROMPT_ASK_VALUE}"
+            if ! gc_sync_to_count_ok "${_count}"; then
+                out_die "Cannot sync-to-remote: number '${_count}' is not 1-32. Next: ${APP_NAME} sync-to-remote N HOST USER"
+            fi
+            _i=1
+            while [ "${_i}" -le "${_count}" ]; do
+                prompt_ask "Remote host ${_i} (IPv4 or domain)" ""
+                _pair_host="${PROMPT_ASK_VALUE}"
+                if ! gc_sync_to_host_ok "${_pair_host}"; then
+                    out_die "Cannot sync-to-remote: remote host '${_pair_host}' is not an IPv4 or domain. Next: ${APP_NAME} sync-to-remote N HOST USER"
+                fi
+                prompt_ask "Remote user ${_i}" ""
+                _pair_user="${PROMPT_ASK_VALUE}"
+                if ! gc_sync_to_user_ok "${_pair_user}"; then
+                    out_die "Cannot sync-to-remote: remote user '${_pair_user}' is not a login name. Next: ${APP_NAME} sync-to-remote N HOST USER"
+                fi
+                _targets="${_targets}${_pair_user}@${_pair_host}
+"
+                _nhosts=$((_nhosts + 1))
+                _i=$((_i + 1))
+            done
+        else
+            out_die "Cannot sync-to-remote: missing number, remote host, and remote user. Next: ${APP_NAME} sync-to-remote N HOST USER"
+        fi
+    else
+        _idx=0
+        _count=""
+        _pair_host=""
+        _need_user=0
+        while IFS= read -r _tok || [ -n "${_tok}" ]; do
+            [ -n "${_tok}" ] || continue
+            _idx=$((_idx + 1))
+            if [ "${_idx}" -eq 1 ]; then
+                _count="${_tok}"
+                if ! gc_sync_to_count_ok "${_count}"; then
+                    out_die "Cannot sync-to-remote: number '${_count}' is not 1-32. Next: ${APP_NAME} sync-to-remote N HOST USER"
+                fi
+                continue
+            fi
+            _slot=$(( (_idx - 2) % 2 ))
+            if [ "${_slot}" -eq 0 ]; then
+                _pair_host="${_tok}"
+                _need_user=1
+                if ! gc_sync_to_host_ok "${_pair_host}"; then
+                    out_die "Cannot sync-to-remote: remote host '${_pair_host}' is not an IPv4 or domain. Next: ${APP_NAME} sync-to-remote N HOST USER"
+                fi
+            else
+                _pair_user="${_tok}"
+                _need_user=0
+                if ! gc_sync_to_user_ok "${_pair_user}"; then
+                    out_die "Cannot sync-to-remote: remote user '${_pair_user}' is not a login name. Next: ${APP_NAME} sync-to-remote N HOST USER"
+                fi
+                _targets="${_targets}${_pair_user}@${_pair_host}
+"
+                _nhosts=$((_nhosts + 1))
+            fi
+        done <<EOF
+${_raw}
+EOF
+        if [ "${_need_user}" -eq 1 ]; then
+            out_die "Cannot sync-to-remote: remote host '${_pair_host}' has no remote user. Next: ${APP_NAME} sync-to-remote N HOST USER"
+        fi
+        if [ -z "${_count}" ] || [ "${_nhosts}" -ne "${_count}" ]; then
+            out_die "Cannot sync-to-remote: number ${_count} does not match ${_nhosts} host and user pair(s). Next: ${APP_NAME} sync-to-remote N HOST USER"
+        fi
+    fi
+
+    if [ "${_nhosts}" -le 0 ]; then
+        out_die "Cannot sync-to-remote: missing number, remote host, and remote user. Next: ${APP_NAME} sync-to-remote N HOST USER"
+    fi
+
+    _scp=$(gc_scp_cmd)
+    if [ -z "${_scp}" ] || [ ! -x "${_scp}" ]; then
+        out_die "Cannot sync-to-remote: scp not found. Next: install openssh-client, then ${APP_NAME} sync-to-remote N HOST USER"
+    fi
+    _ssh=$(gc_ssh_cmd)
+    if [ -z "${_ssh}" ] || [ ! -x "${_ssh}" ]; then
+        out_die "Cannot sync-to-remote: ssh not found. Next: install openssh-client, then ${APP_NAME} sync-to-remote N HOST USER"
+    fi
+
+    _copied=""
+    _nfiles=0
+    while IFS= read -r _f; do
+        [ -n "${_f}" ] || continue
+        _bn=$(basename -- "${_f}")
+        if ! gc_sync_to_auth_name_ok "${_bn}"; then
+            out_die "Cannot sync-to-remote: refuse basename ${_bn}. Next: grok login, then ${APP_NAME} sync-to-remote N HOST USER"
+        fi
+        if [ ! -f "${_f}" ] || [ -L "${_f}" ] || [ ! -s "${_f}" ]; then
+            continue
+        fi
+        _copied="${_copied}${_bn} "
+        _nfiles=$((_nfiles + 1))
+    done <<EOF
+${_list}
+EOF
+    if [ "${_nfiles}" -le 0 ]; then
+        out_die "Cannot sync-to-remote: no auth.* under ${_src}. Next: grok login, then ${APP_NAME} sync-to-remote"
+    fi
+
+    _remotes=""
+    _done=0
+    while IFS= read -r _target; do
+        [ -n "${_target}" ] || continue
+        _done=$((_done + 1))
+        out_info "Sending auth.* to ${_target} (${_done}/${_nhosts})"
+        if ! "${_ssh}" -o BatchMode=yes -o ConnectTimeout=15 "${_target}" "mkdir -p .grok && chmod 0700 .grok"; then
+            out_die "Cannot sync-to-remote: cannot prepare ~/.grok on ${_target}. Next: ssh ${_target}, then ${APP_NAME} sync-to-remote N HOST USER"
+        fi
+        while IFS= read -r _f; do
+            [ -n "${_f}" ] || continue
+            _bn=$(basename -- "${_f}")
+            if ! gc_sync_to_auth_name_ok "${_bn}"; then
+                out_die "Cannot sync-to-remote: refuse basename ${_bn}. Next: grok login, then ${APP_NAME} sync-to-remote N HOST USER"
+            fi
+            if [ ! -f "${_f}" ] || [ -L "${_f}" ] || [ ! -s "${_f}" ]; then
+                continue
+            fi
+            if ! "${_scp}" -o BatchMode=yes -o ConnectTimeout=15 "${_f}" "${_target}:.grok/${_bn}"; then
+                out_die "Cannot sync-to-remote: scp to ${_target} failed. Next: ssh ${_target}, then ${APP_NAME} sync-to-remote N HOST USER"
+            fi
+            if ! "${_ssh}" -o BatchMode=yes -o ConnectTimeout=15 "${_target}" "chmod 0600 .grok/${_bn}"; then
+                out_die "Cannot sync-to-remote: cannot set mode 0600 on ${_target}:.grok/${_bn}. Next: ssh ${_target}, then ${APP_NAME} sync-to-remote N HOST USER"
+            fi
+        done <<EOF
+${_list}
+EOF
+        if [ -n "${_remotes}" ]; then
+            _remotes="${_remotes} ${_target}"
+        else
+            _remotes="${_target}"
+        fi
+    done <<EOF
+${_targets}
+EOF
+
+    out_success "sync-to-remote complete: ${_src} → ${_nhosts} remote host(s) (${_nfiles} file(s): ${_copied})"
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "sync-to-remote" "ok" \
+            "app" "${APP_NAME}" \
+            "source" "${_src}" \
+            "dest" ".grok" \
+            "files" "${_copied}" \
+            "file_count" "${_nfiles}" \
+            "remote_count" "${_nhosts}" \
+            "remotes" "${_remotes}"
+    fi
+    return 0
+}
+
+# =============================================================================
 # gc_crontab_cmd() - Class B: crontab binary (GROK_CLI_CRONTAB or PATH)
 # =============================================================================
 #
@@ -8441,6 +8705,23 @@ app_menu_text() {
                 *) _mt_out="Copy ~/.grok/auth.* onto a remote host" ;;
             esac
             ;;
+        long_sync_list)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="詢問遠端主機與使用者，再把 ~/.grok/auth.* 複製到每個 ~/.grok" ;;
+                zh-Hans) _mt_out="询问远程主机与用户，再把 ~/.grok/auth.* 复制到每个 ~/.grok" ;;
+                es) _mt_out="Preguntar hosts y usuarios remotos, y copiar ~/.grok/auth.* a cada ~/.grok" ;;
+                fr) _mt_out="Demander les hôtes et utilisateurs distants, puis copier ~/.grok/auth.* vers chaque ~/.grok" ;;
+                de) _mt_out="Nach fernen Hosts und Benutzern fragen, dann ~/.grok/auth.* auf jedes ~/.grok kopieren" ;;
+                ja) _mt_out="遠隔ホストとユーザーを尋ね、~/.grok/auth.* を各 ~/.grok へコピー" ;;
+                ko) _mt_out="원격 호스트와 사용자를 물어본 뒤 ~/.grok/auth.* 를 각 ~/.grok 로 복사" ;;
+                ar) _mt_out="اسأل عن المضيفين والمستخدمين البعيدين، ثم انسخ ~/.grok/auth.* إلى كل ~/.grok" ;;
+                pt) _mt_out="Perguntar anfitriões e usuários remotos e copiar ~/.grok/auth.* para cada ~/.grok" ;;
+                ru) _mt_out="Спросить удалённые узлы и пользователей, затем скопировать ~/.grok/auth.* в каждый ~/.grok" ;;
+                nl) _mt_out="Vraag externe hosts en gebruikers, en kopieer ~/.grok/auth.* naar elke ~/.grok" ;;
+                el) _mt_out="Ρώτησε απομακρυσμένους υπολογιστές και χρήστες, και αντέγραψε το ~/.grok/auth.* σε κάθε ~/.grok" ;;
+                *) _mt_out="Ask for remote hosts and users, then copy ~/.grok/auth.* onto each ~/.grok" ;;
+            esac
+            ;;
         long_cron)
             case "${_mt_lang}" in
                 zh-Hant) _mt_out="把 backup 與 sync-auth 工作加到這個登入的 crontab" ;;
@@ -9170,6 +9451,23 @@ app_menu_text() {
                 nl) _mt_out="~/.grok/auth.* naar een externe login kopiëren" ;;
                 el) _mt_out="Αντιγραφή του ~/.grok/auth.* σε απομακρυσμένη σύνδεση" ;;
                 *) _mt_out="Copy ~/.grok/auth.* onto a remote login" ;;
+            esac
+            ;;
+        help_sync_list)
+            case "${_mt_lang}" in
+                zh-Hant) _mt_out="詢問遠端主機數量與使用者，再上傳 ~/.grok/auth.*" ;;
+                zh-Hans) _mt_out="询问远程主机数量与用户，再上传 ~/.grok/auth.*" ;;
+                es) _mt_out="Preguntar cuántos hosts y usuarios, y subir ~/.grok/auth.*" ;;
+                fr) _mt_out="Demander le nombre d'hôtes et les utilisateurs, puis envoyer ~/.grok/auth.*" ;;
+                de) _mt_out="Anzahl, Hosts und Benutzer fragen, dann ~/.grok/auth.* hochladen" ;;
+                ja) _mt_out="遠隔ホストの数とユーザーを尋ね、~/.grok/auth.* を送る" ;;
+                ko) _mt_out="원격 호스트 수와 사용자를 묻고 ~/.grok/auth.* 를 올림" ;;
+                ar) _mt_out="اسأل عن عدد المضيفين والمستخدمين، ثم ارفع ~/.grok/auth.*" ;;
+                pt) _mt_out="Perguntar a quantidade, anfitriões e usuários, e enviar ~/.grok/auth.*" ;;
+                ru) _mt_out="Спросить число узлов и пользователей, затем отправить ~/.grok/auth.*" ;;
+                nl) _mt_out="Vraag het aantal hosts en gebruikers, en upload ~/.grok/auth.*" ;;
+                el) _mt_out="Ρώτησε πόσοι υπολογιστές και χρήστες, και ανέβασε το ~/.grok/auth.*" ;;
+                *) _mt_out="Ask how many remote hosts and users, then upload ~/.grok/auth.*" ;;
             esac
             ;;
         help_cron)
@@ -10133,6 +10431,7 @@ app_help_i18n() {
     out_plain "  sync-auth            $(app_menu_text help_sync)"
     out_plain "  sync-auth-from-remote $(app_menu_text help_from)"
     out_plain "  sync-auth-to-remote  $(app_menu_text help_to)"
+    out_plain "  sync-to-remote       $(app_menu_text help_sync_list)"
     out_plain "  add-crontab          $(app_menu_text help_cron)"
     out_plain "  print-sudoers        $(app_menu_text help_print)"
     out_plain "  print-sudoers-install-script $(app_menu_text help_script)"
@@ -10219,6 +10518,7 @@ gc_menu_row_explain_i18n() {
         sync-auth) app_menu_text long_sync "${GROK_CLI_ROOT}" ;;
         sync-auth-from-remote) app_menu_text long_from ;;
         sync-auth-to-remote) app_menu_text long_to ;;
+        sync-to-remote) app_menu_text long_sync_list ;;
         add-crontab) app_menu_text long_cron ;;
         sudoers) app_menu_text cat_sudoers_long ;;
         self-management) app_menu_text cat_self_long ;;
@@ -10534,7 +10834,7 @@ app_default_language_loop() {
 # 7 language. This-login-only hosts add 2 run and omit 5 sudoers.
 # Row 7 is on every host. Front 3, 4, and 8 are not rows.
 # 3 and 4 stay reserved domain. Exit 9 is printed by the caller. The top
-# list has no Back row. Auth commands live under 1 (numbers 11-16).
+# list has no Back row. Auth commands live under 1 (numbers 11-17).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -10554,7 +10854,7 @@ gc_menu_main_rows() {
     printf '%s\n' "7 language"
 }
 
-# gc_menu_auth_rows() - grok-auth submenu "NUMBER TOKEN" (fixed 11-16)
+# gc_menu_auth_rows() - grok-auth submenu "NUMBER TOKEN" (fixed 11-17)
 # =============================================================================
 #
 # 11 backup when logged in on a multi-user host (push ~/.grok/auth.* to the
@@ -10563,7 +10863,8 @@ gc_menu_main_rows() {
 # 13 sync-auth when not logged in on a multi-user host (copy the global store
 # into ~/.grok). Hide 13 when logged in and on this-login-only.
 # sync-auth-to-remote is a typed command, not a row.
-# Numbers 14-16 do not slide. 17 is not a row.
+# 17 sync-to-remote is listed on every host and in both sessions.
+# Numbers 14-16 do not slide. 18 is not a row.
 # =============================================================================
 gc_menu_auth_rows() {
     if ! gc_host_is_normal_user_only; then
@@ -10582,6 +10883,7 @@ gc_menu_auth_rows() {
     printf '%s\n' "14 add-crontab"
     printf '%s\n' "15 setup"
     printf '%s\n' "16 reinstall"
+    printf '%s\n' "17 sync-to-remote"
 }
 
 # gc_menu_self_rows() - self-management submenu "NUMBER TOKEN"
@@ -10639,6 +10941,7 @@ gc_menu_row_explain() {
         sync-auth) printf '%s' "Copy ${GROK_CLI_ROOT}/auth.* into ~/.grok" ;;
         sync-auth-from-remote) printf '%s' "Copy a remote host's auth.* into ~/.grok" ;;
         sync-auth-to-remote) printf '%s' "Copy ~/.grok/auth.* onto a remote host" ;;
+        sync-to-remote) printf '%s' "Ask for remote hosts and users, then copy ~/.grok/auth.* onto each ~/.grok" ;;
         add-crontab) printf '%s' "Add backup and sync-auth jobs to this login's crontab" ;;
         sudoers) printf '%s' "Grant and drafts" ;;
         self-management) printf '%s' "Check, update, or remove grok-cli" ;;
@@ -10898,6 +11201,7 @@ app_default_run_auth_pick() {
         sync-auth) gc_sync_auth ;;
         sync-auth-from-remote) gc_sync_auth_from_remote ;;
         sync-auth-to-remote) gc_sync_auth_to_remote ;;
+        sync-to-remote) gc_sync_to_remote ;;
         add-crontab) gc_add_crontab ;;
         setup) gc_setup ;;
         reinstall) gc_reinstall ;;
@@ -10933,7 +11237,7 @@ app_default_auth_loop() {
         if app_default_run_auth_pick "${_pick}"; then
             return 0
         fi
-        gc_menu_bad "${_pick}" "11-16, 0 back, 9 to leave"
+        gc_menu_bad "${_pick}" "11-17, 0 back, 9 to leave"
     done
 }
 
@@ -11231,13 +11535,13 @@ app_default() {
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Alternative online installer for xAI grok}}"
-    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
+    : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, sync-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
     : "${GROK_CLI_ROOT:=/var/grok-cli}"
 
     if [ "${JSON}" -eq 1 ]; then
         out_json "success" "Help text available in human-readable mode. Run without --json." \
             "command" "help" \
-            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, add-crontab. Empty argv and menu/main off-TTY use this help."
+            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, sync-to-remote, add-crontab. Empty argv and menu/main off-TTY use this help."
         return 0
     fi
     if [ "${QUIET}" -eq 1 ]; then
@@ -11297,6 +11601,14 @@ app_help() {
     out_plain "                       (SPEC: user@IPv4, IPv4, domain-name, or user@domain-name;"
     out_plain "                       ssh + scp BatchMode; no sudo; remote auth.json 0600;"
     out_plain "                       still runs when grok is already logged in)"
+    out_plain "  sync-to-remote N HOST USER ..."
+    out_plain "                       Ask how many remote hosts, then each remote host and"
+    out_plain "                       remote user. Check that ~/.grok exists, then copy"
+    out_plain "                       ~/.grok/auth.* onto each login's ~/.grok"
+    out_plain "                       (N is 1-32; HOST is IPv4 or domain; USER is the login;"
+    out_plain "                       ssh + scp BatchMode; no sudo; each remote auth.* is 0600;"
+    out_plain "                       still runs when grok is already logged in;"
+    out_plain "                       --json and --quiet do not prompt)"
     out_plain "  add-crontab          Add backup and sync-auth jobs to this login's crontab"
     out_plain "                       (*/30 sudo ${GLOBAL_BIN}/${APP_NAME} backup; minute 45 ${GLOBAL_BIN}/${APP_NAME} sync-auth;"
     out_plain "                       needs this login's NOPASSWD ${GLOBAL_BIN}/${APP_NAME} backup grant; does not write /etc)"
@@ -11388,6 +11700,8 @@ app_help() {
     out_plain "  ${APP_NAME} sync-auth"
     out_plain "  ${APP_NAME} sync-auth-from-remote user@192.0.2.10"
     out_plain "  ${APP_NAME} sync-auth-to-remote user@192.0.2.10"
+    out_plain "  ${APP_NAME} sync-to-remote 2 192.0.2.10 alice host.example.com bob"
+    out_plain "  ${APP_NAME} --json sync-to-remote 1 host.example.com operator"
     out_plain "  ${APP_NAME} add-crontab"
     out_empty_line
     out_info "Empty argv on a real terminal shows the numbered list. Off-TTY empty argv is channel install-ensure (curl|sh)."
@@ -11448,6 +11762,7 @@ app_main() {
     # --json no-command is 0-argv special case → JSON help (TTY and off-TTY).
     _saw_command=0
     _domain_arg=""
+    _sync_to_args=""
     while [ $# -gt 0 ]; do
         case "$1" in
             --quiet|-q) QUIET=1 ;;
@@ -11477,7 +11792,7 @@ app_main() {
                 SUBMIT_ACTION_EXPLICIT=1
                 export SUBMIT_ACTION SUBMIT_ACTION_EXPLICIT
                 ;;
-            version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|update-grok|reinstall|check-session|backup|sync-auth|sync-auth-from-remote|sync-auth-to-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
+            version|about|help|menu|main|install|uninstall|where-is-me|version-check|self-update|self-uninstall|setup|update-grok|reinstall|check-session|backup|sync-auth|sync-auth-from-remote|sync-auth-to-remote|sync-to-remote|add-crontab|print-sudoers|print-sudoers-install-script|remove-project-sudoers|generate-sudoer-request|submit-sudoer-request)
                 COMMAND="$1"
                 _saw_command=1
                 ;;
@@ -11495,7 +11810,10 @@ app_main() {
                 ;;
             *)
                 # Positional operands for domain verbs
-                if [ "${COMMAND}" = "print-sudoers" ] \
+                if [ "${COMMAND}" = "sync-to-remote" ]; then
+                    _sync_to_args="${_sync_to_args}
+${1}"
+                elif [ "${COMMAND}" = "print-sudoers" ] \
                     || [ "${COMMAND}" = "print-sudoers-install-script" ] \
                     || [ "${COMMAND}" = "remove-project-sudoers" ] \
                     || [ "${COMMAND}" = "generate-sudoer-request" ] \
@@ -11548,6 +11866,7 @@ app_main() {
         sync-auth)    gc_sync_auth ;;
         sync-auth-from-remote) gc_sync_auth_from_remote "${_domain_arg}" ;;
         sync-auth-to-remote) gc_sync_auth_to_remote "${_domain_arg}" ;;
+        sync-to-remote) gc_sync_to_remote "${_sync_to_args}" ;;
         add-crontab)  gc_add_crontab ;;
         print-sudoers) gc_print_sudoers "${_domain_arg}" ;;
         print-sudoers-install-script) gc_print_sudoers_install_script "${_domain_arg}" ;;

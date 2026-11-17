@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-grok-cli.md  
-**Status**: Active (Version 1.10.4)  
+**Status**: Active (Version 1.11.0)  
 **Area**: domain  
 **Key**: `requirement-domain-grok-cli`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -20,7 +20,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Run `setup`, `run`, `check-session`, `backup`, `sync-auth`, `sync-auth-from-remote`, `sync-auth-to-remote`, `add-crontab`, and the sudoer generate/submit verbs | sudoer-adm approves the JSON grant so `sudo grok-cli backup` is passwordless | Folder tar.gz backup; writing `/etc` yourself; typing `restore` (retired — the program must say unknown); using `setup` to install grok-cli |
+| Run `setup`, `run`, `check-session`, `backup`, `sync-auth`, `sync-auth-from-remote`, `sync-auth-to-remote`, `sync-to-remote`, `add-crontab`, and the sudoer generate/submit verbs | sudoer-adm approves the JSON grant so `sudo grok-cli backup` is passwordless | Folder tar.gz backup; writing `/etc` yourself; typing `restore` (retired — the program must say unknown); using `setup` to install grok-cli |
 
 **Includes:** verb catalog, help rows, about fields, pointers to ops and privilege law.  
 **Excludes:** JWT/token parsing rules, chown/chmod numbers, sudoers schema (peer files).
@@ -41,6 +41,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | Pull shared auth | A normal login copies from `/var/grok-cli` into `~/.grok` with no sudo | `grok-cli sync-auth` |
 | Pull from another host | `scp` that host’s store into `~/.grok` | `grok-cli sync-auth-from-remote user@192.0.2.10` |
 | Push to another host | `ssh` + `scp` this login’s `~/.grok/auth.*` onto that login’s `~/.grok`. Typed command. Not a numbered row. Still runs when grok is logged in | `grok-cli sync-auth-to-remote user@192.0.2.10` |
+| Push to several hosts | Ask how many, then each remote host and remote user. Check `~/.grok`. Copy `auth.*` onto each `~/.grok`. Auth **17**. `--json` does not prompt | `grok-cli sync-to-remote 2 192.0.2.10 alice host.example.com bob` |
 | Install the timers | This login’s crontab gets backup every 30 minutes and sync-auth at minute 45 | `grok-cli add-crontab` |
 
 ---
@@ -60,6 +61,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | `sync-auth` | none | `gc_*` | Copy `/var/grok-cli/auth.*` into `~/.grok` **without sudo**; skip when already logged in | **`requirement-grok-auth-backup`** |
 | `sync-auth-from-remote` | SPEC (`user@IPv4`, IPv4, domain, `user@domain`) | `gc_*` | `scp` remote `/var/grok-cli/auth.*` into `~/.grok` **without sudo**; skip when already logged in | **`requirement-grok-auth-backup`** |
 | `sync-auth-to-remote` | SPEC (same four forms) | `gc_*` | `ssh` + `scp` this login’s `~/.grok/auth.*` onto the remote login’s `~/.grok` **without sudo**; still runs when already logged in; not a numbered row | **`requirement-grok-auth-backup`** · **`requirement-shell-cli-default-interaction`** |
+| `sync-to-remote` | `N HOST USER` repeated (N is 1–32) | `gc_*` | Ask on a TTY; `--json` does not prompt; copy `~/.grok/auth.*` onto each remote `~/.grok` **without sudo**; still runs when already logged in; auth **17**; does not write `preferred-remote` | **`requirement-grok-auth-backup`** · **`requirement-shell-cli-default-interaction`** |
 | `add-crontab` | none | `gc_*` | Install this login’s crontab jobs (backup every 30 min; sync-auth at :45) after **this** login’s backup grant exists | **`requirement-grok-crontab`** |
 | `print-sudoers` | optional output path; `--allow-test-local` when test_local | `gc_*` | Emit **project-sudoers-file** (draft; no `/etc` write) | **`requirement-three-layer-privilege-model`** |
 | `print-sudoers-install-script` | optional script path; same trust gate | `gc_*` | Admin handoff script under `/dev/shm` or temp | **`requirement-three-layer-privilege-model`** |
@@ -84,6 +86,7 @@ This file lists the grok-cli commands a login types after install: place the xAI
 | Unprivileged sync | Expose `sync-auth` | `requirement-grok-auth-backup` |
 | Remote unprivileged sync | Expose `sync-auth-from-remote` | `requirement-grok-auth-backup` |
 | Remote unprivileged push | Expose `sync-auth-to-remote` | `requirement-grok-auth-backup` |
+| Remote list push | Expose `sync-to-remote` (auth **17**) | `requirement-grok-auth-backup` |
 | Per-login crontab timers | Expose `add-crontab` | `requirement-grok-crontab` |
 | Sudoers draft print | Expose `print-sudoers` | `requirement-three-layer-privilege-model` |
 | Admin sudoers install script | Expose `print-sudoers-install-script` | `requirement-three-layer-privilege-model` |
@@ -142,6 +145,7 @@ sudoer-{{YYYYMMDD}}-grok-cli-{{username}}-{{action}}-{{n}}.json
 | `sync-auth` | Copy `/var/grok-cli/auth.*` into `~/.grok` with no sudo |
 | `sync-auth-from-remote` | Copy a remote host's `/var/grok-cli/auth.*` into `~/.grok` |
 | `sync-auth-to-remote` | Copy this login's `~/.grok/auth.*` onto a remote login's `~/.grok` |
+| `sync-to-remote` | Ask how many remote hosts and users, then upload `~/.grok/auth.*` |
 | `add-crontab` | Add backup and sync-auth jobs to this login's crontab |
 | `print-sudoers` | Emit project-sudoers-file (draft) for admin install |
 | `print-sudoers-install-script` | Write admin script for sudo install/uninstall/replace |
@@ -166,6 +170,7 @@ grok-cli backup
 grok-cli sync-auth
 grok-cli sync-auth-from-remote user@192.0.2.10
 grok-cli sync-auth-to-remote user@192.0.2.10
+grok-cli sync-to-remote 2 192.0.2.10 alice host.example.com bob
 grok-cli add-crontab
 ```
 
@@ -224,7 +229,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 
 Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
 
-**This requirement:** `backup` / sudoers verbs stay **unused** on this class. The numbered start list is **1** `grok-auth`, **2** `run`, **6** `self-management`, **7** `language`, and **9** Exit, and it prints the host not-available line (`requirement-shell-cli-default-interaction` **2.27.0**). Auth **11** `backup` and auth **13** `sync-auth` stay off this class. Logged out lists auth **12** and appends the logged-out not-available line. Logged in omits auth **12** and appends the logged-in not-available line. `sync-auth-to-remote` is not a numbered row. `setup`, `update-grok`, `reinstall`, `run`, and `check-session` stay this-login work.
+**This requirement:** `backup` / sudoers verbs stay **unused** on this class. The numbered start list is **1** `grok-auth`, **2** `run`, **6** `self-management`, **7** `language`, and **9** Exit, and it prints the host not-available line (`requirement-shell-cli-default-interaction` **2.28.0**). Auth **11** `backup` and auth **13** `sync-auth` stay off this class. Logged out lists auth **12** and appends the logged-out not-available line. Logged in omits auth **12** and appends the logged-in not-available line. Auth **17** `sync-to-remote` stays listed. `sync-auth-to-remote` is not a numbered row. `setup`, `update-grok`, `reinstall`, `run`, `check-session`, and `sync-to-remote` stay this-login work.
 
 ---
 
@@ -308,6 +313,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-10-10 | Active (1.10.2) | `sync-auth-to-remote` is not a numbered row; this-login-only omits auth **11** and **13** and lists **12** only when logged out (default-interaction **2.25.0**) |
 | 2026-10-10 | Active (1.10.3) | Logged-out not-available line follows default-interaction **2.26.0** |
 | 2026-10-12 | Active (1.10.4) | This-login-only start list follows default-interaction **2.27.0** (**1** grok-auth, **2** run, **6** self-management, **7** language, **9** Exit) |
+| 2026-11-17 | Active (1.11.0) | `sync-to-remote` is auth **17**; this-login-only start list follows default-interaction **2.28.0** |
 
 ---
 
@@ -326,12 +332,13 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | **TP-GROK-CLI-26**–**29** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-30**–**38** | `tests/test_domain_grok_cli.sh` | have |
 | **TP-GROK-CLI-50** | `tests/test_domain_grok_cli.sh` | have — `sync-auth-to-remote` |
+| **TP-GROK-CLI-51** | `tests/test_domain_grok_cli.sh` | have — `sync-to-remote` |
 | **TP-GROK-CLI-46** | `tests/test_domain_grok_cli.sh` | have — `run` `--no-auto-update` |
 | **TP-GROK-CLI-47**, **TP-GROK-CLI-48** | `tests/test_domain_grok_cli.sh` | have — probe dispatch `command -v proot` → reaper; else simple `-p` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-10-12 (1.10.4 — this-login-only start list follows default-interaction **2.27.0**. 1.10.3 followed **2.26.0**.)  
+**Last Updated**: 2026-11-17 (1.11.0 — `sync-to-remote` is auth **17**. 1.10.4 followed default-interaction **2.27.0**.)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

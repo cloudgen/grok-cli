@@ -2,6 +2,7 @@
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-11-17 | `reports/2026-11-17-sync-to-remote.md` | `sync-to-remote`; auth **17**; requirements 1.11.0 / 2.28.0 / 2.16.0; product **1.8.48**; TP-GROK-CLI-51 · TP-CLI-13/17/19/20/31 | **Pass** (feature) | full PASS=1110 FAIL=56 SKIP=0; the 56 are TP-VCLI fake-`uname` sandbox refusals |
 | 2026-10-12 | `reports/2026-10-12-shell-startup-files.md` | Shell startup files; `.zprofile` PATH; missing `.profile` / `.zshenv` / `.zprofile`; REQ 1.0.0; product **1.8.47**; TP-LC-43..46 | **Pass** | lifecycle PASS=129 FAIL=0 SKIP=0 |
 | 2026-10-02 | `reports/2026-10-02-language-menu-5.md` | Front **5** language; thirteen codes **51–63**; REQ language 1.1.0 · default-interaction 2.22.0 · interface 2.15.3 · TP-CLI-32 | **Pass** (language rows) | PASS=998 FAIL=56 SKIP=0 |
 | 2026-09-13 | `reports/2026-09-13-menu-invalid-choice-coverage.md` | Invalid pick retries every main-menu layer; REQ 2.15.0 · molds · TP-CLI-30 · CL | **Pass (findings closed)** | PASS=848 FAIL=0 SKIP=0 |
@@ -20,6 +21,7 @@
 | 2026-09-02 | `reports/2026-09-02-requirement-review-grok-setup-inline.md` | `setup` inlines studied xAI channel + artifact; no `install.sh` | **Approve with follow-ups closed** | PASS=350 FAIL=0 SKIP=0 |
 | 2026-08-23 | `reports/2026-08-23-empty-argv-menu.md` | Empty argv → TTY numbered menu; off-TTY help; Type N | **Pass** | PASS=242 FAIL=0 SKIP=0 |
 | 2026-08-23 | `reports/2026-08-23-empty-argv-menu-requirement-review.md` | Zero-arguments 1.3.0 + default-interaction 1.7.0 + interface 2.2.0 | **Approve with follow-ups closed** | PASS=242 FAIL=0 SKIP=0 |
+| 2026-11-17 | `cli-routed-verb-table.md` | Kept live-command list adds `sync-to-remote`; auth **17** always; **18** is not a row; `sync-auth-to-remote` stays typed-only; `restore` stays forbidden | living | living |
 | 2026-10-10 | `cli-routed-verb-table.md` | Kept live-command list; menu paragraph matches auth **11** `backup` when logged in, **12** `sync-auth-from-remote` and **13** `sync-auth` when logged out; `sync-auth-to-remote` is not a row | **21 live** · 1 not-yet-wired (`restore` forbidden) | living |
 | 2026-08-22 | `reports/2026-08-22-product-review-grok-cli.md` | Full product grok-cli 1.0.0 | **Pass** | PASS=207 FAIL=0 SKIP=0 |
 | 2026-08-22 | `reports/2026-08-22-requirement-review-grok-cli.md` | Requirement review + authorized retarget | **Approve with follow-ups closed** | PASS=207 FAIL=0 SKIP=0 |

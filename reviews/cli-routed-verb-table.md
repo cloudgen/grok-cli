@@ -4,9 +4,9 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 
 **Ship unit:** `src/grok-cli`  
 **Dispatcher:** `app_main`  
-**Scan date:** 2026-09-22 (handlers); menu paragraph refreshed 2026-10-12  
-**Mode:** incremental (menu paragraph only; handlers not re-walked)  
-**Copied:** prior live · **Re-checked:** `sync-auth-to-remote` (`gc_sync_auth_to_remote`) · `app_default` menu tokens  
+**Scan date:** 2026-09-22 (handlers); menu paragraph refreshed 2026-11-17  
+**Mode:** incremental (menu paragraph plus `sync-to-remote`)  
+**Copied:** prior live · **Re-checked:** `sync-to-remote` (`gc_sync_to_remote`) · `sync-auth-to-remote` (`gc_sync_auth_to_remote`) · `app_default` menu tokens  
 **Inventory:** dispatcher `case "${COMMAND}"` — not `app_help` for routing; help one-liners copied into **human-readable**
 
 ## Live commands
@@ -36,11 +36,12 @@ This file is the kept list of commands `app_main` actually runs: name, function,
 | sync-auth | `gc_sync_auth` | you (Type 0) | missing | `sync-auth: Copy /var/grok-cli/auth.* into ~/.grok` |
 | sync-auth-from-remote | `gc_sync_auth_from_remote` | you (Type 0) | 2026-09-02 | `sync-auth-from-remote: Copy a remote host's auth.* into ~/.grok` |
 | sync-auth-to-remote | `gc_sync_auth_to_remote` | you (Type 0) | 2026-09-22 | `sync-auth-to-remote: Copy ~/.grok/auth.* onto a remote host` |
+| sync-to-remote | `gc_sync_to_remote` | you (Type 0) | 2026-11-17 | `sync-to-remote: Ask for remote hosts and users, then copy ~/.grok/auth.* onto each ~/.grok` |
 | uninstall | `inst_local_uninstall` | you (Type 0) | 2026-08-03 | `uninstall: Remove managed binary (confirm or --force); not sudoers` |
 | version | `app_version` | you (Type 0) | missing | `version: Show local version` |
 | where-is-me | `app_where_is_me` | you (Type 0) | 2026-08-03 | `where-is-me: Show running and install paths` |
 
-A TTY main menu **MUST** print a numbered **top** list of families, then **9** Exit. The top list **MUST NOT** print **Back**. Multi-user: **1** `grok-auth`, **5** `sudoers`, **6** `self-management`, **7** `language`. This-login-only: **1** `grok-auth`, **2** `run`, **6** `self-management`, **7** `language` (no **5**). Front **8** is not a row. **3** and **4** stay reserved. `language` is menu-only, not a dispatcher token. The language board is **80–92** (reserved **70–79** and **93–98** are not printed). Submenus print **0** Back and **9** Exit. Auth submenu **11–16**. **11** `backup` is listed only on a multi-user host when logged in. **12** `sync-auth-from-remote` is listed only when the session is not logged in. **13** `sync-auth` is listed only on a multi-user host when the session is not logged in. `sync-auth-to-remote` is not a row. This-login-only hides **11** and **13**. **14–16** do not slide. **17** is not a row. Self-management printed rows are **64** version-check, **65** self-update, **66** self-uninstall, and **68** where-is-me (**61**, **62**, **63**, and **67** stay unprinted). Sudoers submenu is **51–55**. Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **timeout** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** from every numbered list: `help`, `menu`/`main`, `check-session` (status is under the title), `update-grok`, diagnostics (`version`, `about`), and test-purpose. **`setup`** and **`reinstall`** are on the grok-auth submenu. Self-managed verbs are on the self-management submenu. **`sudoers` is not a live dispatcher token.** **0** / `back` on the top list is an invalid choice. **9** leaves from every layer. Internal `ensure` is not a help verb.
+A TTY main menu **MUST** print a numbered **top** list of families, then **9** Exit. The top list **MUST NOT** print **Back**. Multi-user: **1** `grok-auth`, **5** `sudoers`, **6** `self-management`, **7** `language`. This-login-only: **1** `grok-auth`, **2** `run`, **6** `self-management`, **7** `language` (no **5**). Front **8** is not a row. **3** and **4** stay reserved. `language` is menu-only, not a dispatcher token. The language board is **80–92** (reserved **70–79** and **93–98** are not printed). Submenus print **0** Back and **9** Exit. Auth submenu **11–17**. **11** `backup` is listed only on a multi-user host when logged in. **12** `sync-auth-from-remote` is listed only when the session is not logged in. **13** `sync-auth` is listed only on a multi-user host when the session is not logged in. **17** `sync-to-remote` is listed on every host and in both sessions. `sync-auth-to-remote` is not a row. This-login-only hides **11** and **13** and still lists **17**. **14–16** do not slide. **18** is not a row. Self-management printed rows are **64** version-check, **65** self-update, **66** self-uninstall, and **68** where-is-me (**61**, **62**, **63**, and **67** stay unprinted). Sudoers submenu is **51–55**. Header is **`APP_NAME(APP_VERSION)`**; the next line is **logged in** / **timeout** / **logged out**. grok-cli is **case 3**: verb **`menu`** (alias **`main`**). Off-TTY empty argv is Type O ensure (not this list). **Exclude** from every numbered list: `help`, `menu`/`main`, `check-session` (status is under the title), `update-grok`, diagnostics (`version`, `about`), and test-purpose. **`setup`** and **`reinstall`** are on the grok-auth submenu. Self-managed verbs are on the self-management submenu. **`sudoers` is not a live dispatcher token.** **0** / `back` on the top list is an invalid choice. **9** leaves from every layer. Internal `ensure` is not a help verb.
 
 ## Not yet wired
 
@@ -50,5 +51,5 @@ A TTY main menu **MUST** print a numbered **top** list of families, then **9** E
 
 ---
 
-**Last Updated:** 2026-10-12 (front **5** sudoers **51–55**; **6** self-management **64**, **65**, **66**, **68**; **7** language **80–92**; front **8** is not a row; auth **11–16** unchanged)  
+**Last Updated:** 2026-11-17 (table adds `sync-to-remote`; auth **17** always; **18** is not a row; `sync-auth-to-remote` stays typed-only; `restore` stays forbidden)  
 **Alignment:** term `cli-routed-verb-table` · **`SK-CLI-ROUTED-VERB-TABLE`** · **`SK-CLI-DEFAULT-INTERACTION`**

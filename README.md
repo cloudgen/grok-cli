@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.47-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.48-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -41,7 +41,7 @@ It is **not** a second grok program and **not** official x.ai Termux support. Af
 - **Reinstall grok from the start list**: type `grok-cli reinstall`, or pick **reinstall** on the numbered list. Same fetch as `setup --force`. Keeps `auth.*`. Missing grok still installs. `setup` stays off the list.
 - **Start grok without auto-update**: type `grok-cli run` (or `grok-cli run -p hello`). On Termux this avoids the hang until Ctrl-Z. Missing grok → `grok-cli setup`.
 - **Prove grok is logged in**: on Termux/PRoot, `check-session` reads local `~/.grok/auth.json` cookies (live `grok -p hello` is skipped — it usually times out). On other hosts it still asks grok a one-line question (`grok -p hello`). Missing grok → `grok-cli setup`, then `grok login`.
-- **Optional shared login on one Linux host**: `backup` copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644` (elevated probe uses **this** login’s grok home, not root’s); `sync-auth` copies that store into this login’s `~/.grok` with **no sudo** (skipped if grok is already logged in — prints `No sync-auth for logged-in environment.`); `sync-auth-from-remote` uses `scp` (same skip) and remembers the last remote; `sync-auth-to-remote` copies this login’s `~/.grok/auth.*` onto that remote login’s `~/.grok` (no sudo; still runs when this grok is already logged in); `add-crontab` adds this login’s timers after **this** login’s backup grant exists
+- **Optional shared login on one Linux host**: `backup` copies `~/.grok/auth.*` into `/var/grok-cli` as `root:root` `0644` (elevated probe uses **this** login’s grok home, not root’s); `sync-auth` copies that store into this login’s `~/.grok` with **no sudo** (skipped if grok is already logged in — prints `No sync-auth for logged-in environment.`); `sync-auth-from-remote` uses `scp` (same skip) and remembers the last remote; `sync-auth-to-remote` copies this login’s `~/.grok/auth.*` onto that remote login’s `~/.grok` (no sudo; still runs when this grok is already logged in); `sync-to-remote` asks how many hosts, then each remote host and remote user, checks `~/.grok`, and copies `auth.*` onto each login’s `~/.grok` (no sudo; still runs when logged in; auth menu **17**); `add-crontab` adds this login’s timers after **this** login’s backup grant exists
 - **Optional passwordless backup grant** (only if you use `backup`): `print-sudoers` prints one line so this login may run `sudo grok-cli backup` without a password. A host admin installs that line. `generate-sudoer-request` / `submit-sudoer-request` hand the same grant to the named approver (`sudoer-adm`).
 - **Stops when it should**: grok missing or not answering, unauthorized copy into `/var/grok-cli`, unreadable store, failed grok download
 
@@ -84,7 +84,7 @@ If grok already **runs** on this host, a real terminal offers keep / reinstall /
 
 ```text
 $ grok-cli setup
-[INFO] **grok-cli**(*1.8.47*) — setup
+[INFO] **grok-cli**(*1.8.48*) — setup
 [INFO] grok is already installed at ~/.grok/bin/grok.
 1. keep: Leave the existing grok
 2. reinstall: Remove existing grok and install again
@@ -154,7 +154,8 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.47*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.48*) — Alternative online installer for xAI grok
+[INFO] checking session (grok -p hello, timeout 14s)...
 [INFO] logged out
 [INFO] backup features are not available for logged-out environment.
 1. grok-auth: *Backup, sync, crontab, setup, and reinstall*
@@ -164,7 +165,7 @@ $ grok-cli menu
 9. Exit
 ```
 
-Pick **1** for the auth list. Numbers **14–16** stay put when a row is hidden. Logged out lists **12** `sync-auth-from-remote` and **13** `sync-auth`, and hides **11**. Logged in lists **11** `backup` and hides **12** and **13**. `sync-auth-to-remote` is a typed command, not a row:
+Pick **1** for the auth list. Numbers **14–16** stay put when a row is hidden. Logged out lists **12** `sync-auth-from-remote` and **13** `sync-auth`, and hides **11**. Logged in lists **11** `backup` and hides **12** and **13**. **17** `sync-to-remote` is listed in both sessions and on this-login-only. **18** is not a row. `sync-auth-to-remote` is a typed command, not a row. Captured on a PTY, logged out:
 
 ```text
 12. sync-auth-from-remote: *Copy a remote host's auth.* into ~/.grok*
@@ -172,15 +173,28 @@ Pick **1** for the auth list. Numbers **14–16** stay put when a row is hidden.
 14. add-crontab: *Add backup and sync-auth jobs to this login's crontab*
 15. setup: *Install grok from x.ai*
 16. reinstall: *Remove existing grok and install again*
+17. sync-to-remote: *Ask for remote hosts and users, then copy ~/.grok/auth.* onto each ~/.grok*
 0. Back
 9. Exit
 ```
 
-On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. Each of those notices is its own `[INFO]` line. The top list is **1** grok-auth, **2** run (start grok without auto-update), **6** self-management, **7** language, and **9** Exit. Row **7** is on every host. Front **8** is not a row. There is no Back row. When the session is **logged out** or **timeout**, an `[INFO]` line is **appended**: `backup features are not available for logged-out environment.` Auth **12** is listed. Auth **11** and **13** stay off this class. When the session is **logged in**, that logged-out line is omitted, auth **12** is omitted, and a second `[INFO]` line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` Neither line replaces the host line. `sync-auth-to-remote` is not a numbered row. Termux, logged out:
+The same pick while logged in keeps **17** and lists **11** instead of **12** and **13**:
+
+```text
+11. backup: *Push ~/.grok/auth.* to /var/grok-cli*
+14. add-crontab: *Add backup and sync-auth jobs to this login's crontab*
+15. setup: *Install grok from x.ai*
+16. reinstall: *Remove existing grok and install again*
+17. sync-to-remote: *Ask for remote hosts and users, then copy ~/.grok/auth.* onto each ~/.grok*
+0. Back
+9. Exit
+```
+
+On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** are omitted. Each of those notices is its own `[INFO]` line. The top list is **1** grok-auth, **2** run (start grok without auto-update), **6** self-management, **7** language, and **9** Exit. Row **7** is on every host. Front **8** is not a row. There is no Back row. When the session is **logged out** or **timeout**, an `[INFO]` line is **appended**: `backup features are not available for logged-out environment.` Auth **12** is listed. Auth **11** and **13** stay off this class. When the session is **logged in**, that logged-out line is omitted, auth **12** is omitted, and a second `[INFO]` line is **appended**: `sync-auth and sync-auth-from-remote features are not available for logged-in environment.` Neither line replaces the host line. Auth **17** stays listed. `sync-auth-to-remote` is not a numbered row. Termux, logged out:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.47*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.48*) — Alternative online installer for xAI grok
 [INFO] logged out
 [INFO] backup, sync-auth and sudoers features are not available in termux.
 [INFO] backup features are not available for logged-out environment.
@@ -195,7 +209,8 @@ Live capture on a multi-user host that is **logged in**:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.47*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.48*) — Alternative online installer for xAI grok
+[INFO] checking session (grok -p hello, timeout 14s)...
 [INFO] logged in
 [INFO] sync-auth and sync-auth-from-remote features are not available for logged-in environment.
 1. grok-auth: *Backup, sync, crontab, setup, and reinstall*
@@ -244,13 +259,13 @@ $ grok-cli menu
 9. Exit
 ```
 
-Choose a number, or type the command name. `7` opens the language list (**80** English, **81** 简体中文, **82** 繁體中文, **83** Español, **84** العربية, **85** Français, **86** Português, **87** Русский, **88** Deutsch, **89** 日本語, **90** 한국어, **91** Nederlands, **92** Ελληνικά). **70–79** and **93–98** are reserved and are not printed. The choice is saved under `~/.local/grok-cli/language` and the next run opens in that language. `GROK_CLI_LANG` overrides one run and does not write the file. `language` is not a command you type on the shell. `9` exits from every list. `0` goes back only inside a submenu. The top list has no Back row. The line under the title is an independent `[INFO]` **logged in**, **timeout**, or **logged out**. On Termux/PRoot that line comes from local `auth.json` cookies (no `grok -p hello` wait). On other hosts it is a live `grok -p hello`; a hang that hits the bound prints **timeout**, not **logged out**. On a real terminal the descriptions after the colon are gray and italic. `setup` and `reinstall` are on the grok-auth list (**15** and **16**), not on the top list. Direct `grok-cli reinstall` still works. A later `sync-auth-from-remote` or `sync-auth-to-remote` remembers the last remote in persistence and offers it as the prompt default.
+Choose a number, or type the command name. `7` opens the language list (**80** English, **81** 简体中文, **82** 繁體中文, **83** Español, **84** العربية, **85** Français, **86** Português, **87** Русский, **88** Deutsch, **89** 日本語, **90** 한국어, **91** Nederlands, **92** Ελληνικά). **70–79** and **93–98** are reserved and are not printed. The choice is saved under `~/.local/grok-cli/language` and the next run opens in that language. `GROK_CLI_LANG` overrides one run and does not write the file. `language` is not a command you type on the shell. `9` exits from every list. `0` goes back only inside a submenu. The top list has no Back row. The line under the title is an independent `[INFO]` **logged in**, **timeout**, or **logged out**. On Termux/PRoot that line comes from local `auth.json` cookies (no `grok -p hello` wait). On other hosts it is a live `grok -p hello`; a hang that hits the bound prints **timeout**, not **logged out**. On a real terminal the descriptions after the colon are gray and italic. `setup` and `reinstall` are on the grok-auth list (**15** and **16**), not on the top list. Direct `grok-cli reinstall` still works. A later `sync-auth-from-remote` or `sync-auth-to-remote` remembers the last remote in persistence and offers it as the prompt default. `sync-to-remote` does not write that leaf.
 
 ## Usage
 
 | How you run it | What you get |
 |----------------|--------------|
-| `grok-cli` or `grok-cli --debug` at a real terminal | Numbered start list (**1** grok-auth, **5** sudoers, **6** self-management, **7** language, **9** Exit; no Back on that list; this-login-only shows **2** run and hides sudoers; **7** stays on every host; front **8** is not a row; **logged in** / **timeout** / **logged out** under the title from `grok -p hello`; Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers; logged-out session hides **11** `backup` and lists **12** `sync-auth-from-remote` and **13** `sync-auth` on a multi-user host; logged-in session hides **12** and **13** and lists **11** `backup`; `sync-auth-to-remote` is a typed command and is not a numbered row; each session appends its own not-available line; **9** leaves; **0** goes back only inside a submenu). Same as `grok-cli menu`. Overlay switches with no command still follow empty argv. |
+| `grok-cli` or `grok-cli --debug` at a real terminal | Numbered start list (**1** grok-auth, **5** sudoers, **6** self-management, **7** language, **9** Exit; no Back on that list; this-login-only shows **2** run and hides sudoers; **7** stays on every host; front **8** is not a row; **logged in** / **timeout** / **logged out** under the title from `grok -p hello`; Termux / Git Bash / Windows cmd hide backup / sync-auth / sudoers; logged-out session hides **11** `backup` and lists **12** `sync-auth-from-remote` and **13** `sync-auth` on a multi-user host; logged-in session hides **12** and **13** and lists **11** `backup`; auth **17** is `sync-to-remote` in both sessions; `sync-auth-to-remote` is a typed command and is not a numbered row; each session appends its own not-available line; **9** leaves; **0** goes back only inside a submenu). Same as `grok-cli menu`. Overlay switches with no command still follow empty argv. |
 | `curl -fsSL … \| sh` or `grok-cli` in a script (no args) | Install-ensure: places `~/.local/bin/grok-cli` or reports already installed. **Not** help. **Not** the menu. |
 | `grok-cli help` or `grok-cli --json` (no command) | Help / JSON help. `--json` with no command is empty argv **special case**: JSON help even at a prompt |
 | `grok-cli menu` in a script | Help (the list is TTY-only) |
@@ -276,6 +291,7 @@ grok-cli backup
 grok-cli sync-auth
 grok-cli sync-auth-from-remote user@192.0.2.10
 grok-cli sync-auth-to-remote user@192.0.2.10
+grok-cli sync-to-remote 2 192.0.2.10 alice host.example.com bob
 grok-cli add-crontab
 
 grok-cli print-sudoers
@@ -326,6 +342,9 @@ grok-cli sync-auth-from-remote user@192.0.2.10
 
 # Push this login's ~/.grok/auth.* onto that host's ~/.grok (no sudo):
 grok-cli sync-auth-to-remote user@192.0.2.10
+
+# Ask how many, then each remote host and remote user (auth menu 17):
+grok-cli sync-to-remote 2 192.0.2.10 alice host.example.com bob
 
 # After sudoer-adm approves THIS login's backup grant:
 grok-cli add-crontab
@@ -465,5 +484,7 @@ Keep changes surgical. Honor **CIAO-Lite Protection Zones** in `src/grok-cli`. P
 MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
+
+2026-11-17 — version **1.8.48**: `sync-to-remote` asks for a number, then each remote host and remote user, checks `~/.grok`, and uploads `auth.*` to each remote `~/.grok`. Auth menu **17** is that verb on every host and in both sessions. **18** is not a row. `sync-auth-to-remote` stays typed-only. `--json` does not prompt.
 
 2026-10-12 — version **1.8.47**: shell startup files set PATH on the right file for each shell. A zsh login gets the line on `~/.zshenv` and `~/.zprofile`. A missing `.profile`, `.zshenv`, or `.zprofile` is created when that shell owns it. Bash-only does not invent the zsh files. Multi-user front is **1** grok-auth, **5** sudoers, **6** self-management, **7** language (**80** English through **92** Greek), **9** Exit. This-login-only lists **2** run and omits **5**. Front **8** is not a row. Full history: [`CHANGELOG.md`](./CHANGELOG.md).

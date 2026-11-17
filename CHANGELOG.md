@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.48] - 2026-11-17
+
+### Added
+
+- **`sync-to-remote`.** Asks how many remote hosts (1–32), then each remote host and remote user. Checks that `~/.grok` exists and holds a regular non-empty `auth.json`, then copies `~/.grok/auth.*` onto each login’s `~/.grok` (`ssh` + `scp` BatchMode, no sudo, remote directory `0700`, each file `0600`). Still runs when grok is already logged in. Does not write `preferred-remote` and does not write remote `/var/grok-cli`. `--json` and `--quiet` do not prompt. JSON type `sync-to-remote`. Auth menu **17** is `sync-to-remote` on every host and in both sessions. **18** is not a row. **11–16** do not slide. `sync-auth-to-remote` stays a typed command and is not a numbered row. Law: `requirement-grok-auth-backup` **1.11.0** · `requirement-shell-cli-default-interaction` **2.28.0** · `requirement-shell-cli-interface` **2.16.0** · `requirement-domain-grok-cli` **1.11.0**. Suite **TP-GROK-CLI-51** · **TP-CLI-04** · **TP-CLI-13** · **TP-CLI-17** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-31**.
+
 ## [1.8.47] - 2026-10-12
 
 ### Added

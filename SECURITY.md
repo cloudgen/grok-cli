@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.8.47 (current) | Yes |
+| 1.8.48 (current) | Yes |
+| 1.8.47 | Yes |
 | 1.8.46 | Yes |
 | 1.8.45 | Yes |
 | 1.8.44 | Yes |
@@ -92,5 +93,6 @@ This section is **design posture**, not a third-party certification claim.
   - **Per-user host paths:** draft `~/.config/grok-cli/sudoers.fragment-<user>` installs to `/etc/sudoers.d/grok-cli-<user>`.  
 - **Shared store residual:** `/var/grok-cli/auth.*` are **world-readable** (`0644`) so `sync-auth` needs no sudo. Anyone who can read the host can use those grok credentials. That is intentional for this product (shared login on a host) and is **not** equivalent to keeping tokens `0600` in a private home.  
 - Home copies from `sync-auth` return `auth.json` to mode `0600`.  
-- **`sync-auth-to-remote`** copies this login’s `~/.grok/auth.*` to the remote SSH login’s `~/.grok` (`ssh` + `scp` BatchMode, no sudo) and sets remote `auth.json` to mode `0600`. It does not write `/var/grok-cli`. The remote login can then use those grok credentials.  
+- **`sync-auth-to-remote`** copies this login’s `~/.grok/auth.*` to the remote SSH login’s `~/.grok` (`ssh` + `scp` BatchMode, no sudo) and sets remote `auth.json` to mode `0600`. It does not write `/var/grok-cli`. The remote login can then use those grok credentials.
+- **`sync-to-remote`** copies the same `~/.grok/auth.*` files onto each named login’s `~/.grok` (BatchMode, no sudo, each remote auth file `0600`). It asks for a count, then a host and a user for each target. It does not write `/var/grok-cli` and does not print token values. The remote logins can then use those grok credentials.  
 - Related docs: [`README.md`](./README.md), [`LICENSE.md`](./LICENSE.md), `docs/requirements/requirement-three-layer-privilege-model.md`, `docs/requirements/requirement-grok-auth-backup.md`.

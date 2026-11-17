@@ -1034,6 +1034,127 @@ FAKESCP
         "No sync-auth for logged-in environment."
     assert_contains "TP-GROK-CLI-50d scp ran" "$(cat "${_scp_log}")" "192.0.2.10:.grok/auth.json"
 
+    # TP-GROK-CLI-51 sync-to-remote: numbered host/user list, ~/.grok check,
+    # upload auth.* to each remote ~/.grok. Fake ssh+scp. Still pushes when
+    # logged in. Does not rewrite preferred-remote.
+    _pref_before=$(tr -d '\r\n' < "${CI_HOME}/.local/grok-cli/preferred-remote")
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-list-missing" \
+        sh "${SCRIPT}" sync-to-remote 1 192.0.2.10 alice 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-51 missing ~/.grok exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-51 missing dir names path" "${_err}" "does not exist"
+    assert_contains "TP-GROK-CLI-51 missing dir next" "${_err}" "Next:"
+    assert_contains "TP-GROK-CLI-51 missing dir names verb" "${_err}" "sync-to-remote"
+
+    mkdir -p "${CI_HOME}/.grok-list-empty"
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-list-empty" \
+        sh "${SCRIPT}" sync-to-remote 1 192.0.2.10 alice 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-51 empty grok home exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-51 empty next login" "${_err}" "no auth.json"
+    assert_contains "TP-GROK-CLI-51 empty next verb" "${_err}" "sync-to-remote"
+
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-push" \
+        sh "${SCRIPT}" --json sync-to-remote 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-51 json missing operands exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-51 json missing next" "${_err}" "sync-to-remote N HOST USER"
+    assert_contains "TP-GROK-CLI-51 json error type" "${_err}" '"type":"out_error"'
+
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-push" \
+        sh "${SCRIPT}" sync-to-remote 1 'bad;rm' alice 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-51 bad host exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-51 bad host next" "${_err}" "sync-to-remote N HOST USER"
+
+    _err=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-push" \
+        sh "${SCRIPT}" sync-to-remote 2 192.0.2.10 alice 2>&1 >/dev/null)
+    assert_eq "TP-GROK-CLI-51 short list exit 1" 1 "$?"
+    assert_contains "TP-GROK-CLI-51 short list mismatch" "${_err}" "does not match"
+
+    gc_write_valid_auth "${CI_HOME}/.grok-list"
+    printf 'extra-marker\n' > "${CI_HOME}/.grok-list/auth.extra"
+    rm -rf "${_push_dest}"
+    mkdir -p "${_push_dest}"
+    : > "${_scp_log}"
+    : > "${_ssh_log}"
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-list" \
+        GROK_CLI_SCP="${_push_scp}" GROK_CLI_SSH="${_fake_ssh}" \
+        GROK_CLI_PUSH_DEST="${_push_dest}" GROK_CLI_SCP_LOG="${_scp_log}" \
+        GROK_CLI_SSH_LOG="${_ssh_log}" \
+        sh "${SCRIPT}" sync-to-remote 2 192.0.2.10 alice host.example.com bob 2>/dev/null)
+    assert_eq "TP-GROK-CLI-51 two hosts exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-51 complete" "${_out}" "sync-to-remote complete"
+    assert_contains "TP-GROK-CLI-51 two hosts named" "${_out}" "2 remote host"
+    assert_not_contains "TP-GROK-CLI-51 no token on stdout" "${_out}" "test-refresh-token"
+    assert_contains "TP-GROK-CLI-51 scp alice" "$(cat "${_scp_log}")" \
+        "alice@192.0.2.10:.grok/auth.json"
+    assert_contains "TP-GROK-CLI-51 scp bob" "$(cat "${_scp_log}")" \
+        "bob@host.example.com:.grok/auth.json"
+    assert_contains "TP-GROK-CLI-51 scp extra" "$(cat "${_scp_log}")" \
+        "bob@host.example.com:.grok/auth.extra"
+    assert_contains "TP-GROK-CLI-51 ssh mkdir" "$(cat "${_ssh_log}")" "mkdir -p .grok"
+    assert_contains "TP-GROK-CLI-51 ssh chmod" "$(cat "${_ssh_log}")" \
+        "chmod 0600 .grok/auth.json"
+    assert_file_exists "TP-GROK-CLI-51 remote auth.json" "${_push_dest}/auth.json"
+    assert_contains "TP-GROK-CLI-51 remote body" "$(cat "${_push_dest}/auth.json")" \
+        "test-refresh-token"
+    assert_file_exists "TP-GROK-CLI-51 remote extra" "${_push_dest}/auth.extra"
+    assert_contains "TP-GROK-CLI-51 extra body" "$(cat "${_push_dest}/auth.extra")" \
+        "extra-marker"
+    assert_eq "TP-GROK-CLI-51 preferred-remote unchanged" "${_pref_before}" \
+        "$(tr -d '\r\n' < "${CI_HOME}/.local/grok-cli/preferred-remote")"
+
+    : > "${_scp_log}"
+    _j=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-list" \
+        GROK_CLI_SCP="${_push_scp}" GROK_CLI_SSH="${_fake_ssh}" \
+        GROK_CLI_PUSH_DEST="${_push_dest}" GROK_CLI_SCP_LOG="${_scp_log}" \
+        GROK_CLI_SSH_LOG="${_ssh_log}" \
+        sh "${SCRIPT}" --json sync-to-remote 1 host.example.com operator 2>/dev/null)
+    assert_eq "TP-GROK-CLI-51c json exit 0" 0 "$?"
+    assert_contains "TP-GROK-CLI-51c json type" "${_j}" '"type":"sync-to-remote"'
+    assert_contains "TP-GROK-CLI-51c json message" "${_j}" '"message":"ok"'
+    assert_contains "TP-GROK-CLI-51c json remotes" "${_j}" '"remotes":"operator@host.example.com"'
+    assert_contains "TP-GROK-CLI-51c json remote_count" "${_j}" '"remote_count":"1"'
+    assert_contains "TP-GROK-CLI-51c json file_count" "${_j}" '"file_count":"3"'
+    assert_not_contains "TP-GROK-CLI-51c json no token" "${_j}" "test-refresh-token"
+    assert_contains "TP-GROK-CLI-51c scp dest" "$(cat "${_scp_log}")" \
+        "operator@host.example.com:.grok/auth.json"
+
+    ci_fake_grok_ok
+    : > "${_scp_log}"
+    _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-list" GROK_BIN="${GROK_BIN}" \
+        GROK_CLI_SCP="${_push_scp}" GROK_CLI_SSH="${_fake_ssh}" \
+        GROK_CLI_PUSH_DEST="${_push_dest}" GROK_CLI_SCP_LOG="${_scp_log}" \
+        GROK_CLI_SSH_LOG="${_ssh_log}" \
+        sh "${SCRIPT}" sync-to-remote 1 192.0.2.10 alice 2>&1)
+    assert_eq "TP-GROK-CLI-51d logged-in still pushes" 0 "$?"
+    assert_contains "TP-GROK-CLI-51d complete" "${_out}" "sync-to-remote complete"
+    assert_not_contains "TP-GROK-CLI-51d not the pull skip" "${_out}" \
+        "No sync-auth for logged-in environment."
+    assert_contains "TP-GROK-CLI-51d scp ran" "$(cat "${_scp_log}")" \
+        "alice@192.0.2.10:.grok/auth.json"
+
+    if command -v python3 >/dev/null 2>&1; then
+        rm -rf "${_push_dest}"
+        mkdir -p "${_push_dest}"
+        : > "${_scp_log}"
+        : > "${_ssh_log}"
+        _pty=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok-list" \
+            GROK_CLI_SCP="${_push_scp}" GROK_CLI_SSH="${_fake_ssh}" \
+            GROK_CLI_PUSH_DEST="${_push_dest}" GROK_CLI_SCP_LOG="${_scp_log}" \
+            GROK_CLI_SSH_LOG="${_ssh_log}" \
+            PTY_IN="1
+192.0.2.10
+carol
+" ci_pty_capture "${SCRIPT}" sync-to-remote)
+        assert_contains "TP-GROK-CLI-51e asks number" "${_pty}" "Number of remote hosts"
+        assert_contains "TP-GROK-CLI-51e asks host" "${_pty}" "Remote host 1"
+        assert_contains "TP-GROK-CLI-51e asks user" "${_pty}" "Remote user 1"
+        assert_contains "TP-GROK-CLI-51e pty complete" "${_pty}" "sync-to-remote complete"
+        assert_contains "TP-GROK-CLI-51e pty scp" "$(cat "${_scp_log}")" \
+            "carol@192.0.2.10:.grok/auth.json"
+        assert_not_contains "TP-GROK-CLI-51e pty no token" "${_pty}" "test-refresh-token"
+    else
+        t_skip "TP-GROK-CLI-51e TTY prompts (no python3 for PTY)"
+    fi
+
     # TP-GROK-CLI-35 expired auth.json vs live probe / local cookies
     gc_write_expired_auth "${CI_HOME}/.grok"
     ci_fake_grok_ok

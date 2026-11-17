@@ -56,6 +56,8 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help sync-auth" "$_out" "sync-auth"
     assert_contains "TP-CLI-04 help sync-auth-from-remote" "$_out" "sync-auth-from-remote"
     assert_contains "TP-CLI-04 help sync-auth-to-remote" "$_out" "sync-auth-to-remote"
+    assert_contains "TP-CLI-04 help sync-to-remote" "$_out" "sync-to-remote N HOST USER"
+    assert_contains "TP-CLI-04 help sync-to-remote json" "$_out" "--json and --quiet do not prompt"
     assert_contains "TP-CLI-04 help add-crontab" "$_out" "add-crontab"
     assert_not_contains "TP-CLI-04 help no restore" "$_out" "restore <"
     assert_contains "TP-CLI-04 help print-sudoers" "$_out" "print-sudoers"
@@ -381,6 +383,9 @@ run_test_cli() {
         assert_contains "TP-CLI-13 auth add-crontab is 14" "$_out" "14. add-crontab:"
         assert_contains "TP-CLI-13 auth setup is 15" "$_out" "15. setup:"
         assert_contains "TP-CLI-13 auth reinstall is 16" "$_out" "16. reinstall:"
+        assert_contains "TP-CLI-13 auth sync-to-remote is 17" "$_out" "17. sync-to-remote:"
+        assert_not_contains "TP-CLI-13 auth hides sync-auth-to-remote row" "$_out" \
+            "sync-auth-to-remote:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             GROK_CLI_ROOT="${CI_HOME}/no-global-store" PTY_IN="1
 13" ci_pty_capture "${SCRIPT}" menu)
@@ -398,7 +403,16 @@ run_test_cli() {
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="1
 17
 9" ci_pty_capture "${SCRIPT}" menu)
-        assert_contains "TP-CLI-13 logged-out pick 17 is not a menu choice" "$_out" \
+        assert_contains "TP-CLI-13 logged-out pick 17 runs sync-to-remote" "$_out" \
+            "Cannot sync-to-remote"
+        assert_contains "TP-CLI-13 logged-out pick 17 missing grok home" "$_out" \
+            "does not exist"
+        assert_not_contains "TP-CLI-13 logged-out pick 17 is a menu choice" "$_out" \
+            "Not a menu choice"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="1
+18
+9" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-13 logged-out pick 18 is not a menu choice" "$_out" \
             "Not a menu choice"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" PTY_IN="12
 9" ci_pty_capture "${SCRIPT}" menu)
@@ -481,6 +495,8 @@ AUTH
         assert_not_contains "TP-CLI-17 TTY logged-in hides sync-auth row" "$_out" "13. sync-auth:"
         assert_not_contains "TP-CLI-17 TTY logged-in has no to-remote row" "$_out" \
             "sync-auth-to-remote:"
+        assert_contains "TP-CLI-17 TTY logged-in lists sync-to-remote" "$_out" \
+            "17. sync-to-remote:"
         assert_not_contains "TP-CLI-17 TTY logged-in hides logged-out line" "$_out" \
             "not available for logged-out environment."
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
@@ -532,6 +548,8 @@ AUTH
         assert_not_contains "TP-CLI-19 Termux auth hides sync-auth at 13" "$_out" "13. sync-auth:"
         assert_not_contains "TP-CLI-19 Termux auth hides to-remote when logged out" "$_out" \
             "sync-auth-to-remote:"
+        assert_contains "TP-CLI-19 Termux auth lists sync-to-remote" "$_out" \
+            "17. sync-to-remote:"
         assert_contains "TP-CLI-19 Termux auth add-crontab is 14" "$_out" "14. add-crontab:"
         assert_contains "TP-CLI-19 Termux auth reinstall is 16" "$_out" "16. reinstall:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
@@ -638,9 +656,11 @@ AUTH
             "No sync-auth for logged-in environment."
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             PTY_IN="1
-17
+18
 9" ci_pty_capture "${SCRIPT}" menu)
         assert_contains "TP-CLI-20 logged-in auth lists backup" "$_out" "11. backup:"
+        assert_contains "TP-CLI-20 logged-in auth lists sync-to-remote" "$_out" \
+            "17. sync-to-remote:"
         assert_not_contains "TP-CLI-20 logged-in auth has no to-remote row" "$_out" \
             "sync-auth-to-remote:"
         assert_not_contains "TP-CLI-20 logged-in auth hides sync-auth" "$_out" "13. sync-auth:"
@@ -651,10 +671,20 @@ AUTH
             "sync-auth and sync-auth-from-remote features are not available for logged-in environment."
         assert_not_contains "TP-CLI-20 logged-in auth hides from-remote" "$_out" \
             "12. sync-auth-from-remote:"
-        assert_contains "TP-CLI-20 logged-in pick 17 is not a menu choice" "$_out" \
+        assert_contains "TP-CLI-20 logged-in pick 18 is not a menu choice" "$_out" \
             "Not a menu choice"
-        assert_not_contains "TP-CLI-20 logged-in pick 17 does not sync" "$_out" \
+        assert_not_contains "TP-CLI-20 logged-in pick 18 does not sync" "$_out" \
             "sync-auth complete"
+        _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
+            PTY_IN="1
+17
+" ci_pty_capture "${SCRIPT}" menu)
+        assert_contains "TP-CLI-20 logged-in pick 17 runs sync-to-remote" "$_out" \
+            "Cannot sync-to-remote"
+        assert_contains "TP-CLI-20 logged-in pick 17 asks the number" "$_out" \
+            "Number of remote hosts"
+        assert_not_contains "TP-CLI-20 logged-in pick 17 is a menu choice" "$_out" \
+            "Not a menu choice"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" GROK_BIN="${GROK_BIN}" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
             PTY_IN="9" ci_pty_capture "${SCRIPT}" menu)
@@ -714,6 +744,8 @@ AUTH
         assert_contains "TP-CLI-31 logged-out auth sync-auth is 13" "$_out" "13. sync-auth:"
         assert_not_contains "TP-CLI-31 logged-out hides sync-auth-to-remote" "$_out" \
             "sync-auth-to-remote:"
+        assert_contains "TP-CLI-31 logged-out lists sync-to-remote" "$_out" \
+            "17. sync-to-remote:"
         _out=$(HOME="${CI_HOME}" GROK_HOME="${CI_HOME}/.grok" \
             TERMUX_VERSION="test" PREFIX="/data/data/com.termux/files/usr" \
             PTY_IN="1
