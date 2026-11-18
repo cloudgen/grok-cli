@@ -2,6 +2,7 @@
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-11-17 | `reports/2026-11-17-uname-wrapper.md` | `util_uname`; `--uname-s` / `--uname-a`; product **1.8.49**; script-coding **1.2.0**; TP-UNAME-01..04 · TP-ARS-01 · TP-VCLI-19..36 | **Pass** | full PASS=1213 FAIL=0 SKIP=0 |
 | 2026-11-17 | `reports/2026-11-17-sync-to-remote.md` | `sync-to-remote`; auth **17**; requirements 1.11.0 / 2.28.0 / 2.16.0; product **1.8.48**; TP-GROK-CLI-51 · TP-CLI-13/17/19/20/31 | **Pass** (feature) | full PASS=1110 FAIL=56 SKIP=0; the 56 are TP-VCLI fake-`uname` sandbox refusals |
 | 2026-10-12 | `reports/2026-10-12-shell-startup-files.md` | Shell startup files; `.zprofile` PATH; missing `.profile` / `.zshenv` / `.zprofile`; REQ 1.0.0; product **1.8.47**; TP-LC-43..46 | **Pass** | lifecycle PASS=129 FAIL=0 SKIP=0 |
 | 2026-10-02 | `reports/2026-10-02-language-menu-5.md` | Front **5** language; thirteen codes **51–63**; REQ language 1.1.0 · default-interaction 2.22.0 · interface 2.15.3 · TP-CLI-32 | **Pass** (language rows) | PASS=998 FAIL=56 SKIP=0 |

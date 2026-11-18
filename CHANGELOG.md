@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.49] - 2026-11-18
+
+### Added
+
+- **Test-purpose `uname` overlays.** `util_uname` is the only product read of a `uname` result. `--uname-s WORD` injects the `-s` line and `--uname-a WORD` injects the `-a` line. Both are parsed before storage, may sit before or after the verb, and are not command tokens. A missing, empty, or dash-leading WORD dies with `Next:`. `-m`, `-o`, and `-r` stay the real `uname`. Human help lists both switches under Test-purpose. JSON help names them and does not print a sample host line as a command. Setup tests pass the switches and do not plant a PATH file named `uname`. Law: `requirement-shell-script-coding` **1.2.0** · `requirement-shell-cli-interface` **2.16.1** · `requirement-shell-cli-zero-arguments` **2.2.1**. Suite **TP-UNAME-01** · **TP-UNAME-02** · **TP-UNAME-03** · **TP-UNAME-04** · **TP-ARS-01**.
+
+### Changed
+
+- **`rc-test` switches.** The fixture folder is `--rc-root`. The startup-file kind is `--rc` (`bashrc`, `zshenv`, `zprofile`, `profile`, `ash`, `fish`). `zshrc` still fails closed; Next: is `--rc zshenv`. A path-taking `--file` on another verb stays `--file`. Human help and the menu line name `--rc-root`. Law: `requirement-shell-path-and-shell-support` **1.2.3** · `requirement-shell-cli-interface` **2.16.3** · `requirement-shell-zshenv` **1.0.2** · `requirement-shell-startup-files` **1.0.1** · `requirement-shell-alpine` **1.0.2**.
+
 ## [1.8.48] - 2026-11-17
 
 ### Added

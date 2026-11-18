@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.16.0)  
+**Status**: Active (Version 2.16.3)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -48,6 +48,8 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 | `--json` | `JSON=1` (implies quiet) | Machine-readable structured output |
 | `--debug` | `DEBUG=1` | Extra diagnostics on stderr; must not break JSON purity on stdout. Numbered-menu paint elapsed is `requirement-shell-internal-volatile-timer` |
 | `--force` | `FORCE=1` / force policy | Skip safe confirms or force reinstall only where documented |
+| `--uname-s WORD` | well-known test-purpose switch | Next field is the `uname -s` result. Behavior is `requirement-shell-script-coding` **1.2.2**. Not a command token |
+| `--uname-a WORD` | well-known test-purpose switch | Next field is the `uname -a` result. Same peer. Not a command token |
 
 Additional flags **MAY** be added only when documented here (or a superseding requirement) and wired in the dispatcher.
 
@@ -55,7 +57,7 @@ Additional flags **MAY** be added only when documented here (or a superseding re
 
 1. **Single entry:** `app_main` **MUST** parse global flags and route commands.  
 2. **Unknown command:** **MUST** fail loudly with pointer to `help` (via output SSOT).  
-3. **Empty argv:** `requirement-shell-cli-zero-arguments.md`: **no command token** after flag parse (overlay switches such as `--debug` **do not** disqualify). TTY → numbered start list (same handler as `menu` / `main`); off-TTY → Type O install-ensure (**MUST NOT** help). `--json` with no command **is** empty argv; **special case** = JSON help on TTY **and** off-TTY (not the list, not ensure).  
+3. **Empty argv:** `requirement-shell-cli-zero-arguments.md`: **no command token** after flag parse (overlay switches such as `--debug` **do not** disqualify). `--uname-s` and `--uname-a` each consume the next field; that field is not a command token (`requirement-shell-script-coding` **1.2.2**). TTY → numbered start list (same handler as `menu` / `main`); off-TTY → Type O install-ensure (**MUST NOT** help). `--json` with no command **is** empty argv; **special case** = JSON help on TTY **and** off-TTY (not the list, not ensure).  
 4. **No raw user I/O:** User-facing messages **MUST** go through `out_*`.  
 5. Script end **MUST** call `app_main "$@"` (no basename gate that blocks dispatch).
 
@@ -68,7 +70,17 @@ Additional flags **MAY** be added only when documented here (or a superseding re
 - Privilege category (Type 0 vs elevated deposit)  
 - Global flags  
 - Honest note that deposit requires admin-installed sudoers fragment  
-- **Test-purpose** verbs (when any exist, including `rc-test`) under a heading **apart** from operational verbs  
+- **Test-purpose** verbs under a heading **apart** from operational verbs. The well-known test-purpose verb is `rc-test`
+- **Test-purpose** switches `--uname-s WORD` and `--uname-a WORD` in that same apart heading (behavior: `requirement-shell-script-coding` **1.2.2**)
+
+The well-known test-purpose set is the verb `rc-test` plus the run-wide switches `--uname-s WORD` and `--uname-a WORD`. Switches of `rc-test` are `--rc-root` (required folder), `--rc` (`bashrc`, `zshenv`, `zprofile`, `profile`, `ash`, `fish`), `--case` (`create`, `modify`, `noop`), and `--feature` (`path-ensure`, `profile-ensure`). `--rc` is the startup-file kind. A path-taking `--file` on another verb stays `--file`. `--debug` stays on the global-flag list. `HOME` is the login-home environment variable. `GROK_HOME` overrides the grok directory. `GROK_CLI_ROOT` is the durable store. `--allow-test-local` is the global test-mode flag.
+
+```sh
+grok-cli rc-test --rc-root "$tmpdir" --rc bashrc --case create
+grok-cli --uname-s MINGW64_NT-10.0 setup
+grok-cli --uname-a "Linux localhost 0.0 x86_64 Android" setup
+grok-cli --debug menu
+```  
 
 In JSON mode, help **MUST NOT** dump long human text; return a short structured success/note object.
 
@@ -93,10 +105,10 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Command | Type | Handler family | Required behavior |
 |---------|------|----------------|-------------------|
-| *(no command token — empty argv; overlay flags such as `--debug` allowed)* | Type 0 | TTY → `app_default`; off-TTY → `inst_channel_ensure` | TTY numbered menu; off-TTY Type O ensure (**MUST NOT** help). `--json` no-command is 0-argv **special case** → JSON help (TTY and off-TTY) |
+| *(no command token — empty argv; overlay flags such as `--debug`, `--uname-s WORD`, `--uname-a WORD` allowed)* | Type 0 | TTY → `app_default`; off-TTY → `inst_channel_ensure` | TTY numbered menu; off-TTY Type O ensure (**MUST NOT** help). `--json` no-command is 0-argv **special case** → JSON help (TTY and off-TTY). The `WORD` after `--uname-s` / `--uname-a` is not a command token |
 | `install` | Type 0 | `inst_local_install` | Checkout copy of the running ship unit; idempotent unless `--force`. User-bin: **always** `inst_ensure_companion` (PATH + profile), including already-installed skip. Dual mention: `requirement-shell-local-self-management` · `requirement-shell-path-and-shell-support` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force`. User-bin: PATH cleanup per `requirement-shell-path-and-shell-support` |
-| `rc-test` | Type 0 **test-purpose** | `path_rc_test` | Fixture create / modify / no-op against `--root` tmp/cache. **MUST NOT** write this login’s real `{{HOME}}/.bashrc`, `{{HOME}}/.zshenv`, or `{{HOME}}/.zprofile`. Help lists this **apart** from operational verbs. Dual mention: `requirement-shell-path-and-shell-support` · `requirement-shell-zshenv` · `requirement-shell-alpine` · `requirement-shell-startup-files`. Samples: `grok-cli rc-test --root "$tmpdir" --file bashrc --case create` · `grok-cli rc-test --root "$tmpdir" --file zshenv --case create` · `grok-cli rc-test --root "$tmpdir" --file zprofile --case create` · `grok-cli rc-test --root "$tmpdir" --file ash --case create`. `--file zshrc` **MUST** fail closed (Next: `--file zshenv`; zsh PATH is `.zshenv` and `.zprofile`) |
+| `rc-test` | Type 0 **test-purpose** | `path_rc_test` | Fixture create / modify / no-op against `--rc-root` tmp/cache. **MUST NOT** write this login’s real `{{HOME}}/.bashrc`, `{{HOME}}/.zshenv`, or `{{HOME}}/.zprofile`. Help lists this **apart** from operational verbs. Dual mention: `requirement-shell-path-and-shell-support` · `requirement-shell-zshenv` · `requirement-shell-alpine` · `requirement-shell-startup-files`. Samples: `grok-cli rc-test --rc-root "$tmpdir" --rc bashrc --case create` · `grok-cli rc-test --rc-root "$tmpdir" --rc zshenv --case create` · `grok-cli rc-test --rc-root "$tmpdir" --rc zprofile --case create` · `grok-cli rc-test --rc-root "$tmpdir" --rc ash --case create`. `--rc zshrc` **MUST** fail closed (Next: `--rc zshenv`; zsh PATH is `.zshenv` and `.zprofile`) |
 | `version-check` | Type 0 | `ver_check` | Compare local vs remote VERSION on `SCRIPT_URL` |
 | `self-update` | Type 0 | `inst_self_update` | Re-download from `SCRIPT_URL` when remote is newer (or `--force`). Proceeding first INFO: `Starting the self-update of {{APP_NAME}}({{local}}) to new version:{{remote}}...` |
 | `self-uninstall` | Type 0 | `inst_self_uninstall` | Remove managed binary (channel name; same dest as `uninstall`). User-bin PATH cleanup: `requirement-shell-path-and-shell-support` |
@@ -131,6 +143,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `--json` | `JSON=1` and `QUIET=1` in `app_main` |
 | `--debug` | `DEBUG=1` in `app_main`; TTY `menu` elapsed of each paint step (`requirement-shell-internal-volatile-timer`) |
 | `--force` | `FORCE=1` (and install reinstall policy when applicable) |
+| `--uname-s WORD` | Well-known test-purpose switch. Parsed before `util_resolve_storage`. Injects `uname -s`. Dual mention `requirement-shell-script-coding` **1.2.2** |
+| `--uname-a WORD` | Well-known test-purpose switch. Parsed before `util_resolve_storage`. Injects `uname -a`. Same peer |
 | `--update` | `SUBMIT_ACTION=update` + explicit (submit only) |
 | `--add` | `SUBMIT_ACTION=add` + explicit (submit only) |
 
@@ -230,7 +244,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | AC-11c | `reinstall` is Type 0, routed, listed in help and on the TTY numbered main menu; dual mention `requirement-grok-setup` · `requirement-shell-cli-default-interaction` |
 | AC-12 | `--debug` listed in help; TTY `menu` elapsed owned by `requirement-shell-internal-volatile-timer` |
 | AC-13 | `run` is Type 0, routed, listed in help; starts grok with `--no-auto-update`; dual mention `requirement-grok-setup` · `requirement-domain-grok-cli` |
-| AC-14 | `rc-test` is Type 0 test-purpose, routed, listed **apart** from operational verbs; dual mention `requirement-shell-path-and-shell-support` |
+| AC-14 | `rc-test` is the well-known Type 0 test-purpose verb, routed, listed **apart** from operational verbs; dual mention `requirement-shell-path-and-shell-support` |
+| AC-15 | `--uname-s` and `--uname-a` are the well-known test-purpose switches, listed apart from operational verbs; the next field is not a command token; behavior is `requirement-shell-script-coding` **1.2.2** |
 
 ---
 
@@ -239,15 +254,16 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | Key | Relationship |
 |-----|--------------|
 | `requirement-shell-cli-zero-arguments` | Empty argv = no command token (overlay `--debug` follows); TTY menu; off-TTY Type O ensure |
+| `requirement-shell-script-coding` | `util_uname`; well-known test-purpose switches `--uname-s` / `--uname-a` (**1.2.2**) |
 | `requirement-shell-online-install` | Dual mention of channel pipe / `SCRIPT_URL` |
 | `requirement-shell-self-management` | Dual mention of `version-check` / `self-update` / `self-uninstall` |
 | `requirement-shell-cli-default-interaction` | Numbered list body; TTY empty argv and `menu`/`main` |
 | `requirement-shell-internal-volatile-timer` | Dual mention of `--debug` menu elapsed (helpers, not domain verbs) |
 | `requirement-shell-local-self-management` | install/uninstall/where-is-me |
 | `requirement-shell-path-and-shell-support` | PATH / profile; `BASHRC`; dual mention `rc-test` |
-| `requirement-shell-zshenv` | Zsh PATH on `.zshenv`; dual mention `rc-test --file zshenv` |
-| `requirement-shell-alpine` | Ash PATH on `.profile`; dual mention `rc-test --file ash` |
-| `requirement-shell-startup-files` | Startup-file family; `.zprofile` PATH; dual mention `rc-test --file zprofile` |
+| `requirement-shell-zshenv` | Zsh PATH on `.zshenv`; dual mention `rc-test --rc zshenv` |
+| `requirement-shell-alpine` | Ash PATH on `.profile`; dual mention `rc-test --rc ash` |
+| `requirement-shell-startup-files` | Startup-file family; `.zprofile` PATH; dual mention `rc-test --rc zprofile` |
 | `requirement-shell-output-requirements` | `out_*` catalog |
 | `requirement-domain-grok-cli` | Domain four pillars |
 | `requirement-grok-setup` | Dual mention of `setup`, `update-grok`, `reinstall`, and `run` |
@@ -285,7 +301,7 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 
 **Human daily-life explanation:** A shell startup file is one sticky note the kitchen reads when you unlock the door (login `.profile` / `.zprofile`), when the light comes on (`.zshenv`), or when you sit down (`.bashrc` / `.zshrc`). Putting `{{HOME}}/.local/bin` on PATH writes that line on the always-on light (`.zshenv`) and, for a zsh login, again on the zsh door note (`.zprofile`). A missing door note is hung before you leave. A bash-only kitchen does not invent the zsh notes.
 
-**Daily-life example:** `rc-test --file zprofile` hangs a throw-away zsh door note. This login’s real notes stay on the wall.
+**Daily-life example:** `rc-test --rc zprofile` hangs a throw-away zsh door note. This login’s real notes stay on the wall.
 
 ## 7. Status history
 
@@ -332,9 +348,12 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-10-12 | Active 2.15.7 | Menu language is front **7** / assigned **80–92** (dual mention `requirement-shell-cli-language` **1.2.0**). Front **8** is not a row. |
 | 2026-10-12 | Active 2.15.8 | `rc-test --file zprofile`; dual mention `requirement-shell-startup-files` **1.0.0** |
 | 2026-11-17 | Active 2.16.0 | `sync-to-remote` Type 0; auth **17**; this-login-only menu follows default-interaction **2.28.0** |
+| 2026-11-17 | Active 2.16.1 | Test-purpose `--uname-s` / `--uname-a`; behavior owned by `requirement-shell-script-coding` **1.2.0** |
+| 2026-11-18 | Active 2.16.2 | Well-known test-purpose verb `rc-test` and well-known switches `--uname-s WORD` / `--uname-a WORD`; sample; behavior owner `requirement-shell-script-coding` **1.2.1** |
+| 2026-11-18 | Active 2.16.3 | `rc-test` folder switch is `--rc-root`. Startup-file kind is `--rc`. Path-taking `--file` stays on other verbs |
 
 ---
 
-**Last Updated**: 2026-11-17 (2.16.0 — `sync-to-remote` is auth **17**. 2.15.8 was `rc-test --file zprofile`.)  
+**Last Updated**: 2026-11-18 (2.16.3 — `rc-test` uses `--rc-root` and `--rc`. 2.16.2 named the well-known test-purpose set.)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

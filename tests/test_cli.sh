@@ -79,6 +79,8 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help SCRIPT_URL channel" "$_out" "SCRIPT_URL"
     assert_contains "TP-CLI-04 help testers heading" "$_out" "Test-purpose"
     assert_contains "TP-CLI-04 help rc-test" "$_out" "rc-test"
+    assert_contains "TP-CLI-04 help --uname-s" "$_out" "--uname-s"
+    assert_contains "TP-CLI-04 help --uname-a" "$_out" "--uname-a"
     assert_contains "TP-CLI-04 help BASHRC env" "$_out" "BASHRC"
     assert_contains "TP-CLI-04 help ZSHENV env" "$_out" "ZSHENV"
     assert_not_contains "TP-CLI-04 no CHECKSUM" "$_out" "CHECKSUM"
@@ -87,6 +89,8 @@ run_test_cli() {
     _out=$(sh "${SCRIPT}" --json help 2>/dev/null)
     assert_eq "TP-CLI-05 help --json exit 0" 0 "$?"
     assert_contains "TP-CLI-05 help json success" "$_out" '"type":"success"'
+    assert_contains "TP-CLI-05 help json names --uname-s" "$_out" "--uname-s"
+    assert_contains "TP-CLI-05 help json names --uname-a" "$_out" "--uname-a"
 
     # TP-CLI-06 about json domain + cache folders, no channel
     # Isolate PATH so about's session probe cannot call a host grok (xAI).
@@ -1168,4 +1172,22 @@ AUTH
     else
         t_fail "TP-CLI-18 frozen session login in:${_hit}"
     fi
+
+    # TP-ARS-01: light catalog is Actor, Role, Subject. Subject is None.
+    _ars="${REPO_ROOT}/docs/requirements/requirement-actor-role-subject.md"
+    _class="${REPO_ROOT}/docs/requirements/requirement-class-software-dev.md"
+    assert_file_exists "TP-ARS-01 light catalog file" "${_ars}"
+    _ars_body=$(cat "${_ars}")
+    assert_contains "TP-ARS-01 header is Actor Role Subject" "${_ars_body}" "| Actor | Role | Subject |"
+    assert_not_contains "TP-ARS-01 no Approver column" "${_ars_body}" "| Approver |"
+    assert_not_contains "TP-ARS-01 no Submitter column" "${_ars_body}" "| Submitter |"
+    _ars_none=$(grep '^| This login |' "${_ars}" | grep -c '| None |' || true)
+    assert_eq "TP-ARS-01 four Subject None rows" "4" "${_ars_none}"
+    assert_contains "TP-ARS-01 installer row names install" "${_ars_body}" "install"
+    assert_contains "TP-ARS-01 operator row names help" "${_ars_body}" "help"
+    assert_contains "TP-ARS-01 actor is this login" "${_ars_body}" "This login"
+    _class_body=$(cat "${_class}")
+    assert_contains "TP-ARS-01 class points at the light file" "${_class_body}" "requirement-actor-role-subject"
+    assert_not_contains "TP-ARS-01 class does not reprint the table" "${_class_body}" "| Actor | Role | Subject |"
+    unset _ars _class _ars_body _class_body _ars_none
 }

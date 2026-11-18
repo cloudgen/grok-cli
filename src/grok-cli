@@ -46,7 +46,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="grok-cli"
-# VERSION: hard-assign VERSION="1.8.48"
+# VERSION: hard-assign VERSION="1.8.49"
 #
 # =============================================================================
 set -u  # Treat unset variables as error (defensive)
@@ -62,7 +62,7 @@ APP_NAME="grok-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh CLI: install, uninstall, where-is-me, version, about, help, menu, version-check, self-update, self-uninstall, setup, update-grok, reinstall, run, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, sync-to-remote, add-crontab, print-sudoers, print-sudoers-install-script, remove-project-sudoers, generate-sudoer-request, submit-sudoer-request, rc-test.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.8.48"
+VERSION="1.8.49"
 : "${VERSION:=1.8.43}"
 APP_VERSION="${VERSION}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
@@ -1148,12 +1148,13 @@ path_add_profile_ash() {
 }
 
 # =============================================================================
-# path_rc_test() - Type 0 test-purpose: create/modify/no-op against --root
+# path_rc_test() - Type 0 test-purpose: create/modify/no-op against --rc-root
 # =============================================================================
 #
 # ALIGNMENT: requirement-shell-path-and-shell-support.md · requirement-shell-zshenv.md
 # MUST NOT write this login's real ~/.bashrc or ~/.zshenv. Keep real HOME.
-# Last reviewed: 2026-09-17
+# --rc-root is the fixture folder. --rc is the startup-file kind.
+# Last reviewed: 2026-11-18
 # =============================================================================
 path_rc_test() {
     : "${JSON:=0}"
@@ -1165,13 +1166,13 @@ path_rc_test() {
     _prt_feature=""
     while [ $# -gt 0 ]; do
         case "$1" in
-            --root)
-                [ $# -ge 2 ] || out_die "rc-test --root requires a folder. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file bashrc --case create"
+            --rc-root)
+                [ $# -ge 2 ] || out_die "rc-test --rc-root requires a folder. Next: ${APP_NAME} rc-test --rc-root \"\$tmpdir\" --rc bashrc --case create"
                 _prt_root="$2"
                 shift
                 ;;
-            --file)
-                [ $# -ge 2 ] || out_die "rc-test --file requires bashrc|zshenv|zprofile|profile|ash. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file zprofile --case create"
+            --rc)
+                [ $# -ge 2 ] || out_die "rc-test --rc requires bashrc|zshenv|zprofile|profile|ash|fish. Next: ${APP_NAME} rc-test --rc-root \"\$tmpdir\" --rc zprofile --case create"
                 _prt_file="$2"
                 shift
                 ;;
@@ -1186,27 +1187,27 @@ path_rc_test() {
                 shift
                 ;;
             *)
-                out_die "Unknown rc-test argument: $1. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file bashrc --case create"
+                out_die "Unknown rc-test argument: $1. Next: ${APP_NAME} rc-test --rc-root \"\$tmpdir\" --rc bashrc --case create"
                 ;;
         esac
         shift
     done
     if [ -z "${_prt_root}" ]; then
-        out_die "rc-test requires --root a tmp/cache folder. Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file bashrc --case create"
+        out_die "rc-test requires --rc-root a tmp/cache folder. Next: ${APP_NAME} rc-test --rc-root \"\$tmpdir\" --rc bashrc --case create"
     fi
     case "${_prt_file}" in
         bashrc|zshenv|zprofile|profile|fish|ash) ;;
         zshrc)
-            out_die "rc-test zshrc is not claimed (zsh PATH is .zshenv and .zprofile). Next: ${APP_NAME} rc-test --root \"\$tmpdir\" --file zshenv --case create"
+            out_die "rc-test zshrc is not claimed (zsh PATH is .zshenv and .zprofile). Next: ${APP_NAME} rc-test --rc-root \"\$tmpdir\" --rc zshenv --case create"
             ;;
-        *) out_die "rc-test --file must be bashrc, zshenv, zprofile, profile, ash, or fish" ;;
+        *) out_die "rc-test --rc must be bashrc, zshenv, zprofile, profile, ash, or fish" ;;
     esac
     case "${_prt_case}" in
         create|modify|noop) ;;
         *) out_die "rc-test --case must be create, modify, or noop" ;;
     esac
     if ! mkdir -p "${_prt_root}" 2>/dev/null; then
-        out_die "rc-test cannot create --root ${_prt_root}"
+        out_die "rc-test cannot create --rc-root ${_prt_root}"
     fi
 
     _prt_home_bashrc="${HOME}/.bashrc"
@@ -1340,7 +1341,7 @@ path_rc_test() {
     [ -f "${_prt_home_zshenv}" ] && _prt_now_z=$(cat "${_prt_home_zshenv}" 2>/dev/null || true)
     [ -f "${_prt_home_zprofile}" ] && _prt_now_zp=$(cat "${_prt_home_zprofile}" 2>/dev/null || true)
     if [ "${_prt_now_b}" != "${_prt_snap_b}" ] || [ "${_prt_now_p}" != "${_prt_snap_p}" ] || [ "${_prt_now_z}" != "${_prt_snap_z}" ] || [ "${_prt_now_zp}" != "${_prt_snap_zp}" ]; then
-        out_die "rc-test wrote this login's real home rc. Fixture --root only."
+        out_die "rc-test wrote this login's real home rc. Fixture --rc-root only."
     fi
 
     if [ "${JSON}" -eq 1 ]; then
@@ -1658,7 +1659,50 @@ util_backup() {
 # ALIGNMENT: requirement-shell-cli-storage.md
 # Test-purpose: GROK_CLI_CACHE_HOST=linux|gitbash|mac
 #               GROK_CLI_CACHE_SKIP=preferred skips tier 1 with no message
+#               --uname-s / --uname-a inject -s and -a (util_uname)
 # =============================================================================
+
+# =============================================================================
+# util_uname() - only product read of a uname result
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Flags are -s, -a, -m, -o, -r, or none. --uname-s and --uname-a inject
+# the -s and -a lines for tests. -m, -o, -r, and a bare call always run
+# the real uname. The injected line is data: this function does not eval
+# it, pass it to sh -c, or splice it into a command string.
+#
+# ALIGNMENT: requirement-shell-script-coding.md (rule 9, §2.3)
+# Last updated: 2026-11-17
+# =============================================================================
+util_uname() {
+    _uu_flag="${1:-}"
+    case "${_uu_flag}" in
+        -s)
+            if [ -n "${GC_UNAME_S+x}" ]; then
+                printf '%s\n' "${GC_UNAME_S}"
+                unset _uu_flag
+                return 0
+            fi
+            ;;
+        -a)
+            if [ -n "${GC_UNAME_A+x}" ]; then
+                printf '%s\n' "${GC_UNAME_A}"
+                unset _uu_flag
+                return 0
+            fi
+            ;;
+    esac
+    if [ -n "${_uu_flag}" ]; then
+        uname "${_uu_flag}" 2>/dev/null
+    else
+        uname 2>/dev/null
+    fi
+    _uu_ec=$?
+    unset _uu_flag
+    return ${_uu_ec}
+}
+
 util_cache_host_kind() {
     case "${GROK_CLI_CACHE_HOST:-}" in
         linux|gitbash|mac)
@@ -1670,7 +1714,7 @@ util_cache_host_kind() {
         printf '%s' "gitbash"
         return 0
     fi
-    case "$(uname -s 2>/dev/null)" in
+    case "$(util_uname -s)" in
         MINGW*|MSYS*) printf '%s' "gitbash" ;;
         Darwin) printf '%s' "mac" ;;
         *) printf '%s' "linux" ;;
@@ -3186,8 +3230,8 @@ gc_setup_path_has_dir() {
 # Last updated: 2026-09-10
 # =============================================================================
 gc_setup_detect_platform() {
-    _sys=$(uname -s 2>/dev/null) || _sys=""
-    _mach=$(uname -m 2>/dev/null) || _mach=""
+    _sys=$(util_uname -s) || _sys=""
+    _mach=$(util_uname -m) || _mach=""
     case "${_sys}" in
         Darwin) _os="macos" ;;
         Linux)  _os="linux" ;;
@@ -3530,7 +3574,7 @@ gc_setup_path_symlink() {
 # Last updated: 2026-09-04
 # =============================================================================
 gc_setup_host_is_android() {
-    case "$(uname -a 2>/dev/null) $(uname -o 2>/dev/null)" in
+    case "$(util_uname -a) $(util_uname -o)" in
         *Android*) return 0 ;;
     esac
     return 1
@@ -4482,7 +4526,7 @@ gc_setup() {
         _platform=$(gc_setup_detect_platform) || _platform=""
     fi
     if [ -z "${_platform}" ]; then
-        out_die "Unsupported OS or architecture ($(uname -s)/$(uname -m)). Next: use linux, macos, or Git Bash/MSYS/Cygwin on x86_64 or aarch64, then ${APP_NAME} setup. Native Windows PowerShell uses irm https://x.ai/cli/install.ps1 | iex."
+        out_die "Unsupported OS or architecture ($(util_uname -s)/$(util_uname -m)). Next: use linux, macos, or Git Bash/MSYS/Cygwin on x86_64 or aarch64, then ${APP_NAME} setup. Native Windows PowerShell uses irm https://x.ai/cli/install.ps1 | iex."
     fi
     _want_arch="${_platform#*-}"
 
@@ -8203,7 +8247,7 @@ gc_host_is_git_bash() {
     if [ -n "${MSYSTEM:-}" ]; then
         return 0
     fi
-    case "$(uname -s 2>/dev/null)" in
+    case "$(util_uname -s)" in
         MINGW*|MSYS*) return 0 ;;
     esac
     return 1
@@ -8216,13 +8260,13 @@ gc_host_is_windows_cmd() {
     if gc_host_is_git_bash; then
         return 1
     fi
-    case "$(uname -s 2>/dev/null)" in
+    case "$(util_uname -s)" in
         CYGWIN*|MINGW*|MSYS*) return 1 ;;
     esac
     if [ -n "${WSL_DISTRO_NAME:-}" ] || [ -n "${WSL_INTEROP:-}" ]; then
         return 1
     fi
-    case "$(uname -r 2>/dev/null)" in
+    case "$(util_uname -r)" in
         *[Mm]icrosoft*) return 1 ;;
     esac
     return 0
@@ -9285,19 +9329,19 @@ app_menu_text() {
             ;;
         help_rc)
             case "${_mt_lang}" in
-                zh-Hant) _mt_out="在 --root 暫存資料夾建立或修改 PATH 或 profile" ;;
-                zh-Hans) _mt_out="在 --root 临时文件夹建立或修改 PATH 或 profile" ;;
-                es) _mt_out="Crear o modificar PATH o profile en una carpeta temporal --root" ;;
-                fr) _mt_out="Créer ou modifier PATH ou profile dans un dossier temporaire --root" ;;
-                de) _mt_out="PATH oder profile in einem --root-Tempordner anlegen oder ändern" ;;
-                ja) _mt_out="--root の一時フォルダで PATH または profile を作成・変更" ;;
-                ko) _mt_out="--root 임시 폴더에서 PATH 또는 profile 을 만들거나 수정" ;;
-                ar) _mt_out="إنشاء PATH أو profile أو تعديلهما في مجلد مؤقت --root" ;;
-                pt) _mt_out="Criar ou modificar PATH ou profile numa pasta temporária --root" ;;
-                ru) _mt_out="Создать или изменить PATH или profile во временной папке --root" ;;
-                nl) _mt_out="PATH of profile maken of wijzigen in een tijdelijke --root-map" ;;
-                el) _mt_out="Δημιουργία ή αλλαγή PATH ή profile σε προσωρινό φάκελο --root" ;;
-                *) _mt_out="Create or modify PATH or profile in a --root temp folder" ;;
+                zh-Hant) _mt_out="在 --rc-root 暫存資料夾建立或修改 PATH 或 profile" ;;
+                zh-Hans) _mt_out="在 --rc-root 临时文件夹建立或修改 PATH 或 profile" ;;
+                es) _mt_out="Crear o modificar PATH o profile en una carpeta temporal --rc-root" ;;
+                fr) _mt_out="Créer ou modifier PATH ou profile dans un dossier temporaire --rc-root" ;;
+                de) _mt_out="PATH oder profile in einem --rc-root-Tempordner anlegen oder ändern" ;;
+                ja) _mt_out="--rc-root の一時フォルダで PATH または profile を作成・変更" ;;
+                ko) _mt_out="--rc-root 임시 폴더에서 PATH 또는 profile 을 만들거나 수정" ;;
+                ar) _mt_out="إنشاء PATH أو profile أو تعديلهما في مجلد مؤقت --rc-root" ;;
+                pt) _mt_out="Criar ou modificar PATH ou profile numa pasta temporária --rc-root" ;;
+                ru) _mt_out="Создать или изменить PATH или profile во временной папке --rc-root" ;;
+                nl) _mt_out="PATH of profile maken of wijzigen in een tijdelijke --rc-root-map" ;;
+                el) _mt_out="Δημιουργία ή αλλαγή PATH ή profile σε προσωρινό φάκελο --rc-root" ;;
+                *) _mt_out="Create or modify PATH or profile in a --rc-root temp folder" ;;
             esac
             ;;
         help_setup)
@@ -10420,6 +10464,8 @@ app_help_i18n() {
     out_empty_line
     out_info "$(app_menu_text help_h_test)"
     out_plain "  rc-test              $(app_menu_text help_rc)"
+    out_plain "  --uname-s WORD       host -s overlay for this run (test fixture)"
+    out_plain "  --uname-a WORD       host -a overlay for this run (test fixture)"
     out_empty_line
     out_info "$(app_menu_text help_h_domain)"
     out_plain "  setup                $(app_menu_text help_setup)"
@@ -11541,7 +11587,7 @@ app_help() {
     if [ "${JSON}" -eq 1 ]; then
         out_json "success" "Help text available in human-readable mode. Run without --json." \
             "command" "help" \
-            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, sync-to-remote, add-crontab. Empty argv and menu/main off-TTY use this help."
+            "note" "Use --json with version, about, install, uninstall, where-is-me, check-session, backup, sync-auth, sync-auth-from-remote, sync-auth-to-remote, sync-to-remote, add-crontab. Empty argv and menu/main off-TTY use this help. Test-purpose overlays: --uname-s and --uname-a."
         return 0
     fi
     if [ "${QUIET}" -eq 1 ]; then
@@ -11577,8 +11623,10 @@ app_help() {
     out_plain "  main                 Same as menu (also empty argv on a TTY)"
     out_empty_line
     out_info "Test-purpose (local fixture only — not install):"
-    out_plain "  rc-test              Create/modify/no-op PATH or profile in --root tmp folder"
+    out_plain "  rc-test              Create/modify/no-op PATH or profile in --rc-root tmp folder"
     out_plain "                       (does not write this login's real ~/.bashrc)"
+    out_plain "  --uname-s WORD       Overlay the -s host line for this run (test fixture)"
+    out_plain "  --uname-a WORD       Overlay the -a host line for this run (test fixture)"
     out_empty_line
     out_info "Domain (Type 0 session/sync + Type 1 auth deposit):"
     out_plain "  setup                Install grok from x.ai (channel + artifact; TTY offers reinstall if grok already runs)"
@@ -11705,7 +11753,7 @@ app_help() {
     out_plain "  ${APP_NAME} add-crontab"
     out_empty_line
     out_info "Empty argv on a real terminal shows the numbered list. Off-TTY empty argv is channel install-ensure (curl|sh)."
-    out_info "Switches without a command (--debug, --quiet) still follow empty argv. ${APP_NAME} --json with no command is empty argv special case: JSON help (even on a TTY). Explicit help stays help."
+    out_info "Switches without a command (--debug, --quiet, --uname-s, --uname-a) still follow empty argv. ${APP_NAME} --json with no command is empty argv special case: JSON help (even on a TTY). Explicit help stays help."
     out_info "backup runs grok -p hello first, then passwordless sudo ${APP_NAME} backup (sudoer-adm)."
     out_info "sync-auth never uses sudo. Local install + sudoers is TEST MODE ONLY; prefer global."
     out_info "Menu row 7 sets the display language (80 English through 92 Greek). GROK_CLI_LANG overrides this run and does not write the file."
@@ -11717,19 +11765,22 @@ app_help() {
 #
 # GENERAL PURPOSE:
 # Single dispatcher for grok-cli (specialized from folder-backup; local Type 0 + grok auth domain).
-# Empty argv = no command token after flag parse (overlay --debug/--quiet follow).
-# TTY menu; off-TTY Type O channel ensure. --json with no command is 0-argv
-# special case: JSON help on TTY and off-TTY.
+# Empty argv = no command token after flag parse (overlay --debug/--quiet
+# and --uname-s / --uname-a follow). TTY menu; off-TTY Type O channel
+# ensure. --json with no command is 0-argv special case: JSON help on
+# TTY and off-TTY. The uname overlays are parsed before storage so cache
+# kind sees an injected -s. Their operand is data, not a command token.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-interface.md
 # - requirement-shell-cli-zero-arguments.md
 # - requirement-shell-cli-default-interaction.md
 # - requirement-grok-setup.md
+# - requirement-shell-script-coding.md
 #
 # !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
 #
-# Last updated: 2026-09-22
+# Last updated: 2026-11-17
 # =============================================================================
 app_main() {
     COMMAND=""
@@ -11748,6 +11799,45 @@ app_main() {
     : "${USERNAME:=unknown}"
     : "${HOME:=/tmp}"
     : "${APP_NAME:=grok-cli}"
+
+    # Test-purpose host overlays. Before storage so cache kind sees -s.
+    # WORD is the next field. Last occurrence wins. Missing, empty, or
+    # dash-leading dies. Notice --json first so that die is JSON-shaped.
+    _uu_saw_json=0
+    for _uu_a in "$@"; do
+        if [ "${_uu_a}" = "--json" ]; then
+            _uu_saw_json=1
+        fi
+    done
+    if [ "${_uu_saw_json}" -eq 1 ]; then
+        JSON=1
+        QUIET=1
+    fi
+    unset _uu_saw_json
+    _uu_expect=""
+    for _uu_a in "$@"; do
+        if [ -n "${_uu_expect}" ]; then
+            case "${_uu_a}" in
+                ""|-*)
+                    out_die "${_uu_expect} needs one host line that does not start with -. Next: pass that line as the next field."
+                    ;;
+            esac
+            if [ "${_uu_expect}" = "--uname-s" ]; then
+                GC_UNAME_S="${_uu_a}"
+            else
+                GC_UNAME_A="${_uu_a}"
+            fi
+            _uu_expect=""
+            continue
+        fi
+        case "${_uu_a}" in
+            --uname-s|--uname-a) _uu_expect="${_uu_a}" ;;
+        esac
+    done
+    if [ -n "${_uu_expect}" ]; then
+        out_die "${_uu_expect} needs one host line that does not start with -. Next: pass that line as the next field."
+    fi
+    unset _uu_a _uu_expect
 
     EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
     STORAGE_DIR=$(util_fallback_cache_dir)
@@ -11768,6 +11858,22 @@ app_main() {
             --quiet|-q) QUIET=1 ;;
             --json)     JSON=1; QUIET=1 ;;
             --debug)    DEBUG=1 ;;
+            --uname-s|--uname-a)
+                if [ $# -lt 2 ]; then
+                    out_die "$1 needs one host line that does not start with -. Next: pass that line as the next field."
+                fi
+                case "$2" in
+                    ""|-*)
+                        out_die "$1 needs one host line that does not start with -. Next: pass that line as the next field."
+                        ;;
+                esac
+                if [ "$1" = "--uname-s" ]; then
+                    GC_UNAME_S="$2"
+                else
+                    GC_UNAME_A="$2"
+                fi
+                shift
+                ;;
             --force)    FORCE=1; FORCE_REINSTALL=1 ;;
             --global)   FORCE_GLOBAL=1; export FORCE_GLOBAL ;;
             --allow-test-local)

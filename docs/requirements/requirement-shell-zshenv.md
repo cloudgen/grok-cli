@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-zshenv.md  
-**Status**: Active (Version 1.0.1)  
+**Status**: Active (Version 1.0.2)  
 **Area**: shell  
 **Key**: `requirement-shell-zshenv`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -10,7 +10,7 @@ This file is the **topic-owner** for **zsh PATH** on grok-cli. After a **user-bi
 
 It owns **zshenv path-ensure**: one shared `USER_BIN` export on `.zshenv` (`ZSHENV`). It does **not** write PATH to `.zshrc` and it does **not** write `.zprofile`. Login `.zprofile` is owned by `requirement-shell-startup-files`. Bash PATH, Fish PATH, and profile-ensure stay on `requirement-shell-path-and-shell-support`. Peer grok’s `# >>> grok installer >>>` block for `~/.grok/bin` is a **second** directory; when `$SHELL` is zsh, that block **MUST** land on `.zshenv` too (dual mention `requirement-grok-setup`).
 
-**Scope:** Which zsh file this product writes for PATH; create / append / no-op; `ZSHENV` env; `rc-test --file zshenv`; uninstall of this product’s stickers on `.zshenv` (and leftover `.zshrc` stickers).  
+**Scope:** Which zsh file this product writes for PATH; create / append / no-op; `ZSHENV` env; `rc-test --rc zshenv`; uninstall of this product’s stickers on `.zshenv` (and leftover `.zshrc` stickers).  
 **Out of scope (cited, not re-owned):** Bash / Fish / `.profile` (`requirement-shell-path-and-shell-support`); placing the binary (`requirement-shell-local-self-management` · `requirement-shell-online-install`); peer grok fetch (`requirement-grok-setup`).
 
 **Not claimed:** login-review hook in `.zshenv` or `.zshrc`; Type 1 `chown` of another login’s home; `/etc/environment`.
@@ -22,7 +22,7 @@ It owns **zshenv path-ensure**: one shared `USER_BIN` export on `.zshenv` (`ZSHE
 | Box | Meaning | Example |
 |-----|---------|---------|
 | You / this login | The person who ran install at a zsh prompt | `curl … \| sh` then SSH again |
-| The other role | Tests that point `ZSHENV` at a throw-away folder | `grok-cli rc-test --root "$tmpdir" --file zshenv --case create` |
+| The other role | Tests that point `ZSHENV` at a throw-away folder | `grok-cli rc-test --rc-root "$tmpdir" --rc zshenv --case create` |
 | Not this file | Bash PATH; hanging `.profile`; copying the program | `requirement-shell-path-and-shell-support` · `requirement-shell-local-self-management` |
 
 | Includes | Excludes |
@@ -33,13 +33,13 @@ It owns **zshenv path-ensure**: one shared `USER_BIN` export on `.zshenv` (`ZSHE
 | Surface | What you open | What for |
 |---------|---------------|----------|
 | `grok-cli install` | Command | Companion writes PATH on `.zshenv` when zsh |
-| `grok-cli rc-test --file zshenv` | Test-purpose command | Create / modify / no-op against a temp folder |
+| `grok-cli rc-test --rc zshenv` | Test-purpose command | Create / modify / no-op against a temp folder |
 | `grok-cli help` | Command | Environment lists `ZSHENV` |
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
 | Install for yourself on macOS zsh | Program file goes in `USER_BIN`; PATH line is added once to `.zshenv`. A second install does not duplicate it. `.zshrc` is left alone. | `grok-cli install` |
-| Prove zsh PATH without touching this login’s real `.zshenv` | A temp folder is the scratch pad. Real home rc stays still. | `grok-cli rc-test --root "$tmpdir" --file zshenv --case create` |
+| Prove zsh PATH without touching this login’s real `.zshenv` | A temp folder is the scratch pad. Real home rc stays still. | `grok-cli rc-test --rc-root "$tmpdir" --rc zshenv --case create` |
 | Remove this program while other tools remain in `~/.local/bin` | PATH line stays. Only this product’s installer comments on `.zshenv` (and leftover `.zshrc` stickers) may go. | `grok-cli uninstall --force` |
 
 ---
@@ -128,9 +128,9 @@ This product **MUST NOT** lock `.zshenv`. It **MUST** make non-compliance **visi
 
 | Detector | Role |
 |----------|------|
-| Type 0 **`rc-test --file zshenv`** | Test-purpose. Target = caller `--root` tmp/cache folder. **MUST NOT** write this login’s real `{{HOME}}/.zshenv`. Dual mention: `requirement-shell-cli-interface`. Sample: `grok-cli rc-test --root "$tmpdir" --file zshenv --case create` |
+| Type 0 **`rc-test --rc zshenv`** | Test-purpose. Target = caller `--rc-root` tmp/cache folder. **MUST NOT** write this login’s real `{{HOME}}/.zshenv`. Dual mention: `requirement-shell-cli-interface`. Sample: `grok-cli rc-test --rc-root "$tmpdir" --rc zshenv --case create` |
 | Fixture suites | **TP-LC-23** modify dongle · **TP-LC-24** VERSION+exact-PATH no-op · **TP-LC-34** create-if-missing when `ZSHENV` set · **TP-LC-35** do not invent default `.zshenv` for bash-only · **TP-LC-36** `.zshrc` unchanged |
-| `rc-test --file zshrc` | **MUST** fail closed: zsh PATH is `.zshenv`. Next: `--file zshenv` |
+| `rc-test --rc zshrc` | **MUST** fail closed: zsh PATH is `.zshenv`. Next: `--rc zshenv` |
 
 ### 2.7 Write-path env
 
@@ -141,7 +141,7 @@ This product **MUST NOT** lock `.zshenv`. It **MUST** make non-compliance **visi
 
 **MUST NOT** ignore a non-empty `ZSHENV` (always write `${HOME}/.zshenv` instead).
 
-Helpers: `path_add_zshenv` (body here), `path_add_shell` (orchestrator on `requirement-shell-path-and-shell-support`), `path_rc_test` (`--file zshenv`). Prefix ownership: `requirement-shell-modular-function-design`.
+Helpers: `path_add_zshenv` (body here), `path_add_shell` (orchestrator on `requirement-shell-path-and-shell-support`), `path_rc_test` (`--rc zshenv`). Prefix ownership: `requirement-shell-modular-function-design`.
 
 ### 2.8 Implementation Notes (this project)
 
@@ -166,7 +166,7 @@ Helpers: `path_add_zshenv` (body here), `path_add_shell` (orchestrator on `requi
 | This product’s sticker | `# Added by grok-cli installer ({{VERSION}})` |
 | Zsh file | `.zshenv` — not `.zshrc` |
 | Vendor grok block | `# >>> grok installer >>>` … `# <<< grok installer <<<` on `.zshenv` when `$SHELL` is zsh |
-| Proof | Fixture `--root`; real `{{HOME}}/.zshenv` untouched |
+| Proof | Fixture `--rc-root`; real `{{HOME}}/.zshenv` untouched |
 
 #### Compliance notes (implementation status)
 
@@ -176,7 +176,7 @@ Helpers: `path_add_zshenv` (body here), `path_add_shell` (orchestrator on `requi
 | Do not invent default `.zshenv` for bash-only (**TP-LC-35**) | **Implemented** |
 | Existing `.zshenv` exact-line append / VERSION+PATH no-op (**TP-LC-23** / **TP-LC-24**) | **Implemented** |
 | `.zshrc` not written for PATH (**TP-LC-36**) | **Implemented** |
-| `rc-test --file zshenv` routed; `--file zshrc` fails closed | **Implemented** |
+| `rc-test --rc zshenv` routed; `--rc zshrc` fails closed | **Implemented** |
 | Honor `ZSHENV` env | **Implemented** |
 | Vendor grok block on `.zshenv` when `$SHELL` is zsh | **Implemented** |
 | Login-hook | **Unused** (honest) |
@@ -233,8 +233,8 @@ When the ship unit detects a **command line for normal user only** (Termux, Git 
 9. Plant a login-review hook in `.zshenv` or `.zshrc`.  
 10. Lock `.zshenv` (`chattr`, flock).  
 11. Prove zsh PATH by rewriting this login’s real `~/.zshenv`.  
-12. Claim zshenv path-ensure without **TP-LC-23** / **TP-LC-24** / **TP-LC-34** / **TP-LC-35** / **TP-LC-36**, or without dual-mentioning Type 0 **`rc-test --file zshenv`**.  
-13. Treat `rc-test --file zshrc` as success.  
+12. Claim zshenv path-ensure without **TP-LC-23** / **TP-LC-24** / **TP-LC-34** / **TP-LC-35** / **TP-LC-36**, or without dual-mentioning Type 0 **`rc-test --rc zshenv`**.  
+13. Treat `rc-test --rc zshrc` as success.  
 14. Put the vendor `# >>> grok installer >>>` block on `.zshrc` when `$SHELL` is zsh.  
 15. Strip the **Under command line for normal user only** section.  
 16. Fold this file back into `requirement-shell-path-and-shell-support` as a silent `.zshrc` row.
@@ -252,7 +252,7 @@ Work claiming zsh PATH support for grok-cli is **not done** if any of the follow
 3. `.zshrc` is not given a `USER_BIN` PATH line.  
 4. Second install does not duplicate the exact PATH line; VERSION+exact-PATH is a no-op.  
 5. Bash-only (no `ZSHENV` override, `$SHELL` not zsh, file missing) does not invent `.zshenv`.  
-6. `rc-test --file zshenv` is dual-mentioned here and on `requirement-shell-cli-interface` **and** routed.  
+6. `rc-test --rc zshenv` is dual-mentioned here and on `requirement-shell-cli-interface` **and** routed.  
 7. Implementation changes cite `requirement-shell-zshenv`.
 
 ---
@@ -263,7 +263,7 @@ Work claiming zsh PATH support for grok-cli is **not done** if any of the follow
 |----------|------|
 | `docs/requirements/index.md` | Registry SSOT |
 | `docs/requirements/requirement-shell-path-and-shell-support.md` | Bash / Fish / profile; `path_add_shell` orchestrator; companion call site |
-| `docs/requirements/requirement-shell-cli-interface.md` | Dispatcher, `ZSHENV` env, dual mention `rc-test --file zshenv` |
+| `docs/requirements/requirement-shell-cli-interface.md` | Dispatcher, `ZSHENV` env, dual mention `rc-test --rc zshenv` |
 | `docs/requirements/requirement-shell-local-self-management.md` | Checkout place; companion **call site** |
 | `docs/requirements/requirement-shell-online-install.md` | Channel place / already-installed skip **call site** |
 | `docs/requirements/requirement-shell-self-management.md` | `self-update` / `self-uninstall` **call site** |
@@ -282,7 +282,7 @@ Work claiming zsh PATH support for grok-cli is **not done** if any of the follow
 | **TP-LC-34** `ZSHENV` env create-if-missing | `tests/test_local_lifecycle.sh` | have |
 | **TP-LC-35** bash-only does not invent default `.zshenv` | `tests/test_local_lifecycle.sh` | have |
 | **TP-LC-36** `.zshrc` unchanged for PATH | `tests/test_local_lifecycle.sh` | have |
-| **`rc-test --file zshenv`** routed `--root` | `tests/test_local_lifecycle.sh` | have |
+| **`rc-test --rc zshenv`** routed `--rc-root` | `tests/test_local_lifecycle.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -303,7 +303,8 @@ Work claiming zsh PATH support for grok-cli is **not done** if any of the follow
 |------|--------|------|
 | 2026-09-17 | Active (1.0.0) | Independent zsh PATH owner: `.zshenv` instead of `.zshrc` |
 | 2026-10-12 | Active (1.0.1) | `.zprofile` **points** at `requirement-shell-startup-files`; this file still does not write `.zprofile` |
+| 2026-11-18 | Active (1.0.2) | `rc-test` folder switch is `--rc-root`. Startup-file kind is `--rc zshenv`. `--rc zshrc` fails closed |
 
-**Last Updated**: 2026-10-12  
+**Last Updated**: 2026-11-18  
 **Owner**: grok-cli project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-alpine.md  
-**Status**: Active (Version 1.0.1)  
+**Status**: Active (Version 1.0.2)  
 **Area**: shell  
 **Key**: `requirement-shell-alpine`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -10,7 +10,7 @@ This file is the **topic-owner** for **ash PATH** on grok-cli. Alpine’s login 
 
 It owns **ash profile path-ensure**: when this run’s command name is ash, append one shared `export PATH="$USER_BIN:$PATH"` line to `.profile` (`PROFILE`). Alpine’s `/bin/sh` is ash, so `curl | sh` (`$0` is `sh`) on a host with `/etc/alpine-release` is the same case. Bash PATH, Fish PATH, zsh `.zshenv`, and the create-if-missing bash source block stay on their owners.
 
-**Scope:** When to treat this run as ash; the PATH line on `.profile`; create / append / no-op; `GROK_CLI_ARGV0` and `GROK_CLI_ALPINE_RELEASE` for tests; `rc-test --file ash`.  
+**Scope:** When to treat this run as ash; the PATH line on `.profile`; create / append / no-op; `GROK_CLI_ARGV0` and `GROK_CLI_ALPINE_RELEASE` for tests; `rc-test --rc ash`.  
 **Out of scope (cited, not re-owned):** Bash / Fish / zsh rc (`requirement-shell-path-and-shell-support` · `requirement-shell-zshenv`); placing the binary; peer grok’s `~/.grok/bin` block.
 
 **Not claimed:** `/etc/profile`; changing the login’s shell; a separate `~/.ashrc` (ash does not read it unless `ENV` is set).
@@ -33,7 +33,7 @@ It owns **ash profile path-ensure**: when this run’s command name is ash, appe
 | Surface | What you open | What for |
 |---------|---------------|----------|
 | `grok-cli install` or the curl one-liner | Command | Companion writes `.profile` when this run is ash |
-| `grok-cli rc-test --file ash` | Test-purpose command | Create / modify / no-op in a temp folder |
+| `grok-cli rc-test --rc ash` | Test-purpose command | Create / modify / no-op in a temp folder |
 | `~/.profile` | Login note | Ash reads this; bash reads it only as a login shell |
 
 | You do… | What it means | What you type |
@@ -53,7 +53,7 @@ It owns **ash profile path-ensure**: when this run’s command name is ash, appe
 6. Idempotent: a second install does not duplicate the line.  
 7. The restart hint **MUST** name `.profile` when the ash line was written, so the operator is not told only to source `.bashrc`.  
 8. Uninstall may remove this product’s `# Added by ${APP_NAME} installer` sticker and, when `USER_BIN` is empty, the exact PATH line. **MUST NOT** delete `.profile` or the source-bashrc block.  
-9. `rc-test --file ash` is Type 0 test-purpose. It **MUST** force the ash path against `--root` and **MUST NOT** write this login’s real `${HOME}/.profile`. Dual mention: `requirement-shell-cli-interface`. Sample: `grok-cli rc-test --root "$tmpdir" --file ash --case create`.
+9. `rc-test --rc ash` is Type 0 test-purpose. It **MUST** force the ash path against `--rc-root` and **MUST NOT** write this login’s real `${HOME}/.profile`. Dual mention: `requirement-shell-cli-interface`. Sample: `grok-cli rc-test --rc-root "$tmpdir" --rc ash --case create`.
 
 ### 2.1 Implementation Notes (this project)
 
@@ -103,7 +103,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 | AC-1 | Missing `.profile` and `$0` `-ash`: generate the source-bashrc block and add the PATH line in that same step (TP-LC-37). Existing `.profile` and ash: modify by appending PATH; keep the old body (TP-LC-42) |
 | AC-2 | `$0` `sh` without an alpine-release file does not add that PATH line (TP-LC-38) |
 | AC-3 | `$0` `sh` with an alpine-release file adds the PATH line (TP-LC-39) |
-| AC-4 | `rc-test --file ash` writes the fixture profile only (TP-LC-40) |
+| AC-4 | `rc-test --rc ash` writes the fixture profile only (TP-LC-40) |
 | AC-5 | Missing `.profile` and invoking name bash, zsh, or fish: generate the source-bashrc file and do not add the PATH export (TP-LC-41) |
 
 ## 6. Related artifacts
@@ -112,7 +112,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 |----------|------|
 | `docs/requirements/index.md` | Registry |
 | `requirement-shell-path-and-shell-support.md` | Orchestrator; bash source-bashrc block; not the ash PATH line |
-| `requirement-shell-cli-interface.md` | `rc-test --file ash` dual mention |
+| `requirement-shell-cli-interface.md` | `rc-test --rc ash` dual mention |
 | `requirement-shell-zshenv.md` | Zsh peer; does not own `.profile` |
 | `requirement-shell-startup-files.md` | Family matrix names this file’s missing-`.profile` row; ash PATH stays here |
 | `src/grok-cli` | `path_invoking_is_ash`, `path_add_profile_ash` |
@@ -133,6 +133,7 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 |------|--------|------|
 | 2026-09-22 | Active (1.0.0) | Ash `$0` (and Alpine `sh`) writes `USER_BIN` PATH into `.profile` |
 | 2026-10-12 | Active (1.0.1) | Family matrix **points** at `requirement-shell-startup-files`; ash PATH stays here |
+| 2026-11-18 | Active (1.0.2) | `rc-test` folder switch is `--rc-root`. Startup-file kind for ash is `--rc ash` |
 
 ## Design-time verification
 
@@ -141,13 +142,13 @@ When grok-cli runs on Termux, Git Bash, Windows cmd, or the same class (this log
 | **TP-LC-37** | `tests/test_local_lifecycle.sh` | have (`-ash` writes PATH on `PROFILE`) |
 | **TP-LC-38** | `tests/test_local_lifecycle.sh` | have (`sh` without release file does not) |
 | **TP-LC-39** | `tests/test_local_lifecycle.sh` | have (Alpine `sh` does) |
-| **TP-LC-40** | `tests/test_local_lifecycle.sh` | have (`rc-test --file ash`) |
+| **TP-LC-40** | `tests/test_local_lifecycle.sh` | have (`rc-test --rc ash`) |
 | **TP-LC-41** | `tests/test_local_lifecycle.sh` | have (bash / zsh / fish missing `.profile` is generated, no PATH export) |
 | **TP-LC-42** | `tests/test_local_lifecycle.sh` | have (existing `.profile` + ash appends PATH, body kept) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`.
 
-**Last Updated**: 2026-10-12 (1.0.1 — family pointer; ash PATH unchanged)  
+**Last Updated**: 2026-11-18 (1.0.2 — `rc-test --rc ash` against `--rc-root`)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

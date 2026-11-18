@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-zero-arguments.md  
-**Status**: Active (Version 2.2.0)  
+**Status**: Active (Version 2.2.2)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-zero-arguments`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -15,7 +15,15 @@ This requirement is the **project Single Source of Truth** for **zero-argument (
 | **Empty-argv type** | **Type O-S — Online script-alone** (off-TTY) **plus** TTY numbered menu |
 | **Rationale** | Product advertises `curl \| sh`; pipe empty argv is install-ensure. A real terminal keeps the daily-work menu. |
 
-**Empty argv** means **no command token** after global-flag parse. Overlay switches (`--debug`, `--quiet`/`-q`, `--force`, `--global`) **do not** disqualify empty argv. `grok-cli --debug` **MUST** follow the same empty-argv law as `grok-cli` and as `DEBUG=1 grok-cli`. `$# -eq 0` at entry is **sufficient** but **not necessary**.
+**Empty argv** means **no command token** after global-flag parse. Overlay switches (`--debug`, `--quiet`/`-q`, `--force`, `--global`, `--uname-s WORD`, `--uname-a WORD`) **do not** disqualify empty argv. The `WORD` after `--uname-s` or `--uname-a` is consumed by that switch and is not a command token (`requirement-shell-script-coding` **1.2.2**). Those two switches are the well-known test-purpose switches. `--debug` is the global diagnostic overlay. `grok-cli --debug` **MUST** follow the same empty-argv law as `grok-cli` and as `DEBUG=1 grok-cli`. `grok-cli --uname-s Linux` with no verb is the same empty argv. `$# -eq 0` at entry is **sufficient** but **not necessary**.
+
+```sh
+grok-cli --uname-s Linux
+grok-cli --debug
+grok-cli --quiet
+```
+
+`grok-cli --uname-s Linux` is empty argv with a test-purpose host overlay. `grok-cli --debug` and `grok-cli --quiet` are empty argv with global overlays.
 
 Off-TTY empty argv **MUST NOT** route to help. That path is how `curl -fsSL ${SCRIPT_URL} | sh` first-shot install works.
 
@@ -52,7 +60,7 @@ Typing only `grok-cli` at a prompt shows the numbered start list. The same list 
 1. **Empty argv** is: after global-flag parse, **no command token** was present. `$# -eq 0` at entry to `app_main` is one form. Flags-only overlay argv (`grok-cli --debug`, `grok-cli --quiet`, `grok-cli --force`) is the same form.  
 2. **Interactive** (`TTY=1`): route to `app_default` (numbered start list). **MUST NOT** install-ensure. **MUST NOT** print the help dump.  
 3. **Not interactive** (`TTY=0`): **Type O install-ensure** (`inst_channel_ensure`). **MUST NOT** print help. **MUST NOT** draw the numbered list. **MUST NOT** prompt. Not installed → download from `SCRIPT_URL` and place. Already installed → success no-op (no `--force` required). `--force` re-downloads.  
-4. Overlay switches with no command token **MUST** follow rules 2–3 (they **are** empty argv). `grok-cli --debug` **MUST** match `DEBUG=1 grok-cli`. `--quiet` / `-q`, `--force`, and `--global` with no command token **MUST** likewise follow empty argv (quiet / force / global overlay on that path).  
+4. Overlay switches with no command token **MUST** follow rules 2–3 (they **are** empty argv). `grok-cli --debug` **MUST** match `DEBUG=1 grok-cli`. `--quiet` / `-q`, `--force`, and `--global` with no command token **MUST** likewise follow empty argv (quiet / force / global overlay on that path). `--uname-s WORD` and `--uname-a WORD` with no command token **MUST** follow empty argv; `WORD` is not a command (`requirement-shell-script-coding` **1.2.2**). `--debug` stays the global diagnostic overlay.  
 5. **`--json` special case:** `--json` with no command token **is** empty argv. Outcome **MUST** be JSON help on **TTY and off-TTY**. **MUST NOT** the numbered list. **MUST NOT** Type O ensure. `grok-cli menu --json` on a TTY remains the list (`requirement-shell-cli-default-interaction`).  
 6. Explicit `grok-cli help` remains full usage.  
 7. Explicit `grok-cli install` remains the **checkout copy** path (offline).  
@@ -69,6 +77,8 @@ Typing only `grok-cli` at a prompt shows the numbered start list. The same list 
 | `grok-cli --debug` (no command, TTY) | Same numbered start list as empty argv; debug overlay on |
 | `grok-cli --debug` (no command, not TTY) | Install-ensure with debug overlay; **MUST NOT** help; **MUST NOT** menu |
 | `grok-cli --quiet` (no command) | Same empty-argv path as `grok-cli` (quiet) |
+| `grok-cli --uname-s Linux` (no command, TTY) | Same numbered start list; injected `uname -s` is `Linux` |
+| `grok-cli --uname-a "Linux localhost 0.0 x86_64 Android"` (no command, TTY) | Same numbered start list; injected `uname -a` contains `Android` |
 | `curl -fsSL ${SCRIPT_URL} \| sh` | Same as off-TTY empty argv |
 | `grok-cli --json` (no command, TTY) | Empty argv **special case**: JSON help; **MUST NOT** numbered list; **MUST NOT** prompt |
 | `grok-cli --json` (no command, not TTY) | Same special case: JSON help; **MUST NOT** install-ensure |
@@ -186,9 +196,11 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | 2026-09-02 | Active 2.0.0 | Off-TTY empty argv unrouted from help → Type O install-ensure; TTY menu kept |
 | 2026-09-07 | Active 2.1.0 | Empty argv = no command token; overlay switches (`--debug`) follow empty argv; `--json` no-command stays JSON help |
 | 2026-09-07 | Active 2.2.0 | `--json` with no command **is** empty argv; special case = JSON help even on a TTY |
+| 2026-11-17 | Active 2.2.1 | `--uname-s WORD` and `--uname-a WORD` are overlays; `WORD` is not a command token (`requirement-shell-script-coding` **1.2.0**) |
+| 2026-11-18 | Active 2.2.2 | Those overlays are the well-known test-purpose switches; `--debug` stays the global diagnostic overlay; sample (`requirement-shell-script-coding` **1.2.1**) |
 
 ---
 
-**Last Updated**: 2026-09-07  
+**Last Updated**: 2026-11-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -174,41 +174,12 @@ EOS
     chmod +x "${_dir}/curl"
 }
 
-# Fake uname that still reports this host's Linux/arch, plus Android so
-# gc_setup_host_is_android matches. Overwrites a toolbin symlink — do not
-# cat onto the symlink (that would rewrite the real uname).
-ci_write_android_uname() {
-    _dir="$1"
+# Android -a overlay for --uname-a. Real -s and -m stay this host.
+# Does not create, replace, or chmod a PATH file named uname.
+ci_android_uname_a() {
     _host_s=$(uname -s 2>/dev/null || echo Linux)
     _host_m=$(uname -m 2>/dev/null || echo x86_64)
-    rm -f "${_dir}/uname"
-    cat > "${_dir}/uname" <<EOF
-#!/bin/sh
-case "\${1:-}" in
-    -s) printf '%s\\n' "${_host_s}" ;;
-    -m) printf '%s\\n' "${_host_m}" ;;
-    -o) printf '%s\\n' "Android" ;;
-    -a) printf '%s\\n' "${_host_s} localhost 0.0 ${_host_m} Android" ;;
-    *) printf '%s\\n' "${_host_s}" ;;
-esac
-EOF
-    chmod +x "${_dir}/uname"
-}
-
-# Fake uname for Git Bash / MINGW so detect_platform is windows-{arch}.
-ci_write_mingw_uname() {
-    _dir="$1"
-    _host_m=$(uname -m 2>/dev/null || echo x86_64)
-    rm -f "${_dir}/uname"
-    cat > "${_dir}/uname" <<EOF
-#!/bin/sh
-case "\${1:-}" in
-    -s) printf '%s\\n' "MINGW64_NT-10.0" ;;
-    -m) printf '%s\\n' "${_host_m}" ;;
-    *) printf '%s\\n' "MINGW64_NT-10.0" ;;
-esac
-EOF
-    chmod +x "${_dir}/uname"
+    CI_ANDROID_UNAME_A="${_host_s} localhost 0.0 ${_host_m} Android"
 }
 
 # Fake Termux pkg: install -y proot writes a proot stub next to this pkg
@@ -535,11 +506,11 @@ run_test_grok_setup() {
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
-    ci_write_android_uname "${_tb}"
+    ci_android_uname_a
     _err=$(
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_ANDROID_SMOKE=etype \
             PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
-            sh "${SCRIPT}" setup 2>&1 >/dev/null
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" setup 2>&1 >/dev/null
     )
     _ec=$?
     assert_eq "TP-VCLI-19 Android e_type fail exit 1" 1 "${_ec}"
@@ -570,11 +541,11 @@ run_test_grok_setup() {
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
-    ci_write_android_uname "${_tb}"
+    ci_android_uname_a
     _out=$(
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_ANDROID_SMOKE=optout \
             PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
-            sh "${SCRIPT}" --json setup 2>/dev/null
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" --json setup 2>/dev/null
     )
     _ec=$?
     assert_eq "TP-VCLI-20 optout wrapper setup exit 0" 0 "${_ec}"
@@ -607,7 +578,7 @@ run_test_grok_setup() {
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
-    ci_write_android_uname "${_tb}"
+    ci_android_uname_a
     cat > "${_tb}/proot" <<'EOS'
 #!/bin/sh
 GROK_UNDER_PROOT=1
@@ -619,7 +590,7 @@ EOS
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_ANDROID_SMOKE=proot \
             PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
             LD_PRELOAD=injected \
-            sh "${SCRIPT}" --json setup 2>/dev/null
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" --json setup 2>/dev/null
     )
     _ec=$?
     assert_eq "TP-VCLI-21 proot wrapper setup exit 0" 0 "${_ec}"
@@ -644,7 +615,7 @@ EOS
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
-    ci_write_android_uname "${_tb}"
+    ci_android_uname_a
     ci_write_fake_pkg "${_tb}"
     PKG_LOG="${CI_HOME}/pkg.log"
     export PKG_LOG
@@ -652,7 +623,7 @@ EOS
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_ANDROID_SMOKE=proot \
             PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
             PKG_LOG="${PKG_LOG}" LD_PRELOAD=injected \
-            sh "${SCRIPT}" --json setup 2>/dev/null
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" --json setup 2>/dev/null
     )
     _ec=$?
     assert_eq "TP-VCLI-22 pkg-install proot setup exit 0" 0 "${_ec}"
@@ -678,7 +649,7 @@ EOS
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
-    ci_write_android_uname "${_tb}"
+    ci_android_uname_a
     ci_write_fake_pkg "${_tb}"
     PKG_LOG="${CI_HOME}/pkg.log"
     export PKG_LOG
@@ -686,7 +657,7 @@ EOS
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_ANDROID_SMOKE=etype \
             PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
             PKG_LOG="${PKG_LOG}" PKG_FAIL=1 \
-            sh "${SCRIPT}" setup 2>&1 >/dev/null
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" setup 2>&1 >/dev/null
     )
     _ec=$?
     assert_eq "TP-VCLI-23 pkg-fail e_type exit 1" 1 "${_ec}"
@@ -725,7 +696,7 @@ EOS
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
-    ci_write_android_uname "${_tb}"
+    ci_android_uname_a
     cat > "${_tb}/proot" <<'EOS'
 #!/bin/sh
 GROK_UNDER_PROOT=1
@@ -738,7 +709,7 @@ EOS
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_ANDROID_SMOKE=optout \
             PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
             GROK_SETUP_RESOLV_FILE="${CI_HOME}/empty-resolv" \
-            sh "${SCRIPT}" setup 2>&1
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" setup 2>&1
     )
     _ec=$?
     assert_eq "TP-VCLI-25 DNS-bind setup exit 0" 0 "${_ec}"
@@ -757,7 +728,7 @@ EOS
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
-    ci_write_android_uname "${_tb}"
+    ci_android_uname_a
     cat > "${_tb}/proot" <<'EOS'
 #!/bin/sh
 GROK_UNDER_PROOT=1
@@ -796,7 +767,7 @@ EOF
     _all=$(
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
             PATH="${CI_USER_BIN}:${_tb}:${CI_HOME}/fakecurl" \
-            sh "${SCRIPT}" setup 2>&1
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" setup 2>&1
     )
     _ec=$?
     assert_eq "TP-VCLI-28 heal setup exit 0" 0 "${_ec}"
@@ -818,7 +789,7 @@ EOF
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
-    ci_write_android_uname "${_tb}"
+    ci_android_uname_a
     cat > "${_tb}/proot" <<'EOS'
 #!/bin/sh
 GROK_UNDER_PROOT=1
@@ -864,7 +835,7 @@ EOF
     _all=$(
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
             PATH="${CI_USER_BIN}:${_tb}:${CI_HOME}/fakecurl" \
-            sh "${SCRIPT}" setup 2>&1
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" setup 2>&1
     )
     _ec=$?
     assert_eq "TP-VCLI-30 heal setup exit 0" 0 "${_ec}"
@@ -884,7 +855,7 @@ EOF
     # wrapper (no vendor re-download). INC-20260907-004.
     ci_isolated_env
     _tb=$(ci_toolbin)
-    ci_write_android_uname "${_tb}"
+    ci_android_uname_a
     cat > "${_tb}/proot" <<'EOS'
 #!/bin/sh
 GROK_UNDER_PROOT=1
@@ -952,7 +923,7 @@ EOS
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
             PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
             SCRIPT_URL="https://example.invalid/grok-cli" \
-            sh "${SCRIPT}" self-update 2>&1
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" self-update 2>&1
     )
     _ec=$?
     assert_eq "TP-VCLI-32 self-update already-at-remote exit 0" 0 "${_ec}"
@@ -1030,7 +1001,6 @@ EOS
     ci_isolated_env
     ci_write_fake_curl "${CI_HOME}/fakecurl"
     _tb=$(ci_toolbin)
-    ci_write_mingw_uname "${_tb}"
     CURL_LOG="${CI_HOME}/curl.log"
     export CURL_LOG
     _host_m=$(uname -m 2>/dev/null || true)
@@ -1048,7 +1018,7 @@ EOS
     _out=$(
         HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
             CURL_LOG="${CURL_LOG}" \
-            sh "${SCRIPT}" --json setup 2>/dev/null
+            sh "${SCRIPT}" --uname-s MINGW64_NT-10.0 --json setup 2>/dev/null
     )
     _ec=$?
     assert_eq "TP-VCLI-36 mingw setup exit 0" 0 "${_ec}"
@@ -1240,4 +1210,168 @@ EOS
     assert_contains "TP-VCLI-42 auth.json body kept" "$(cat "${CI_HOME}/.grok/auth.json")" '"keep":"me"'
     ci_cleanup_env
     unset CURL_LOG
+
+    # TP-UNAME-01: no switch. Host reads go through util_uname and match
+    # this host's real -s / -m. The operand of an overlay is not a command.
+    _uu_bad=$(awk '
+        {
+            line = $0
+            sub(/#.*/, "", line)
+            if (line ~ /\$\(uname/) print NR ":" $0
+            if (line ~ /`uname/) print NR ":" $0
+        }
+    ' "${SCRIPT}" || true)
+    if [ -z "${_uu_bad}" ]; then
+        t_pass "TP-UNAME-01 uname binary only inside util_uname and command -v"
+    else
+        t_fail "TP-UNAME-01 raw uname outside util_uname: ${_uu_bad}"
+    fi
+    if grep -q '^util_uname()' "${SCRIPT}" && grep -q 'command -v uname' "${SCRIPT}"; then
+        t_pass "TP-UNAME-01 util_uname and command -v uname are present"
+    else
+        t_fail "TP-UNAME-01 missing util_uname or command -v uname"
+    fi
+    _uu_s=$(uname -s 2>/dev/null || true)
+    _uu_m=$(uname -m 2>/dev/null || true)
+    _uu_os=""
+    _uu_arch=""
+    case "${_uu_s}" in
+        Darwin) _uu_os="macos" ;;
+        Linux) _uu_os="linux" ;;
+        MINGW*|MSYS*|CYGWIN*) _uu_os="windows" ;;
+    esac
+    case "${_uu_m}" in
+        x86_64|amd64|AMD64) _uu_arch="x86_64" ;;
+        arm64|aarch64|ARM64) _uu_arch="aarch64" ;;
+    esac
+    if [ -z "${_uu_os}" ] || [ -z "${_uu_arch}" ]; then
+        t_skip "TP-UNAME-01 host ${_uu_s}/${_uu_m} has no artifact map"
+    else
+        ci_isolated_env
+        ci_write_fake_curl "${CI_HOME}/fakecurl"
+        _tb=$(ci_toolbin)
+        CURL_LOG="${CI_HOME}/curl.log"
+        export CURL_LOG
+        _out=$(
+            HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
+                PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+                CURL_LOG="${CURL_LOG}" \
+                sh "${SCRIPT}" --json setup 2>/dev/null
+        )
+        _ec=$?
+        assert_eq "TP-UNAME-01 no-switch setup exit 0" 0 "${_ec}"
+        if [ -f "${CURL_LOG}" ] && grep -q "${_uu_os}-${_uu_arch}" "${CURL_LOG}"; then
+            t_pass "TP-UNAME-01 artifact matches real uname ${_uu_s}/${_uu_m}"
+        else
+            t_fail "TP-UNAME-01 artifact did not match ${_uu_os}-${_uu_arch}"
+        fi
+        if [ -e "${_tb}/uname" ] && [ ! -L "${_tb}/uname" ]; then
+            t_fail "TP-UNAME-01 toolbin uname is a regular file"
+        else
+            t_pass "TP-UNAME-01 did not plant a regular file named uname"
+        fi
+        ci_cleanup_env
+        unset CURL_LOG
+    fi
+    ci_isolated_env
+    HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" install >/dev/null 2>&1
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" --uname-s Linux 2>&1)
+    _ec=$?
+    assert_eq "TP-UNAME-01 overlay without a verb exit 0" 0 "${_ec}"
+    assert_contains "TP-UNAME-01 overlay without a verb is empty argv" "${_out}" "already installed"
+    assert_not_contains "TP-UNAME-01 overlay is not a command" "${_out}" "Unknown command"
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" GROK_CLI_LANG=de sh "${SCRIPT}" help 2>/dev/null)
+    assert_contains "TP-UNAME-01 help lists --uname-s" "${_out}" "--uname-s"
+    assert_contains "TP-UNAME-01 help lists --uname-a" "${_out}" "--uname-a"
+    ci_cleanup_env
+
+    # TP-UNAME-02: --uname-s after the verb selects windows-* on this host.
+    # The test does not create a regular file named uname.
+    _uu_m=$(uname -m 2>/dev/null || true)
+    _uu_arch=""
+    case "${_uu_m}" in
+        x86_64|amd64|AMD64) _uu_arch="x86_64" ;;
+        arm64|aarch64|ARM64) _uu_arch="aarch64" ;;
+    esac
+    if [ -z "${_uu_arch}" ]; then
+        t_skip "TP-UNAME-02 host arch ${_uu_m}"
+    else
+        ci_isolated_env
+        ci_write_fake_curl "${CI_HOME}/fakecurl"
+        _tb=$(ci_toolbin)
+        CURL_LOG="${CI_HOME}/curl.log"
+        export CURL_LOG
+        _out=$(
+            HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" \
+                PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+                CURL_LOG="${CURL_LOG}" \
+                sh "${SCRIPT}" --json setup --uname-s MINGW64_NT-10.0 2>/dev/null
+        )
+        _ec=$?
+        assert_eq "TP-UNAME-02 mingw overlay exit 0" 0 "${_ec}"
+        assert_contains "TP-UNAME-02 JSON installed" "${_out}" '"status":"installed"'
+        assert_file_exists "TP-UNAME-02 placed grok.exe" "${CI_HOME}/.grok/bin/grok.exe"
+        if [ -f "${CURL_LOG}" ] && grep -q "windows-${_uu_arch}.exe" "${CURL_LOG}"; then
+            t_pass "TP-UNAME-02 curl hit windows-${_uu_arch}.exe"
+        else
+            t_fail "TP-UNAME-02 curl log missing windows-${_uu_arch}.exe"
+        fi
+        _uu_plant=$(find "${CI_HOME}" -name uname -type f 2>/dev/null || true)
+        if [ -n "${_uu_plant}" ]; then
+            t_fail "TP-UNAME-02 planted a regular file named uname"
+        else
+            t_pass "TP-UNAME-02 did not plant a regular file named uname"
+        fi
+        ci_cleanup_env
+        unset CURL_LOG
+    fi
+
+    # TP-UNAME-03: --uname-a containing Android takes the Android branch.
+    ci_isolated_env
+    ci_write_fake_curl "${CI_HOME}/fakecurl"
+    _tb=$(ci_toolbin)
+    ci_android_uname_a
+    _err=$(
+        HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" CURL_ANDROID_SMOKE=etype \
+            PATH="${CI_HOME}/fakecurl:${CI_USER_BIN}:${_tb}" \
+            sh "${SCRIPT}" --uname-a "${CI_ANDROID_UNAME_A}" setup 2>&1 >/dev/null
+    )
+    _ec=$?
+    assert_eq "TP-UNAME-03 Android overlay exit 1" 1 "${_ec}"
+    assert_contains "TP-UNAME-03 Android branch names static Linux executable" "${_err}" "static Linux executable"
+    assert_contains "TP-UNAME-03 Android branch Next is pkg install proot" "${_err}" "pkg install proot"
+    assert_not_contains "TP-UNAME-03 Android branch is not check-the-download" "${_err}" "check the download"
+    _uu_plant=$(find "${CI_HOME}" -name uname -type f 2>/dev/null || true)
+    if [ -n "${_uu_plant}" ]; then
+        t_fail "TP-UNAME-03 planted a regular file named uname"
+    else
+        t_pass "TP-UNAME-03 did not plant a regular file named uname"
+    fi
+    ci_cleanup_env
+
+    # TP-UNAME-04: missing, empty, and dash-leading operands die with Next:.
+    ci_isolated_env
+    _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" --uname-s 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-UNAME-04 missing --uname-s exit 1" 1 "${_ec}"
+    assert_contains "TP-UNAME-04 missing --uname-s names the switch" "${_err}" "--uname-s"
+    assert_contains "TP-UNAME-04 missing --uname-s Next" "${_err}" "Next:"
+    _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" --uname-a "" 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-UNAME-04 empty --uname-a exit 1" 1 "${_ec}"
+    assert_contains "TP-UNAME-04 empty --uname-a names the switch" "${_err}" "--uname-a"
+    assert_contains "TP-UNAME-04 empty --uname-a Next" "${_err}" "Next:"
+    _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" setup --uname-s -nope 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-UNAME-04 dash-leading --uname-s exit 1" 1 "${_ec}"
+    assert_contains "TP-UNAME-04 dash-leading names the switch" "${_err}" "--uname-s"
+    assert_contains "TP-UNAME-04 dash-leading Next" "${_err}" "Next:"
+    _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" --json --uname-a 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-UNAME-04 missing --uname-a under --json exit 1" 1 "${_ec}"
+    assert_contains "TP-UNAME-04 json die names the switch" "${_err}" "--uname-a"
+    assert_contains "TP-UNAME-04 json die Next" "${_err}" "Next:"
+    assert_contains "TP-UNAME-04 json die is out_error" "${_err}" '"type":"out_error"'
+    ci_cleanup_env
+    unset _uu_bad _uu_s _uu_m _uu_os _uu_arch _uu_plant _err _ec _out _tb
 }

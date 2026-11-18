@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-path-and-shell-support.md  
-**Status**: Active (Version 1.2.1 – startup-file family points at requirement-shell-startup-files)  
+**Status**: Active (Version 1.2.3 – `rc-test` switches are `--rc-root` and `--rc`)  
 **Area**: shell  
 **Key**: `requirement-shell-path-and-shell-support`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -22,7 +22,7 @@ It owns **path-ensure** (one shared `USER_BIN` line on interactive rc) and **pro
 | Box | Meaning | Example |
 |-----|---------|---------|
 | You / this login | The person who ran install | `grok-cli install` |
-| The other role | Tests that point `BASHRC` at a throw-away folder | `grok-cli rc-test --root "$tmpdir" --file bashrc --case create` |
+| The other role | Tests that point `BASHRC` at a throw-away folder | `grok-cli rc-test --rc-root "$tmpdir" --rc bashrc --case create` |
 | Not this file | Copying the program into `~/.local/bin`; installing peer grok | `requirement-shell-local-self-management.md` · `requirement-grok-setup.md` |
 
 | Includes | Excludes |
@@ -39,7 +39,7 @@ It owns **path-ensure** (one shared `USER_BIN` line on interactive rc) and **pro
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
 | Install for yourself | Program file goes in `USER_BIN`; PATH line is added once; missing `.profile` is created. A second install does not duplicate the PATH line. | `grok-cli install` |
-| Prove PATH without touching this login’s real `.bashrc` | A temp folder is the scratch pad. Real home rc stays still. | `grok-cli rc-test --root "$tmpdir" --file bashrc --case create` |
+| Prove PATH without touching this login’s real `.bashrc` | A temp folder is the scratch pad. Real home rc stays still. | `grok-cli rc-test --rc-root "$tmpdir" --rc bashrc --case create` |
 | Remove this program while other tools remain in `~/.local/bin` | PATH line stays. Only this product’s installer comments may go. | `grok-cli uninstall --force` |
 
 ---
@@ -137,25 +137,28 @@ This product **MUST NOT** `chattr +i`, flock, or otherwise lock `.bashrc` agains
 
 | Detector | Role |
 |----------|------|
-| Type 0 **`rc-test`** | Test-purpose verb. Target = caller `--root` tmp/cache folder (or `mktemp -d`). **MUST NOT** write this login’s real `{{HOME}}/.bashrc`. Dual mention: `requirement-shell-cli-interface`. **MUST** be routed (not a named-only Gap). |
+| Type 0 **`rc-test`** | Well-known test-purpose verb. Target = caller `--rc-root` tmp/cache folder (or `mktemp -d`). **MUST NOT** write this login’s real `{{HOME}}/.bashrc`. Dual mention: `requirement-shell-cli-interface`. **MUST** be routed (not a named-only Gap). |
 | Fixture suites | **TP-LC-20** create / **TP-LC-21** modify dongle / **TP-LC-22** VERSION+exact-PATH no-op with `BASHRC` in a random temp folder; real `{{HOME}}/.bashrc` untouched |
 | `about` / `help` | Help Environment lists `BASHRC`. `about` **MUST NOT** claim rc is healthy without a check. `about` **MAY** report whether the exact PATH line is present |
 
+`rc-test` is the well-known test-purpose CLI verb. Its well-known switches are `--rc-root`, `--rc`, `--case`, and `--feature`. `--rc-root` is the fixture folder. `--rc` is the startup-file kind. A path-taking `--file` on another verb stays `--file`. Run-wide host overlays `--uname-s WORD` and `--uname-a WORD` stay on `requirement-shell-script-coding`. `--debug` stays the global diagnostic switch.
+
 **`rc-test` argv (normative sample):**
 
-```text
-grok-cli rc-test --root "$tmpdir" --file bashrc --case create
-grok-cli rc-test --root "$tmpdir" --file bashrc --case modify
-grok-cli rc-test --root "$tmpdir" --file bashrc --case noop
-grok-cli rc-test --root "$tmpdir" --file profile --case create
+```sh
+grok-cli rc-test --rc-root "$tmpdir" --rc bashrc --case create
+grok-cli rc-test --rc-root "$tmpdir" --rc bashrc --case modify
+grok-cli rc-test --rc-root "$tmpdir" --rc bashrc --case noop
+grok-cli rc-test --rc-root "$tmpdir" --rc profile --case create
+grok-cli rc-test --rc-root "$tmpdir" --rc bashrc --case create --feature path-ensure
 ```
 
 | Flag | Meaning |
 |------|---------|
-| `--root` | Fixture directory (tmp/cache). Keep real `HOME`. |
-| `--file` | `bashrc` \| `zshenv` \| `zprofile` \| `profile` (Fish when claimed) \| `ash`. **`zshrc` MUST fail closed** (Next: `--file zshenv`; zsh PATH is `.zshenv` and `.zprofile`; `.zprofile` owner `requirement-shell-startup-files`) |
-| `--case` | `create` \| `modify` \| `noop` |
-| `--feature` | Optional: `path-ensure` \| `profile-ensure` (default from `--file`) |
+| `--rc-root` | Required fixture directory (tmp/cache). Keep real `HOME`. Well-known switch of this verb |
+| `--rc` | Startup-file kind. Well-known values: `bashrc` \| `zshenv` \| `zprofile` \| `profile` \| `ash` \| `fish`. **`zshrc` MUST fail closed** (Next: `--rc zshenv`; zsh PATH is `.zshenv` and `.zprofile`; `.zprofile` owner `requirement-shell-startup-files`) |
+| `--case` | Well-known values: `create` \| `modify` \| `noop` |
+| `--feature` | Well-known values: `path-ensure` \| `profile-ensure` (default from `--rc`) |
 
 **MUST:** invoke the same `path_add_*` / `path_ensure_profile` helpers production uses; assert real home rc untouched; no `sudo` except wrapping chmod/chown of **that** folder (this product: skip sudo — this login owns the fixture).  
 **MUST NOT:** call `install` / dest / `setup` as part of `rc-test`; set `HOME=/tmp/…` to “isolate.”  
@@ -200,7 +203,7 @@ Helpers: `path_add_shell` (orchestrator), `path_add_bashrc`, `path_add_zshenv` (
 | Profile | Create-if-absent source-bashrc; never overwrite; do not delete on uninstall. First writer’s `# BEGIN <APP_NAME> profile source-bashrc` stays |
 | Login-hook | Unused here; do not plant; do not strip `# BEGIN <app> login hook` … `# END` |
 | Vendor grok block | `# >>> grok installer >>>` … `# <<< grok installer <<<` — other REQ; not this PATH line |
-| Proof | Fixture `--root`; real `{{HOME}}/.bashrc` untouched |
+| Proof | Fixture `--rc-root`; real `{{HOME}}/.bashrc` untouched |
 
 This chat **MUST NOT** edit those other project trees. Unify means grok-cli **behaves** as a good sibling.
 
@@ -283,7 +286,7 @@ When the ship unit detects a **command line for normal user only** (Termux, Git 
 9. Plant a login-review hook in `.bashrc` or `.profile` (unused on this product), or strip another product’s hook markers.  
 10. Lock `.bashrc` (`chattr`, flock, exclusive ownership of the whole file) as “sibling protection.”  
 11. Prove PATH ensure by rewriting this login’s real `~/.bashrc`.  
-12. Claim path-ensure without **TP-LC-20** / **TP-LC-21** / **TP-LC-22**, or without dual-mentioning Type 0 **`rc-test --root`**.  
+12. Claim path-ensure without **TP-LC-20** / **TP-LC-21** / **TP-LC-22**, or without dual-mentioning Type 0 **`rc-test --rc-root`**.  
 13. Mix `rc-test` into operational help grouping, or treat `rc-test` as install.  
 14. Strip the vendor `# >>> grok installer >>>` block, or tell the operator to add `USER_BIN` when peer grok lives under `~/.grok/bin`.  
 15. Strip the **Under command line for normal user only** section, or wrap `sudo` / `apt` to write rc.  
@@ -345,7 +348,7 @@ Work claiming PATH / login-rc support for grok-cli is **not done** if any of the
 | **TP-LC-32** uninstall while `USER_BIN` still has a file | `tests/test_local_lifecycle.sh` | have |
 | **TP-LC-33** sudoer-cli login-hook block kept | `tests/test_local_lifecycle.sh` | have |
 | **TP-LC-23 / 24 / 34 / 35 / 36** zsh PATH | `tests/test_local_lifecycle.sh` | **pointed** — `requirement-shell-zshenv` |
-| **TP-LC-43 / 44 / 45 / 46** `.zprofile` and `rc-test --file zprofile` | `tests/test_local_lifecycle.sh` | **pointed** — `requirement-shell-startup-files` |
+| **TP-LC-43 / 44 / 45 / 46** `.zprofile` and `rc-test --rc zprofile` | `tests/test_local_lifecycle.sh` | **pointed** — `requirement-shell-startup-files` |
 | **TP-LC-25 / 26** `PROFILE` env create / keep-body | `tests/test_local_lifecycle.sh` | have |
 | **`rc-test`** routed `--root` | `tests/test_local_lifecycle.sh` | have |
 
@@ -370,7 +373,9 @@ Work claiming PATH / login-rc support for grok-cli is **not done** if any of the
 | 2026-09-17 | Active (1.1.0) | Zsh PATH **points** at `requirement-shell-zshenv` (`.zshenv`, not `.zshrc`) |
 | 2026-09-22 | Active (1.2.0) | Ash PATH **points** at `requirement-shell-alpine` (`.profile` when `$0` is ash) |
 | 2026-10-12 | Active (1.2.1) | `.zprofile` and the startup-file family **point** at `requirement-shell-startup-files`; `ZPROFILE`; `rc-test --file zprofile` |
+| 2026-11-18 | Active (1.2.2) | `rc-test` is the well-known test-purpose verb; `--root` / `--file` / `--case` / `--feature` are its well-known switches; fenced sample |
+| 2026-11-18 | Active (1.2.3) | `rc-test` folder switch is `--rc-root`. Startup-file kind is `--rc`. Path-taking `--file` stays on other verbs |
 
-**Last Updated**: 2026-10-12  
+**Last Updated**: 2026-11-18  
 **Owner**: grok-cli project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

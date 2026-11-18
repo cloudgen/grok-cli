@@ -4,8 +4,8 @@
 # Primary REQs: requirement-shell-local-self-management, requirement-shell-idempotency,
 # requirement-shell-interactive-vs-noninteractive,
 # requirement-shell-path-and-shell-support (TP-LC-11..14, 20..22, 25..33, rc-test)
-# requirement-shell-zshenv (TP-LC-23, 24, 34, 35, 36, rc-test --file zshenv)
-# requirement-shell-startup-files (TP-LC-43..46, rc-test --file zprofile)
+# requirement-shell-zshenv (TP-LC-23, 24, 34, 35, 36, rc-test --rc zshenv)
+# requirement-shell-startup-files (TP-LC-43..46, rc-test --rc zprofile)
 # TP family: TP-LC-*
 # =============================================================================
 
@@ -498,34 +498,34 @@ run_test_local_lifecycle() {
     HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
     ci_cleanup_env
 
-    # rc-test routed --root (does not write HOME/.bashrc)
+    # rc-test routed --rc-root (does not write HOME/.bashrc)
     ci_isolated_env
     CI_RCT=$(mktemp -d "${TMPDIR:-/tmp}/gc-rct.XXXXXX")
     assert_file_missing "rc-test HOME/.bashrc absent before" "${CI_HOME}/.bashrc"
-    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --root "${CI_RCT}" --file bashrc --case create 2>&1)
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --rc-root "${CI_RCT}" --rc bashrc --case create 2>&1)
     _ec=$?
     assert_eq "rc-test create exit 0" 0 "$_ec"
     assert_file_exists "rc-test created fixture bashrc" "${CI_RCT}/.bashrc"
     assert_file_missing "rc-test did not write HOME/.bashrc" "${CI_HOME}/.bashrc"
     assert_contains "rc-test success text" "$_out" "rc-test bashrc create"
-    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --root "${CI_RCT}" --file zshenv --case create 2>&1)
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --rc-root "${CI_RCT}" --rc zshenv --case create 2>&1)
     _ec=$?
     assert_eq "rc-test zshenv create exit 0" 0 "$_ec"
     assert_file_exists "rc-test created fixture zshenv" "${CI_RCT}/.zshenv"
     assert_file_missing "rc-test did not write HOME/.zshenv" "${CI_HOME}/.zshenv"
     assert_contains "rc-test zshenv success text" "$_out" "rc-test zshenv create"
-    _err=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --root "${CI_RCT}" --file zshrc --case modify 2>&1 >/dev/null)
+    _err=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --rc-root "${CI_RCT}" --rc zshrc --case modify 2>&1 >/dev/null)
     _ec=$?
     assert_eq "rc-test zshrc fail-closed exit 1" 1 "$_ec"
-    assert_contains "rc-test zshrc Next zshenv" "$_err" "--file zshenv"
-    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --root "${CI_RCT}" --file ash --case modify 2>&1)
+    assert_contains "rc-test zshrc Next zshenv" "$_err" "--rc zshenv"
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" rc-test --rc-root "${CI_RCT}" --rc ash --case modify 2>&1)
     _ec=$?
     assert_eq "TP-LC-40 rc-test ash exit 0" 0 "$_ec"
     _prof=$(cat "${CI_RCT}/.profile" 2>/dev/null || true)
     assert_contains "TP-LC-40 ash fixture keeps body" "$_prof" "keep-existing-profile"
     assert_contains "TP-LC-40 ash fixture PATH" "$_prof" "export PATH="
     assert_file_missing "TP-LC-40 did not write HOME/.profile" "${CI_HOME}/.profile"
-    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" SHELL=/bin/bash sh "${SCRIPT}" rc-test --root "${CI_RCT}" --file zprofile --case create 2>&1)
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" SHELL=/bin/bash sh "${SCRIPT}" rc-test --rc-root "${CI_RCT}" --rc zprofile --case create 2>&1)
     _ec=$?
     assert_eq "TP-LC-46 rc-test zprofile exit 0" 0 "$_ec"
     assert_file_exists "TP-LC-46 created fixture zprofile" "${CI_RCT}/.zprofile"

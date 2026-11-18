@@ -61,7 +61,7 @@
 | Automatic checksum | `requirement-shell-automatic-checksum.md` | companion mismatch abort |
 | Output SSOT | `requirement-shell-output-requirements.md` | `out_*` |
 | Modular design | `requirement-shell-modular-function-design.md` | `gc_*` |
-| Coding style | `requirement-shell-script-coding.md` | `set -u`, fail-closed; Termux **points** |
+| Coding style | `requirement-shell-script-coding.md` | `set -u`, fail-closed; Termux **points**; `util_uname` plus `--uname-s` / `--uname-a` |
 | Termux writing | `requirement-shell-termux-coding.md` | `PREFIX`, `pkg`, `noexec`, FHS-not-assumed |
 | Domain | `requirement-domain-grok-cli.md` | Four pillars; `setup` / `run` |
 | Superseded | folder-archive + domain-folder-backup | Must stay superseded; do not revive restore |

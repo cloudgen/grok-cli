@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.3.7 – leftover startup-file family points at requirement-shell-startup-files)  
+**Status**: Active (Version 1.3.8 – actor catalog points at requirement-actor-role-subject)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (CIAO = Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -35,8 +35,8 @@ This file tells anyone (a person or an AI agent): this folder’s **project natu
 |-----|--------------|----------|
 | You (developer / maintainer) get the project nature and leftover stack (language, tools, “no dest approver”) | Agents and reviewers get clear ownership of stack facts until a more specific requirement takes them over | A dest approval machine, a second class file, or a place to invent new approver accounts |
 
-**Includes:** project-nature membership; leftover stack facts; an honest statement that there is no dest approver and no dest fence (no listed reasons for that reviewer to refuse a file).  
-**Excludes:** making up an approver account; inventing dest fence rows; copying full tables that already exist in other requirement files.
+**Includes:** project-nature membership; leftover stack facts; a pointer to the light who-is-who catalog (`requirement-actor-role-subject`); an honest statement that there is no dest fence.  
+**Excludes:** printing the Actor / Role / Subject table here; making up an approver account; inventing dest fence rows; copying full tables that already exist in other requirement files.
 
 | You open | What you get |
 |----------|----------------|
@@ -168,7 +168,7 @@ A **lockfile** is a frozen list of dependency versions.
 | JSON sudoer file (grant body) | `requirement-sudoer-json-file` | **JSON** = a structured text format. `{{PRJ_NAME}}` only; no `cp` / `mkdir` / OS-tool commands |
 | Grok auth backup operations | `requirement-grok-auth-backup` | Session check / deposit / sync-auth (not domain) |
 | Domain surface (verbs, help, about) | `requirement-domain-grok-cli` | Four pillars only (the product’s own commands, features, help, and about); ops pointer |
-| Actor / role / subject / approver | **this file** (leftover) | **considered — no dest approver and no approval subject**. This product has no dest approval machine. **MUST NOT** invent an approver. |
+| Actor / role / subject | `requirement-actor-role-subject` | Light three-column catalog. This product has no dest approval machine. **MUST NOT** invent an approver. **MUST NOT** reprint the table here. |
 | Dest fence conditions | **this file** (leftover) | **considered — no dest fence conditions**. No dest Fence table. **MUST NOT** invent a dest fence. |
 | Online install / remote self-management / companion checksum | peer REQs (Active 2026-09-02) | **REQ** = requirement file. User-ordered specialization from selfmanaged |
 
@@ -204,7 +204,8 @@ A **lockfile** is a frozen list of dependency versions.
 5. Leave the Implementation Notes as empty stubs when the status claims Active.  
 6. Remove Active rules for online install / self-update / self-uninstall / checksum without updating this leftover section and the dual-mode matrix.  
 7. Treat this file as server-maintenance allowlist law, or create an Active server-maintenance class file in parallel.  
-8. Invent a second primary-language SSOT that contradicts peer modular / CLI requirements.
+8. Invent a second primary-language SSOT that contradicts peer modular / CLI requirements.  
+9. Invent an approver, or copy the Actor / Role / Subject table back into this file. That catalog is `requirement-actor-role-subject`.
 
 **Breaking any of these is a critical regression** (a serious step backward).
 
@@ -221,6 +222,7 @@ A **lockfile** is a frozen list of dependency versions.
 | AC-5 | No conflict with `requirement-class-server-maintenance` (only one Active class file) |
 | AC-6 | The program people install (single-file POSIX shell, dual-mode install) is consistent with other shell requirements |
 | AC-7 | The online install package is Active; leftover entries point to peer requirements (no duplicated channel tables here) |
+| AC-8 | The actor catalog points at `requirement-actor-role-subject`. This file does not print Actor / Role / Subject |
 
 ---
 
@@ -228,6 +230,7 @@ A **lockfile** is a frozen list of dependency versions.
 
 | Key | Relationship |
 |-----|--------------|
+| `requirement-actor-role-subject` | Light who-is-who catalog (Actor, Role, Subject). No approver |
 | `requirement-bootstrap-chain` | Lineage: A=cli-template → B=grok-cli (domain retarget) |
 | `requirement-project-folder` | Layout and install locations |
 | `requirement-shell-cli-interface` | Command surface, flags, dispatch |
@@ -282,9 +285,10 @@ A **lockfile** is a frozen list of dependency versions.
 | 2026-09-17 | Active (1.3.5) | Leftover: zsh PATH → `requirement-shell-zshenv` (`.zshenv`, not `.zshrc`) |
 | 2026-09-22 | Active (1.3.6) | Leftover: ash / Alpine PATH → `requirement-shell-alpine` (`.profile` when `$0` is ash) |
 | 2026-10-12 | Active (1.3.7) | Leftover: shell startup files → `requirement-shell-startup-files` |
+| 2026-11-17 | Active (1.3.8) | Actor catalog points at `requirement-actor-role-subject`. This file does not print the table |
 
 ---
 
-**Last Updated**: 2026-10-12  
+**Last Updated**: 2026-11-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

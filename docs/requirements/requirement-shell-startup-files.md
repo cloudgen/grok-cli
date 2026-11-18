@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-startup-files.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.0.1)  
 **Area**: shell  
 **Key**: `requirement-shell-startup-files`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -8,9 +8,9 @@
 
 This file is the **topic-owner** for the **shell startup file** family on grok-cli: which file each operating environment reads, where the shared `USER_BIN` PATH line goes, and what happens when a startup file is missing.
 
-It owns the **missing-file matrix** and **zsh login PATH on `.zprofile`** (`path_add_zprofile`, env `ZPROFILE`, `rc-test --file zprofile`). Bash PATH on `.bashrc`, Fish PATH, and the bash/zsh/fish profile-ensure body stay on `requirement-shell-path-and-shell-support`. Always-on zsh PATH on `.zshenv` stays on `requirement-shell-zshenv`. Ash PATH on an existing or new `.profile` stays on `requirement-shell-alpine`. Peers **point** here for the family; they do not re-own `.zprofile`.
+It owns the **missing-file matrix** and **zsh login PATH on `.zprofile`** (`path_add_zprofile`, env `ZPROFILE`, `rc-test --rc zprofile`). Bash PATH on `.bashrc`, Fish PATH, and the bash/zsh/fish profile-ensure body stay on `requirement-shell-path-and-shell-support`. Always-on zsh PATH on `.zshenv` stays on `requirement-shell-zshenv`. Ash PATH on an existing or new `.profile` stays on `requirement-shell-alpine`. Peers **point** here for the family; they do not re-own `.zprofile`.
 
-**Scope:** OS and shell matrix; missing `.profile`, missing `.zshenv`, missing `.zprofile`; append-never-replace; `rc-test --file zprofile`; uninstall stickers on `.zprofile`.  
+**Scope:** OS and shell matrix; missing `.profile`, missing `.zshenv`, missing `.zprofile`; append-never-replace; `rc-test --rc zprofile`; uninstall stickers on `.zprofile`.  
 **Out of scope (cited, not re-owned):** Placing the binary; the vendor grok `# >>> grok installer >>>` block (stays on `.bashrc` or `.zshenv` per `requirement-grok-setup`); writing PATH to `.zshrc`.
 
 **Not claimed:** `.zlogin` for PATH; `/etc/zprofile`; Windows User `Path` as a file this product creates; another login’s home.
@@ -22,7 +22,7 @@ It owns the **missing-file matrix** and **zsh login PATH on `.zprofile`** (`path
 | Box | Meaning | Example |
 |-----|---------|---------|
 | You / this login | The person who ran install | `grok-cli install` or the curl one-liner |
-| The other role | A test that points the write at a throw-away folder | `grok-cli rc-test --root "$tmpdir" --file zprofile --case create` |
+| The other role | A test that points the write at a throw-away folder | `grok-cli rc-test --rc-root "$tmpdir" --rc zprofile --case create` |
 | Not this file | The always-on zsh line alone; the ash-only profile line; copying the program | `requirement-shell-zshenv` · `requirement-shell-alpine` · `requirement-shell-local-self-management` |
 
 | Includes | Excludes |
@@ -32,13 +32,13 @@ It owns the **missing-file matrix** and **zsh login PATH on `.zprofile`** (`path
 | Surface | What you open | What for |
 |---------|---------------|----------|
 | `grok-cli install` | Command | Companion writes the PATH line on the files this shell reads |
-| `grok-cli rc-test --file zprofile` | Test-purpose command | Create / modify / no-op against a temp folder |
+| `grok-cli rc-test --rc zprofile` | Test-purpose command | Create / modify / no-op against a temp folder |
 | `grok-cli help` | Command | Environment lists `ZPROFILE` |
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
 | Install on zsh | The program file goes in `USER_BIN`. The always-on note and the zsh login note each get the PATH line once. A second install does not duplicate it. `.zshrc` is left alone. | `grok-cli install` |
-| Prove a missing `.zprofile` without touching this login’s real note | A temp folder is the scratch pad. Real home startup files stay still. | `grok-cli rc-test --root "$tmpdir" --file zprofile --case create` |
+| Prove a missing `.zprofile` without touching this login’s real note | A temp folder is the scratch pad. Real home startup files stay still. | `grok-cli rc-test --rc-root "$tmpdir" --rc zprofile --case create` |
 | Install on bash only | `.profile` may be created so login sources `.bashrc`. `.zshenv` and `.zprofile` are not invented. | `grok-cli install` |
 
 ---
@@ -94,22 +94,22 @@ Zsh login order is `.zshenv`, then `/etc/zprofile` (`path_helper` on macOS can r
 
 `path_add_shell` **MUST** call `path_add_zprofile` after `path_add_zshenv`. It **MUST NOT** assign a default `ZPROFILE` before that call.
 
-### 2.4 `rc-test --file zprofile`
+### 2.4 `rc-test --rc zprofile`
 
-`rc-test` is Type 0 **test-purpose**. Allowed `--file`: `bashrc|zshenv|zprofile|profile|fish|ash`. `--file zshrc` **MUST** fail closed. Next step names `--file zshenv` and states that zsh PATH is `.zshenv` and `.zprofile`.
+`rc-test` is Type 0 **test-purpose**. Allowed `--rc`: `bashrc|zshenv|zprofile|profile|fish|ash`. `--rc zshrc` **MUST** fail closed. Next step names `--rc zshenv` and states that zsh PATH is `.zshenv` and `.zprofile`.
 
 | MUST | MUST NOT |
 |------|----------|
-| Export `ZPROFILE` under `--root` so the case is explicit | Write this login’s real `${HOME}/.zprofile` |
+| Export `ZPROFILE` under `--rc-root` so the case is explicit | Write this login’s real `${HOME}/.zprofile` |
 | Snapshot real `${HOME}/.bashrc`, `.profile`, `.zshenv`, and `.zprofile` and refuse if any change | Call `install` / `setup` as part of `rc-test` |
 | Dual-mention on `requirement-shell-cli-interface` and on this file | Treat help text as the second mention |
 
 Sample:
 
-```text
-grok-cli rc-test --root "$tmpdir" --file zprofile --case create
-grok-cli rc-test --root "$tmpdir" --file profile --case create
-grok-cli rc-test --root "$tmpdir" --file zshenv --case create
+```sh
+grok-cli rc-test --rc-root "$tmpdir" --rc zprofile --case create
+grok-cli rc-test --rc-root "$tmpdir" --rc profile --case create
+grok-cli rc-test --rc-root "$tmpdir" --rc zshenv --case create
 ```
 
 ### 2.5 Uninstall
@@ -124,7 +124,7 @@ grok-cli rc-test --root "$tmpdir" --file zshenv --case create
 | Helper | `path_add_zprofile` in `src/grok-cli` |
 | Env | `ZPROFILE` default `${HOME}/.zprofile`; `USER_BIN` default `${HOME}/.local/bin` |
 | Orchestrator | `path_add_shell` calls `path_add_zprofile` and does not pre-assign `ZPROFILE` |
-| Proof | **TP-LC-43** create when `SHELL` is zsh; **TP-LC-44** bash-only does not invent; **TP-LC-45** existing file appends and keeps the body; **TP-LC-46** `rc-test --file zprofile` |
+| Proof | **TP-LC-43** create when `SHELL` is zsh; **TP-LC-44** bash-only does not invent; **TP-LC-45** existing file appends and keeps the body; **TP-LC-46** `rc-test --rc zprofile` |
 | Workspace | ram-drive-first `/dev/shm/grok-cli` when present, else `{{HOME}}/prjs/grok-cli` |
 
 ### 2.7 Why this requirement exists
@@ -162,7 +162,7 @@ When the product detects Termux, Git Bash, Windows cmd, or the same class, admin
 4. Put the PATH export on a `.profile` generated for bash, zsh, or fish.  
 5. Delete startup files on uninstall.  
 6. Let `rc-test` change this login’s real home notes.  
-7. Treat `--file zshrc` as success.  
+7. Treat `--rc zshrc` as success.  
 8. Strip the **Under command line for normal user only** section, or enable admin privilege on Termux / Git Bash / Windows cmd for these writes.  
 9. Re-own `.zshenv` or ash `.profile` in this file’s helpers.
 
@@ -171,7 +171,7 @@ When the product detects Termux, Git Bash, Windows cmd, or the same class, admin
 1. Zsh login creates a missing `.zprofile` with the shared PATH line and also keeps `.zshenv` (**TP-LC-43**).  
 2. Bash-only does not invent `.zprofile` or `.zshenv` (**TP-LC-44**).  
 3. An existing `.zprofile` keeps its body and gains the PATH line once (**TP-LC-45**).  
-4. `rc-test --file zprofile --case create` writes only the fixture (**TP-LC-46**) and is named here and on `requirement-shell-cli-interface`.  
+4. `rc-test --rc zprofile --case create` writes only the fixture (**TP-LC-46**) and is named here and on `requirement-shell-cli-interface`.  
 5. A second install does not duplicate the exact export.
 
 ## 6. Related artifacts (versioned surface only)
@@ -182,7 +182,7 @@ When the product detects Termux, Git Bash, Windows cmd, or the same class, admin
 | `docs/requirements/requirement-shell-path-and-shell-support.md` | Bash / Fish / profile-ensure; orchestrator |
 | `docs/requirements/requirement-shell-zshenv.md` | `.zshenv`; does not write `.zprofile` |
 | `docs/requirements/requirement-shell-alpine.md` | Ash PATH on `.profile` |
-| `docs/requirements/requirement-shell-cli-interface.md` | Dual mention `rc-test --file zprofile` |
+| `docs/requirements/requirement-shell-cli-interface.md` | Dual mention `rc-test --rc zprofile` |
 | `docs/requirements/requirement-shell-modular-function-design.md` | `path_add_zprofile` prefix |
 | `docs/requirements/requirement-class-software-dev.md` | Leftover pointer |
 | `./src/grok-cli` | Implementation under test |
@@ -194,7 +194,7 @@ When the product detects Termux, Git Bash, Windows cmd, or the same class, admin
 | **TP-LC-43** create missing `.zprofile` when `SHELL` is zsh | `tests/test_local_lifecycle.sh` | have |
 | **TP-LC-44** bash-only does not invent `.zprofile` or `.zshenv` | `tests/test_local_lifecycle.sh` | have |
 | **TP-LC-45** existing `.zprofile` appends PATH and keeps the body | `tests/test_local_lifecycle.sh` | have |
-| **TP-LC-46** `rc-test --file zprofile --case create` | `tests/test_local_lifecycle.sh` | have |
+| **TP-LC-46** `rc-test --rc zprofile --case create` | `tests/test_local_lifecycle.sh` | have |
 | **TP-LC-41** missing `.profile` for bash/zsh/fish has no PATH export | `tests/test_local_lifecycle.sh` | **pointed** — `requirement-shell-alpine` |
 | **TP-LC-34 / 35** `.zshenv` create / do-not-invent | `tests/test_local_lifecycle.sh` | **pointed** — `requirement-shell-zshenv` |
 
@@ -224,7 +224,8 @@ When the product detects Termux, Git Bash, Windows cmd, or the same class, admin
 | Date | Status | Notes |
 |------|--------|-------|
 | 2026-10-12 | Active 1.0.0 | Family owner: missing `.profile` / `.zshenv` / `.zprofile`; `.zprofile` PATH; `rc-test --file zprofile` (**TP-LC-43..46**) |
+| 2026-11-18 | Active 1.0.1 | `rc-test` folder switch is `--rc-root`. Startup-file kind for this file is `--rc zprofile` |
 
-**Last Updated**: 2026-10-12  
+**Last Updated**: 2026-11-18  
 **Owner**: grok-cli project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

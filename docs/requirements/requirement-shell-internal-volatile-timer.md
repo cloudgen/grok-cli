@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-internal-volatile-timer.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.0.1)  
 **Area**: shell  
 **Key**: `requirement-shell-internal-volatile-timer`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -69,7 +69,7 @@ Named-stage helpers **MUST** exist under prefix `util_int_timer_*`. They **MUST*
 
 ### 2.4 Debug mode and the numbered menu
 
-14. `--debug` / `DEBUG=1` **MUST** enable elapsed reporting through `out_debug` (stderr). Dual mention: `requirement-shell-cli-interface` owns flag parse; this file owns timer semantics; `requirement-shell-cli-default-interaction` owns which menu steps are timed.  
+14. `--debug` / `DEBUG=1` **MUST** enable elapsed reporting through `out_debug` (stderr). Dual mention: `requirement-shell-cli-interface` owns flag parse; this file owns timer semantics; `requirement-shell-cli-default-interaction` owns which menu steps are timed. `--debug` is the global diagnostic switch. It takes no operand. The well-known test-purpose switches are `--uname-s WORD` and `--uname-a WORD` (`requirement-shell-script-coding`). The well-known test-purpose verb is `rc-test` (`requirement-shell-path-and-shell-support`).  
 15. When `DEBUG=1`, painting the TTY numbered list **MUST** start a named timer at the beginning of each paint step, print `menu step {{name}}: start`, then stop and print `menu step {{name}}: elapsed {{N}}s ({{M}} min {{S}} sec)`.  
 16. When `DEBUG=0`, **MUST NOT** print those lines. Helpers **MAY** no-op the debug wrappers (do not slow the menu with extra work).  
 17. Debug wrappers **MUST NOT** fail the menu: already-running → reset then start; stop without start → print elapsed `0s`.  
@@ -198,7 +198,8 @@ Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is s
 | Date | Status | Note |
 |------|--------|------|
 | 2026-09-07 | Active 1.0.0 | Specialize sibling timer contracts as volatile named internal stages; `--debug` menu elapsed |
+| 2026-11-18 | Active 1.0.1 | `--debug` stays the global diagnostic switch. Well-known test-purpose switches and the verb `rc-test` stay on their owners |
 
-**Last Updated**: 2026-09-07  
+**Last Updated**: 2026-11-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

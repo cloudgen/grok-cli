@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.47  
-**Last plan update:** 2026-10-12  
-**Last suite run:** CLI surface only, 2026-10-10: `run_test_cli` PASS=491 FAIL=0 SKIP=0 (logged-out line is `backup features are not available for logged-out environment.`). Full suite was not re-run. Previous full run 2026-10-02 was PASS=998 FAIL=56 SKIP=0; those 56 fails were **TP-VCLI-19** through **TP-VCLI-36** (Termux/proot grok place and Windows `.exe` place).
+**Product VERSION:** 1.8.49  
+**Last plan update:** 2026-11-17  
+**Last suite run:** full `sh tests/run.sh` on 2026-11-17, PASS=1213 FAIL=0 SKIP=0. **TP-UNAME-01**..**04** and **TP-ARS-01** are have. The earlier 56 **TP-VCLI** fails were the sandbox refusing a PATH file named `uname`; those cases now pass `--uname-s` / `--uname-a`.
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -114,14 +114,14 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LC-37 | `$0` `-ash` writes shared PATH on `.profile` and keeps the bash source block | test_local_lifecycle | requirement-shell-alpine | **have** |
 | TP-LC-38 | `$0` `sh` without alpine-release does not write that PATH line | test_local_lifecycle | requirement-shell-alpine | **have** |
 | TP-LC-39 | Alpine `sh` (`$0` `sh` plus release file) writes the PATH line | test_local_lifecycle | requirement-shell-alpine | **have** |
-| TP-LC-40 | `rc-test --file ash` writes the fixture `.profile` only | test_local_lifecycle | requirement-shell-alpine · requirement-shell-cli-interface | **have** |
+| TP-LC-40 | `rc-test --rc ash` writes the fixture `.profile` only | test_local_lifecycle | requirement-shell-alpine · requirement-shell-cli-interface | **have** |
 | TP-LC-41 | Missing `.profile` for bash, zsh, and fish is generated (source `.bashrc`) with no PATH export | test_local_lifecycle | requirement-shell-alpine · requirement-shell-path-and-shell-support | **have** |
 | TP-LC-42 | Existing `.profile` plus ash appends PATH and keeps the old body | test_local_lifecycle | requirement-shell-alpine | **have** |
 | TP-LC-43 | Zsh creates missing `.zprofile` (and `.zshenv`); no `.zshrc`; second install does not duplicate PATH | test_local_lifecycle | requirement-shell-startup-files | **have** |
 | TP-LC-44 | Bash-only does not invent `.zprofile` or `.zshenv` | test_local_lifecycle | requirement-shell-startup-files | **have** |
 | TP-LC-45 | Existing `.zprofile` appends PATH and keeps the body | test_local_lifecycle | requirement-shell-startup-files | **have** |
-| TP-LC-46 | `rc-test --file zprofile --case create` writes the fixture only | test_local_lifecycle | requirement-shell-startup-files · requirement-shell-cli-interface | **have** |
-| rc-test | routed `--root` create (`bashrc`, `zshenv`, `zprofile`, `profile`, `ash`); real home rc untouched | test_local_lifecycle | requirement-shell-path-and-shell-support · requirement-shell-cli-interface · requirement-shell-zshenv · requirement-shell-startup-files | **have** |
+| TP-LC-46 | `rc-test --rc zprofile --case create` writes the fixture only | test_local_lifecycle | requirement-shell-startup-files · requirement-shell-cli-interface | **have** |
+| rc-test | routed `--rc-root` create (`bashrc`, `zshenv`, `zprofile`, `profile`, `ash`); real home rc untouched | test_local_lifecycle | requirement-shell-path-and-shell-support · requirement-shell-cli-interface · requirement-shell-zshenv · requirement-shell-startup-files | **have** |
 
 ### TP-VCLI (vendor peer grok installer)
 
@@ -233,3 +233,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-VCLI-40 | `reinstall` is routed; help lists it (keeps auth; not grok-cli) | test_grok_setup | requirement-grok-setup · requirement-shell-cli-interface | **have** |
 | TP-VCLI-41 | `reinstall` with no grok still fetches (JSON `reinstall`/`reinstalled`) | test_grok_setup | requirement-grok-setup | **have** |
 | TP-VCLI-42 | already-installed grok is fetched again; `auth.json` kept; JSON `reinstall`/`reinstalled`; no `install.sh` / grok auto-update | test_grok_setup | requirement-grok-setup | **have** |
+| TP-UNAME-01 | No switch: host read goes through `util_uname` and matches this host’s real `uname -s` / `uname -m` | test_grok_setup | requirement-shell-script-coding | **have** |
+| TP-UNAME-02 | `--uname-s MINGW64_NT-10.0` selects `windows-*` on a Linux host; the test does not create a file named `uname` | test_grok_setup | requirement-shell-script-coding · requirement-grok-setup | **have** |
+| TP-UNAME-03 | `--uname-a` text containing `Android` takes the Android setup branch on a non-Android host | test_grok_setup | requirement-shell-script-coding · requirement-shell-termux-coding | **have** |
+| TP-UNAME-04 | Missing, empty, or dash-leading `--uname-s` / `--uname-a` operand dies with `Next:` | test_grok_setup | requirement-shell-script-coding · requirement-operator-readable-error | **have** |
+| TP-ARS-01 | Light catalog has Actor, Role, Subject only; install and help use Subject None; no Approver column | test_cli | requirement-actor-role-subject · requirement-class-software-dev | **have** |

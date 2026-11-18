@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.48-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.49-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -67,14 +67,14 @@ On **Alpine** the login shell is ash (`echo $0` prints `-ash`). If `~/.profile` 
 These lines are the program’s own messages. `$tmpdir` stands for a throw-away folder, not this login’s home. `$HOME` in the PATH lines is that folder’s home:
 
 ```text
-$ grok-cli rc-test --root "$tmpdir/profile" --file profile --case create
+$ grok-cli rc-test --rc-root "$tmpdir/profile" --rc profile --case create
 → Created $tmpdir/profile/.profile (login shell sources ~/.bashrc)
 [OK] rc-test profile create under $tmpdir/profile
-$ grok-cli rc-test --root "$tmpdir/zshenv" --file zshenv --case create
+$ grok-cli rc-test --rc-root "$tmpdir/zshenv" --rc zshenv --case create
 → Created $tmpdir/zshenv/.zshenv
 → Added $HOME/.local/bin to PATH for zsh (.zshenv)
 [OK] rc-test zshenv create under $tmpdir/zshenv
-$ grok-cli rc-test --root "$tmpdir/zprofile" --file zprofile --case create
+$ grok-cli rc-test --rc-root "$tmpdir/zprofile" --rc zprofile --case create
 → Created $tmpdir/zprofile/.zprofile
 → Added $HOME/.local/bin to PATH for zsh (.zprofile)
 [OK] rc-test zprofile create under $tmpdir/zprofile
@@ -84,7 +84,7 @@ If grok already **runs** on this host, a real terminal offers keep / reinstall /
 
 ```text
 $ grok-cli setup
-[INFO] **grok-cli**(*1.8.48*) — setup
+[INFO] **grok-cli**(*1.8.49*) — setup
 [INFO] grok is already installed at ~/.grok/bin/grok.
 1. keep: Leave the existing grok
 2. reinstall: Remove existing grok and install again
@@ -154,7 +154,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.48*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.49*) — Alternative online installer for xAI grok
 [INFO] checking session (grok -p hello, timeout 14s)...
 [INFO] logged out
 [INFO] backup features are not available for logged-out environment.
@@ -194,7 +194,7 @@ On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** a
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.48*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.49*) — Alternative online installer for xAI grok
 [INFO] logged out
 [INFO] backup, sync-auth and sudoers features are not available in termux.
 [INFO] backup features are not available for logged-out environment.
@@ -209,7 +209,7 @@ Live capture on a multi-user host that is **logged in**:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.48*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.49*) — Alternative online installer for xAI grok
 [INFO] checking session (grok -p hello, timeout 14s)...
 [INFO] logged in
 [INFO] sync-auth and sync-auth-from-remote features are not available for logged-in environment.
@@ -484,6 +484,8 @@ Keep changes surgical. Honor **CIAO-Lite Protection Zones** in `src/grok-cli`. P
 MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
+
+2026-11-17 — version **1.8.49**: test-purpose `--uname-s` and `--uname-a` inject a host line through `util_uname`. Setup tests use those switches. A PATH file named `uname` is not required.
 
 2026-11-17 — version **1.8.48**: `sync-to-remote` asks for a number, then each remote host and remote user, checks `~/.grok`, and uploads `auth.*` to each remote `~/.grok`. Auth menu **17** is that verb on every host and in both sessions. **18** is not a row. `sync-auth-to-remote` stays typed-only. `--json` does not prompt.
 
