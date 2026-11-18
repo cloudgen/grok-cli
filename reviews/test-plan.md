@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit:** `src/grok-cli`  
-**Product VERSION:** 1.8.49  
-**Last plan update:** 2026-11-17  
-**Last suite run:** full `sh tests/run.sh` on 2026-11-17, PASS=1213 FAIL=0 SKIP=0. **TP-UNAME-01**..**04** and **TP-ARS-01** are have. The earlier 56 **TP-VCLI** fails were the sandbox refusing a PATH file named `uname`; those cases now pass `--uname-s` / `--uname-a`.
+**Product VERSION:** 1.8.50  
+**Last plan update:** 2026-11-18  
+**Last suite run:** full `sh tests/run.sh` on 2026-11-18, PASS=1213 FAIL=0 SKIP=0. **TP-UNAME-01**..**04** and **TP-ARS-01** are have. The earlier 56 **TP-VCLI** fails were the sandbox refusing a PATH file named `uname`; those cases now pass `--uname-s` / `--uname-a`. The 1.8.50 README figure does not change those proofs.
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 

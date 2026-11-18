@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.50] - 2026-11-18
+
+### Added
+
+- **Setup place map.** The README figure `images/grok-install-where.png` shows how `uname -s` and `uname -m` name the grok file, and where `setup`, `update-grok`, and `reinstall` put it. The folder is `~/.grok` or `GROK_HOME`. Linux and macOS symlink `bin/grok`. Android keeps the `linux-*` file and may wrap `bin/grok`. Git Bash, MSYS, and Cygwin copy `bin/grok.exe`. The cache host kind does not choose that URL or folder. Law: `requirement-grok-setup` **2.16.0**.
+
 ## [1.8.49] - 2026-11-18
 
 ### Added

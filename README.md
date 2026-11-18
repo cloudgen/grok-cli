@@ -1,6 +1,6 @@
 # grok-cli - Alternative online installer for xAI grok
 
-![Version](https://img.shields.io/badge/Version-1.8.49-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.8.50-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/grok-cli?style=flat-square)](https://github.com/cloudgen/grok-cli)
@@ -84,7 +84,7 @@ If grok already **runs** on this host, a real terminal offers keep / reinstall /
 
 ```text
 $ grok-cli setup
-[INFO] **grok-cli**(*1.8.49*) — setup
+[INFO] **grok-cli**(*1.8.50*) — setup
 [INFO] grok is already installed at ~/.grok/bin/grok.
 1. keep: Leave the existing grok
 2. reinstall: Remove existing grok and install again
@@ -93,6 +93,26 @@ Choice [1]:
 ```
 
 On **Termux (aarch64)** run `grok-cli setup` **on the phone**. `scp` of `~/.grok/bin/grok` from an x86_64 host copies `linux-x86_64` and Termux will reject it (`EM_X86_64` instead of `EM_AARCH64`). `setup` fetches `linux-aarch64` from x.ai; `--force` replaces a copied x86_64 file. If `--version` fails with `unexpected e_type: 2`, setup tries `pkg install -y proot` on Termux and wraps grok. If that still cannot run: `pkg install proot`, then `grok-cli setup --force`.
+
+## Where setup installs grok
+
+`grok-cli setup`, `update-grok`, and `reinstall` read this computer once, then download the matching xAI file. The folder does not change with the operating system. It is `~/.grok`, or `GROK_HOME` when that variable is set.
+
+![How setup chooses the grok file and where it is installed](images/grok-install-where.png)
+
+`uname -s` chooses the operating-system half of the name: `Linux` becomes `linux`, `Darwin` becomes `macos`, and `MINGW*`, `MSYS*`, or `CYGWIN*` becomes `windows`. A test run may pass `--uname-s WORD` in place of that one line. `uname -m` chooses `x86_64` or `aarch64` and is always this machine. On macOS, an `x86_64` report with `sysctl -n hw.optional.arm64` equal to `1` is Rosetta, so the name is `macos-aarch64`. Any other operating system or CPU stops before a download. Native Windows PowerShell stays on `install.ps1`.
+
+The version pointer is the same on every host: `https://x.ai/cli/stable` (or `alpha`, or `enterprise`), then `https://storage.googleapis.com/grok-build-public-artifacts/cli/{channel}`. Linux and macOS then fetch `grok-{version}-{os}-{arch}`, trying `.zst`, then `.gz`, then the raw file. Git Bash, MSYS, and Cygwin fetch `grok-{version}-windows-{arch}.exe` first. Android stays on `linux-*` because `uname -s` there is `Linux`. A test `--uname-a` line that contains `Android` marks the host for the wrapper below. It does not rename the file.
+
+The download is saved and smoked under `~/.grok/downloads`. The cache folder, `/tmp`, and `/dev/shm` are not that path. A downloaded ELF whose machine type does not match this CPU is deleted and not installed.
+
+What differs is the runnable file:
+
+- **Linux and macOS.** `~/.grok/downloads/grok-{os}-{arch}`. `~/.grok/bin/grok` and `~/.grok/bin/agent` are symlinks to that file. A second symlink goes in the first writable directory already on `PATH`: `~/.local/bin`, then `/usr/local/bin`, then `$PREFIX/bin` on Termux.
+- **Android** (`uname -a` or `uname -o` contains `Android`). The vendor file stays at `~/.grok/downloads/grok-linux-{arch}` and is not edited. `~/.grok/bin/grok` is a shell wrapper (Termux exec opt-out, or `proot`). `agent` points at that wrapper. If every retry fails, the file is left as `~/.grok/downloads/grok-linux-{arch}.failed` and nothing is installed.
+- **Git Bash, MSYS, and Cygwin.** `~/.grok/downloads/grok-windows-{arch}.exe` is copied to `~/.grok/bin/grok.exe` and `~/.grok/bin/agent.exe`. No symlink is added under `~/.local/bin` or `/usr/local/bin`.
+
+`GROK_CLI_CACHE_HOST` (else `MSYSTEM`, else `uname -s`) only chooses the scratch directory for the version pointer. It does not choose the grok URL or `~/.grok`.
 
 **Global grok-cli (root):**
 
@@ -154,7 +174,7 @@ After install, on a terminal:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.49*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.50*) — Alternative online installer for xAI grok
 [INFO] checking session (grok -p hello, timeout 14s)...
 [INFO] logged out
 [INFO] backup features are not available for logged-out environment.
@@ -194,7 +214,7 @@ On Termux / Git Bash / Windows cmd, **backup**, **sync-auth**, and **sudoers** a
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.49*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.50*) — Alternative online installer for xAI grok
 [INFO] logged out
 [INFO] backup, sync-auth and sudoers features are not available in termux.
 [INFO] backup features are not available for logged-out environment.
@@ -209,7 +229,7 @@ Live capture on a multi-user host that is **logged in**:
 
 ```text
 $ grok-cli menu
-[INFO] **grok-cli**(*1.8.49*) — Alternative online installer for xAI grok
+[INFO] **grok-cli**(*1.8.50*) — Alternative online installer for xAI grok
 [INFO] checking session (grok -p hello, timeout 14s)...
 [INFO] logged in
 [INFO] sync-auth and sync-auth-from-remote features are not available for logged-in environment.
@@ -484,6 +504,8 @@ Keep changes surgical. Honor **CIAO-Lite Protection Zones** in `src/grok-cli`. P
 MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
+
+2026-11-18 — version **1.8.50**: the README figure shows how this computer names the grok download and where `setup` writes it under `~/.grok`.
 
 2026-11-17 — version **1.8.49**: test-purpose `--uname-s` and `--uname-a` inject a host line through `util_uname`. Setup tests use those switches. A PATH file named `uname` is not required.
 

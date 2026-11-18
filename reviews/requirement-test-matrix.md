@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — grok-cli
 
-**Updated:** 2026-11-17 (1.8.49 `util_uname` and `--uname-s` / `--uname-a`; actor catalog proof have)  
-**Product VERSION:** 1.8.49
+**Updated:** 2026-11-18 (1.8.50 README figure for the grok artifact name and `~/.grok` place; behavior unchanged from 1.8.49)  
+**Product VERSION:** 1.8.50
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
